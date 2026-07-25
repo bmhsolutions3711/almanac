@@ -49,7 +49,8 @@
 [hidden]{display:none !important}
 html,body{margin:0;height:100%;background:#0B0C0C;overflow:hidden}
 body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;
-     touch-action:none;user-select:none;-webkit-user-select:none}
+     touch-action:manipulation;overscroll-behavior:none;
+     user-select:none;-webkit-user-select:none}
 
 .plate{position:relative;width:100vw;height:100svh;overflow:hidden;background:#2A2F2D}
 /* The plate IS the viewport. Brushed steel is painted to a canvas underneath —
