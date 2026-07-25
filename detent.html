@@ -273,6 +273,39 @@ addEventListener("resize", () => { clearTimeout(steelT); steelT = setTimeout(pai
 /* ── config ───────────────────────────────────────────────────────────── */
 let API = localStorage.getItem("almanac_api") || "";
 let TOK = localStorage.getItem("almanac_token") || "";
+
+/* The QR handshake from BIK Connect, and the escape hatch. Credentials arrive ONCE
+   as #cfg=<url-encoded {api,token}>, land in localStorage, and the hash is scrubbed
+   immediately so the token never survives in history, in a back-button, or in a
+   screenshot of the address bar. #reset unregisters the worker and clears the caches
+   — the way out when a phone is stuck on an old build. Both are PWA doctrine and
+   both were missing here, which would have made the BIK Connect QR land on a page
+   that said "not connected". */
+(function bootstrap(){
+  const h = location.hash || "";
+  if(h === "#reset" || h === "#nuke"){
+    (async () => {
+      try{
+        const regs = await (navigator.serviceWorker?.getRegistrations?.() ?? []);
+        await Promise.all(regs.map(r => r.unregister()));
+        const ks = await (caches?.keys?.() ?? []);
+        await Promise.all(ks.map(k => caches.delete(k)));
+      }catch(e){}
+      if(h === "#nuke"){ localStorage.removeItem("almanac_api"); localStorage.removeItem("almanac_token"); }
+      location.replace(location.pathname + location.search);
+    })();
+    return;
+  }
+  const m = h.match(/[#&]cfg=([^&]+)/);
+  if(m){
+    try{
+      const cfg = JSON.parse(decodeURIComponent(m[1]));
+      if(cfg.api)   localStorage.setItem("almanac_api",   API = cfg.api.replace(/\/$/, ""));
+      if(cfg.token) localStorage.setItem("almanac_token", TOK = cfg.token);
+      history.replaceState(null, "", location.pathname + location.search);
+    }catch(e){}
+  }
+})();
 const configured = () => localStorage.getItem("almanac_token") !== null && TOK !== "";
 const $ = id => document.getElementById(id);
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
