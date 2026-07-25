@@ -8,7 +8,7 @@
  * Bump VERSION to ship an update; it activates immediately rather than waiting
  * for every tab to close, because on a phone that never happens.
  */
-const VERSION = 'almanac-shell-v1';
+const VERSION = 'almanac-shell-v2';
 const SHELL = ['./', './index.html', './manifest.json',
                './icons/icon-192.png', './icons/icon-512.png'];
 

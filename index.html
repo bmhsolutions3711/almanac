@@ -228,6 +228,32 @@
   .alldone h2{font-family:var(--serif); font-size:26px; margin:0 0 8px; font-weight:600}
   .alldone p{margin:0; color:var(--muted); font-size:15px}
 
+  /* ── build / version ───────────────────────────────────────────────────── */
+  .buildline{display:flex; justify-content:space-between; align-items:center; margin-top:8px}
+  .ver, .reconnect{
+    background:none; border:1px solid var(--rule); border-radius:2px; color:var(--faint);
+    font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    padding:4px 9px; cursor:pointer;
+  }
+  .ver:hover, .reconnect:hover{color:var(--red); border-color:var(--red)}
+  .ver.checking{color:var(--warn); border-color:var(--warn)}
+  .ver.fresh{color:var(--good); border-color:var(--good)}
+
+  /* ── connect ───────────────────────────────────────────────────────────── */
+  .connect{background:var(--panel); border:1px solid var(--rule); border-left:3px solid var(--red);
+    border-radius:0 3px 3px 0; padding:20px 18px; margin:16px 0 0}
+  .connect b{display:block; font-family:var(--serif); font-size:19px; margin-bottom:5px}
+  .connect p{margin:0 0 14px; color:var(--muted); font-size:14px; line-height:1.5}
+  .connect label{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--faint); margin-bottom:4px}
+  .connect input{width:100%; background:var(--sunk); border:1px solid var(--rule); border-radius:3px;
+    color:var(--ink); font-family:var(--mono); font-size:15px; padding:11px; margin-bottom:12px}
+  .connect input:focus{outline:none; border-color:var(--red)}
+  .connect button{width:100%; background:var(--red); color:var(--paper); border:0; border-radius:3px;
+    padding:14px; font-family:inherit; font-size:15px; font-weight:600; cursor:pointer}
+  .connect .hint{margin-top:10px; font-size:12.5px; color:var(--faint); line-height:1.5}
+  .connect .hint.bad{color:var(--red)}
+
   /* ── install ───────────────────────────────────────────────────────────── */
   .install{
     display:flex; align-items:center; gap:12px; background:var(--red); color:var(--paper);
@@ -326,15 +352,29 @@
     <button class="x" id="installDismiss" aria-label="Not now">✕</button>
   </div>
 
-  <div class="install" id="notConnected" hidden style="background:var(--ink);color:var(--paper)">
-    <div class="it"><b>Not connected yet</b>
-      <span>Scan the Almanac card in BIK Connect to link this app to your Mac.</span></div>
+  <!-- Connect panel. The QR is the easy path, but an installed app opens with
+       no hash — and on iOS it gets its own empty storage jar — so there has to
+       be a way in from inside the app or it is bricked. -->
+  <div class="connect" id="connect" hidden>
+    <b>Connect this app to your Mac</b>
+    <p>Scan the Almanac card in BIK Connect, or paste it here. Both live only on this device.</p>
+    <label for="cfgUrl">Backend</label>
+    <input type="url" id="cfgUrl" placeholder="https://….ts.net:8600" autocomplete="off"
+           autocapitalize="off" spellcheck="false">
+    <label for="cfgToken">Token</label>
+    <input type="password" id="cfgToken" placeholder="ALMANAC_TOKEN" autocomplete="off">
+    <button id="cfgSave">Connect</button>
+    <div class="hint" id="cfgHint">Tap the masthead any time to reopen this.</div>
   </div>
 
   <header>
     <div class="masthead">
       <h1>Almanac</h1>
       <span class="dateline" id="dateline">—</span>
+    </div>
+    <div class="buildline">
+      <button class="ver" id="ver" title="Tap to check for an update">v2</button>
+      <button class="reconnect" id="reconnect">connect</button>
     </div>
     <nav class="views" id="views">
       <button data-view="today" aria-pressed="true">Today</button>
@@ -855,9 +895,19 @@ if ("serviceWorker" in navigator) {
    the app tells you how to become an app, rather than leaving you in a menu. */
 (function(){
   const bar = $("installBar"), btn = $("installBtn");
-  const installed = window.matchMedia("(display-mode: standalone)").matches
-                 || window.navigator.standalone === true;
-  if(installed || localStorage.getItem("almanac_install_dismissed")) return;
+  // Installed detection has to cover Chrome (display-mode), iOS (navigator
+  // .standalone), and the case where the browser tab is still open alongside the
+  // installed app — so appinstalled is remembered, not just reacted to.
+  const isInstalled = () =>
+       window.matchMedia("(display-mode: standalone)").matches
+    || window.matchMedia("(display-mode: minimal-ui)").matches
+    || window.navigator.standalone === true
+    || localStorage.getItem("almanac_installed") === "1";
+  const hide = () => { bar.hidden = true; };
+  if(isInstalled() || localStorage.getItem("almanac_install_dismissed")) { hide(); return; }
+  // Re-check when the app regains focus: installing in one context should clear
+  // the banner in the other.
+  document.addEventListener("visibilitychange", () => { if(isInstalled()) hide(); });
 
   const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   let deferred = null;
@@ -878,16 +928,77 @@ if ("serviceWorker" in navigator) {
     deferred.prompt();
     const { outcome } = await deferred.userChoice;
     deferred = null;
-    if(outcome === "accepted") bar.hidden = true;
+    if(outcome === "accepted"){ localStorage.setItem("almanac_installed", "1"); bar.hidden = true; }
   });
   $("installDismiss").addEventListener("click", () => {
     bar.hidden = true;
     localStorage.setItem("almanac_install_dismissed", "1");
   });
-  window.addEventListener("appinstalled", () => { bar.hidden = true; });
+  window.addEventListener("appinstalled", () => {
+    localStorage.setItem("almanac_installed", "1");
+    bar.hidden = true;
+  });
 })();
 
-if (!API) { const n = $("notConnected"); if (n) n.hidden = false; }
+/* ── connect ───────────────────────────────────────────────────────────── */
+function showConnect(){
+  $("connect").hidden = false;
+  $("cfgUrl").value = API || "";
+  $("cfgUrl").focus();
+}
+$("cfgSave").addEventListener("click", async () => {
+  const url = $("cfgUrl").value.trim().replace(/\/$/, "");
+  const tok = $("cfgToken").value.trim();
+  const hint = $("cfgHint");
+  if(!url || !tok){ hint.textContent = "Both fields are needed."; hint.className = "hint bad"; return; }
+  hint.textContent = "Checking…"; hint.className = "hint";
+  try{
+    const r = await _fetch(url + "/api/health", {headers:{Authorization:"Bearer " + tok}});
+    if(!r.ok) throw new Error("got " + r.status);
+    localStorage.setItem("almanac_api", API = url);
+    localStorage.setItem("almanac_token", TOK = tok);
+    $("connect").hidden = true;
+    toast("Connected.");
+    load(); loadSoul();
+  } catch(e){
+    // Say what actually went wrong — "failed" sends you hunting.
+    hint.textContent = "Could not reach it (" + e.message + "). Is Tailscale on, and is Almanac running on the Mac?";
+    hint.className = "hint bad";
+  }
+});
+$("reconnect").addEventListener("click", showConnect);
+
+/* ── version ───────────────────────────────────────────────────────────────
+   The build is visible and tappable. A PWA that silently runs six versions
+   behind is the failure this exists to prevent — and when something looks wrong
+   the first question is always "which build am I on?" */
+const BUILD = "v2";
+$("ver").textContent = BUILD;
+$("ver").addEventListener("click", async () => {
+  const el = $("ver");
+  el.className = "ver checking"; el.textContent = "checking";
+  try{
+    const regs = await navigator.serviceWorker.getRegistrations();
+    let found = false;
+    for(const r of regs){
+      await r.update();
+      if(r.waiting || r.installing) found = true;
+    }
+    if(found){
+      el.textContent = "updating";
+      toast("New build found — reloading.");
+      setTimeout(() => location.reload(), 900);
+    } else {
+      el.className = "ver fresh"; el.textContent = BUILD + " · current";
+      setTimeout(() => { el.className = "ver"; el.textContent = BUILD; }, 2600);
+    }
+  } catch(e){
+    el.className = "ver"; el.textContent = BUILD;
+    toast("Could not check for an update.");
+  }
+});
+
+if (!API) showConnect();
 
 load();
 loadSoul();
