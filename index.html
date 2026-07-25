@@ -373,7 +373,7 @@
       <span class="dateline" id="dateline">—</span>
     </div>
     <div class="buildline">
-      <button class="ver" id="ver" title="Tap to check for an update">v2</button>
+      <button class="ver" id="ver" title="Tap to check for an update">v3</button>
       <button class="reconnect" id="reconnect">connect</button>
     </div>
     <nav class="views" id="views">
@@ -972,7 +972,7 @@ $("reconnect").addEventListener("click", showConnect);
    The build is visible and tappable. A PWA that silently runs six versions
    behind is the failure this exists to prevent — and when something looks wrong
    the first question is always "which build am I on?" */
-const BUILD = "v2";
+const BUILD = "v3";
 $("ver").textContent = BUILD;
 $("ver").addEventListener("click", async () => {
   const el = $("ver");
