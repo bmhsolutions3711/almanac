@@ -24,6 +24,12 @@
   freezes its animation timeline and resumes it later, which once fired a $1,500
   write nobody asked for.
 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2A2F2D">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="detent.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Almanac</title>
 
 <style>
@@ -726,6 +732,8 @@ $("cfgGo").addEventListener("click", async () => {
     $("connect").hidden = true; load();
   }catch(e){ m.classList.add("bad"); m.textContent = "could not reach the spine: " + (e.message||e); }
 });
+
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 
 buildNodes(); paint();
 if(!configured()){ $("kick").textContent = "NOT CONNECTED"; $("head").textContent = "Connect to the spine"; showConnect(); }
