@@ -53,6 +53,11 @@ body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;
      user-select:none;-webkit-user-select:none}
 
 .plate{position:relative;width:100vw;height:100svh;overflow:hidden;background:#2A2F2D}
+@media (min-width:640px){
+  .plate{width:430px;height:min(900px,96svh);border-radius:10px;
+    box-shadow:0 0 0 1px rgba(0,0,0,.7),0 24px 60px -12px rgba(0,0,0,.75),
+               inset 0 1px 0 rgba(255,255,255,.06)}
+}
 /* The plate IS the viewport. Brushed steel is painted to a canvas underneath —
    a CSS gradient cannot do anisotropic grain, and the flat version read as a
    card floating in a void rather than a machined face. */
@@ -245,7 +250,8 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
    stretched by CSS — the grain is anisotropic, so mild stretching helps it. */
 function paintSteel(){
   const cv = document.getElementById("steel");
-  const W = Math.min(Math.round(innerWidth), 720), H = Math.min(Math.round(innerHeight), 1480);
+  const r = cv.parentElement.getBoundingClientRect();
+  const W = Math.min(Math.round(r.width) || 430, 720), H = Math.min(Math.round(r.height) || 900, 1480);
   if(cv.width === W && cv.height === H) return;
   cv.width = W; cv.height = H;
   const g = cv.getContext("2d"), img = g.createImageData(W,H), px = img.data;
