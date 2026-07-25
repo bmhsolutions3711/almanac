@@ -1,0 +1,612 @@
+<!--
+  ALMANAC — DETENT.
+
+  One machined plate. A spindle down the right side is the only navigation there
+  is: light detents step through things you act on, a HEAVY detent crosses into
+  another part of your life. Tabs break at five; a spindle has no fixed number of
+  positions, so a new domain is one more detent and never a fifth tab.
+
+  TODAY IS POSITION ZERO WITH A HARD STOP. You cannot roll above it, and one press
+  of the plate returns you from anywhere. "First in front of me is always today"
+  is a property of the machine, not a rule written on it.
+
+  WHAT THE SPINDLE INDEXES: things you act on. Today, Learn and Soul are one node
+  each — pages you read, which scroll on their own. Finances expands into one node
+  per obligation, because those are settled one at a time and a detent is exactly
+  the right control for that.
+
+  THE LATCH IS UNCHANGED and is the thing this whole surface exists to carry: the
+  progress of the lever IS the progress of the write. The request leaves at the
+  phase boundary, the lever holds under real tension for as long as the network
+  takes, and the confirmation is drawn only after a parsed 2xx. On failure the row
+  stays standing, the lamp does not change, and the spine's own words say what was
+  NOT written. The WALL CLOCK decides, never animation.finished — a hidden document
+  freezes its animation timeline and resumes it later, which once fired a $1,500
+  write nobody asked for.
+-->
+<title>Almanac</title>
+
+<style>
+:root{
+  --plate:#2A2F2D; --plate-hi:#3A403D; --plate-lo:#1B1F1E; --well:#151817;
+  --ink:#E6E9E7; --mid:#B4BBB7; --dim:#98A09C; --etch:#6B726E;
+  --lamp:#FFA419; --hot:#FF6A2A; --red:#C4271A; --unknown:#6E6E6E;
+  --mono:ui-monospace,"SF Mono","Roboto Mono","DejaVu Sans Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,sans-serif;
+  --engrave:0 -1px .8px rgba(10,12,11,.55), 0 1px 0 rgba(190,198,194,.30);
+  --ease-settle:linear(0,.13 3.2%,.48 8.7%,.79 14.5%,.95 19.6%,1.02 25%,1.03 31%,1 40%,1 100%);
+  --ease-refuse:linear(0,.42 12%,-.18 32%,.09 52%,-.03 72%,0 100%);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%;background:#0B0C0C;overflow:hidden}
+body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;
+     touch-action:none;user-select:none;-webkit-user-select:none}
+
+.plate{position:relative;width:min(420px,100vw);height:min(860px,100svh);overflow:hidden;
+  background:linear-gradient(180deg,var(--plate-hi) 0%,var(--plate) 12%,var(--plate) 88%,var(--plate-lo) 100%)}
+.plate::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,rgba(0,0,0,.03) 1px 2px,transparent 2px 4px)}
+.screw{position:absolute;width:15px;height:15px;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,#6E756F,#2C302E 68%);
+  box-shadow:0 1px 0 rgba(255,255,255,.10),inset 0 -1px 1px rgba(0,0,0,.5)}
+.screw::after{content:"";position:absolute;inset:0;margin:auto;width:9px;height:1.6px;
+  background:#141716;transform:rotate(28deg)}
+.s1{left:12px;top:12px}.s2{right:12px;top:12px}.s3{left:12px;bottom:12px}.s4{right:12px;bottom:12px}
+
+/* the lamp — one light. amber = your hand is needed, dark = it is not. never green. */
+.lamp{position:absolute;right:96px;top:22px;width:19px;height:19px;border-radius:50%;
+  background:radial-gradient(circle at 36% 30%,#4A4340,#241F1D 70%);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.07);transition:all .4s}
+.lamp.on{background:radial-gradient(circle at 36% 30%,#FFD98A,var(--lamp) 45%,#B96A08 100%);
+  box-shadow:0 0 16px -1px rgba(255,164,25,.75),inset 0 1px 2px rgba(255,255,255,.35)}
+
+/* ── readout ───────────────────────────────────────────────────────────── */
+.stage{position:absolute;left:26px;top:40px;right:104px;bottom:170px;display:flex;flex-direction:column}
+.kick{font:700 12.5px/1 var(--mono);letter-spacing:.24em;color:var(--dim);text-shadow:var(--engrave)}
+.kick b{color:var(--lamp);font-weight:700}
+.head{margin-top:14px;font:700 27px/1.08 var(--sans);letter-spacing:.01em;text-transform:uppercase;
+  text-shadow:0 -1px 1px rgba(10,12,11,.55),0 1.5px 0 rgba(190,198,194,.18)}
+.fig{margin-top:8px;font:700 clamp(38px,11vw,52px)/1 var(--mono);letter-spacing:-.022em;
+  font-variant-numeric:tabular-nums slashed-zero}
+.fig .u{color:var(--unknown);font-weight:400;letter-spacing:.1em;font-size:.6em}
+.fig.unk{color:var(--unknown);font-weight:400;letter-spacing:.12em}
+.sub{margin-top:12px;font:600 12.5px/1.55 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--mid);text-shadow:var(--engrave)}
+.why{margin-top:10px;font:400 12px/1.55 var(--mono);letter-spacing:.02em;color:var(--hot)}
+
+/* ── the work: 3 visible, the rest scrolls ─────────────────────────────── */
+.work{margin-top:20px;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;gap:9px;
+  /* THREE cards, and a sliver of the fourth under the fade. The board WILL grow —
+     the point of a fixed window is that growth never eats the page, and the fade is
+     the only affordance needed to say there is more below. Measured, not guessed:
+     a two-line card is 96px and the gap is 9px, so three is 306 and the extra 22
+     leaves a sliver of the fourth showing through the fade. */
+  max-height:328px;
+  overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - 26px),transparent 100%);
+          mask-image:linear-gradient(180deg,#000 0,#000 calc(100% - 26px),transparent 100%)}
+.work::-webkit-scrollbar{width:0}
+.card{flex:0 0 auto;background:linear-gradient(180deg,#313735,#232827);border-radius:2px;
+  padding:11px 13px;box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset;
+  display:grid;grid-template-columns:1fr auto;gap:3px 10px;align-items:baseline}
+.card .t{font:600 14px/1.3 var(--sans);color:var(--ink)}
+.card .n{font:700 11.5px/1 var(--mono);letter-spacing:.14em;color:var(--etch);justify-self:end}
+.card .m{grid-column:1/-1;display:flex;align-items:center;gap:9px;margin-top:5px}
+.card .bar{flex:1;height:3px;background:#171A19;border-radius:2px;overflow:hidden}
+.card .bar i{display:block;height:100%;background:var(--mid)}
+.card .p{font:600 11px/1 var(--mono);letter-spacing:.1em;color:var(--dim);white-space:nowrap}
+.card.now{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+  inset 2px 0 0 var(--lamp)}
+.card.bryan .n{color:var(--lamp)}
+
+/* ── the ladder ────────────────────────────────────────────────────────── */
+.ladder{position:absolute;left:26px;bottom:82px;display:flex;flex-direction:column;gap:9px}
+.rung{display:flex;align-items:center;gap:9px;font:700 11.5px/1 var(--mono);letter-spacing:.2em;
+  color:var(--dim);transition:color .18s}
+.rung i{width:14px;height:2px;background:#6B726E;display:block;transition:all .18s}
+.rung.on{color:var(--lamp)}
+.rung.on i{background:var(--lamp);width:24px;box-shadow:0 0 8px -1px var(--lamp)}
+
+/* ── the spindle ───────────────────────────────────────────────────────── */
+.zone{position:absolute;right:0;top:0;width:92px;height:100%;touch-action:none;cursor:grab}
+.zone:active{cursor:grabbing}
+canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;display:block;border-radius:3px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.55),inset 0 0 22px rgba(0,0,0,.6),-2px 0 10px -6px rgba(0,0,0,.8)}
+.ptr{position:absolute;right:72px;top:0;width:16px;height:16px;pointer-events:none;transform:translateY(-8px)}
+.ptr::after{content:"";position:absolute;right:0;top:0;border:8px solid transparent;
+  border-right-color:var(--lamp);filter:drop-shadow(0 0 5px rgba(255,164,25,.5))}
+
+/* ── the lever: the write, made physical ───────────────────────────────── */
+.lever{position:absolute;left:26px;right:104px;bottom:14px;height:56px;border-radius:3px;overflow:hidden;
+  background:linear-gradient(180deg,#3C423F,#252A28);
+  box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 -2px 0 rgba(0,0,0,.4) inset,0 2px 3px rgba(0,0,0,.45);
+  display:grid;place-items:center;touch-action:none;cursor:pointer;border:0;padding:0;width:auto}
+.lever .cap{position:relative;z-index:2;font:700 13px/1 var(--mono);letter-spacing:.22em;
+  color:var(--mid);text-shadow:var(--engrave)}
+.lever .rail{position:absolute;inset:0;background:linear-gradient(180deg,#6A736E,#414945);
+  transform:scaleX(0);transform-origin:left center;z-index:1;opacity:.55}
+.lever[data-state="seating"] .rail{animation:breath 1.2s ease-in-out infinite}
+@keyframes breath{0%,100%{transform:scaleX(1)}50%{transform:scaleX(1.012)}}
+.lever[disabled]{opacity:.42;cursor:default}
+.lever[data-state="refused"]{box-shadow:0 0 0 1.5px var(--red) inset,0 2px 3px rgba(0,0,0,.45)}
+
+.hint{position:absolute;right:22px;bottom:16px;width:48px;text-align:center;
+  font:600 9.5px/1.4 var(--mono);letter-spacing:.12em;color:var(--etch)}
+
+/* ── connect ───────────────────────────────────────────────────────────── */
+.panel{position:absolute;inset:26px;background:var(--well);border:1px solid #3A403D;border-radius:3px;
+  padding:20px;display:flex;flex-direction:column;gap:13px;z-index:9;overflow:auto}
+.panel h2{margin:0;font:700 18px/1.2 var(--sans);text-transform:uppercase;letter-spacing:.02em}
+.panel p{margin:0;color:var(--dim);font:400 13px/1.5 var(--sans)}
+.panel label{display:flex;flex-direction:column;gap:5px;font:700 11px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
+.panel input{background:#0E1110;border:1px solid #3A403D;border-radius:2px;color:var(--ink);
+  font:400 14px/1.3 var(--mono);padding:11px}
+.panel button{background:var(--mid);color:#151817;border:0;border-radius:2px;
+  font:700 12px/1 var(--mono);letter-spacing:.18em;padding:13px;cursor:pointer}
+.panel .msg{font:400 11.5px/1.5 var(--mono);color:var(--dim)}
+.panel .msg.bad{color:var(--hot)}
+
+@media (prefers-reduced-motion:reduce){
+  .lever[data-state="seating"] .rail{animation:none}
+  .rung i{transition:none}
+}
+</style>
+
+<div class="plate" id="plate">
+  <span class="screw s1"></span><span class="screw s2"></span>
+  <span class="screw s3"></span><span class="screw s4"></span>
+  <span class="lamp" id="lamp"></span>
+
+  <div class="stage">
+    <div class="kick" id="kick">reading the spine</div>
+    <div class="head" id="head"></div>
+    <div class="fig" id="fig"></div>
+    <div class="sub" id="sub"></div>
+    <div class="why" id="whyLine" hidden></div>
+    <div class="work" id="work" hidden></div>
+  </div>
+
+  <div class="ladder" id="ladder"></div>
+
+  <button class="lever" id="lever" disabled>
+    <span class="rail" id="rail"></span><span class="cap" id="leverCap">—</span>
+  </button>
+
+  <div class="zone" id="zone">
+    <canvas class="wheel" id="wheel" width="96" height="1200"></canvas>
+    <div class="ptr"></div>
+  </div>
+  <div class="hint">ROLL</div>
+
+  <section class="panel" id="connect" hidden>
+    <h2>Connect</h2>
+    <p>Both values stay on this device.</p>
+    <label>BACKEND<input id="cfgApi" inputmode="url" placeholder="https://…"></label>
+    <label>TOKEN<input id="cfgTok" type="password" placeholder="ALMANAC_TOKEN"></label>
+    <button id="cfgGo">CONNECT</button>
+    <span class="msg" id="cfgMsg">Checked against the spine before it is saved.</span>
+  </section>
+</div>
+
+<script>
+"use strict";
+(() => {
+
+/* ── config ───────────────────────────────────────────────────────────── */
+let API = localStorage.getItem("almanac_api") || "";
+let TOK = localStorage.getItem("almanac_token") || "";
+const configured = () => localStorage.getItem("almanac_token") !== null && TOK !== "";
+const $ = id => document.getElementById(id);
+const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const url = p => (API || "") + p;
+const hdr = x => Object.assign({ Authorization: "Bearer " + TOK }, x || {});
+const money = v => v == null ? null :
+  "$" + Number(v).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+
+const State = { source:"none", standings:null, board:null, learn:null, soul:null };
+
+/* ── feel ─────────────────────────────────────────────────────────────── */
+const HAPTIC = { light:[7], heavy:[16,42,16], wall:[26], arm:[8], detent:[14],
+                 seat:[14,26,14], refuse:[12,70,12] };
+const buzz = p => { try{ navigator.vibrate?.(p); }catch(e){} };
+let AC = null;
+function ctx(){
+  if(localStorage.getItem("almanac.mute") === "1") return null;
+  if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(AC.state === "suspended") AC.resume().catch(()=>{});
+  return AC;
+}
+function tone(f, ms, gain, type, glide){
+  const c = ctx(); if(!c) return;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, c.currentTime);
+  if(glide) o.frequency.exponentialRampToValueAtTime(f*glide, c.currentTime + ms/1000);
+  g.gain.setValueAtTime(gain, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + ms/1000);
+  o.connect(g); g.connect(c.destination);
+  o.onended = () => { try{ o.disconnect(); g.disconnect(); }catch(e){} };
+  o.start(); o.stop(c.currentTime + ms/1000);
+}
+const tickLight = () => tone(1300, 26, .05, "square", .55);
+const tickHeavy = () => tone(300, 95, .13, "triangle", .55);   // a section boundary
+const tickWall  = () => tone(150, 60, .10, "sawtooth", .7);    // the hard stop
+const tine      = () => tone(880, 55, .07, "sine");            // a latch seating
+const thud      = () => tone(150, 90, .10, "triangle");        // refused
+addEventListener("pagehide", () => { try{ AC && AC.close(); }catch(e){} AC = null; });
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden && AC && AC.state === "running") AC.suspend().catch(()=>{});
+});
+
+/* Easings must be LITERAL for WAAPI — it does not resolve custom properties, and
+   passing var(--ease-settle) throws inside the listener, silently killing the latch. */
+const EASE = (() => {
+  const cs = getComputedStyle(document.documentElement), probe = document.createElement("div");
+  const read = (n, fb) => { const v = (cs.getPropertyValue(n)||"").trim(); if(!v) return fb;
+    try{ probe.animate({opacity:[0,1]},{duration:1,easing:v}).cancel(); return v; }catch(e){ return fb; } };
+  return { settle: read("--ease-settle","cubic-bezier(.22,.61,.36,1)"),
+           refuse: read("--ease-refuse","cubic-bezier(.36,0,.66,-.56)") };
+})();
+
+/* ── the spindle ──────────────────────────────────────────────────────── */
+const PITCH = 46, HEAVY = 2.1;
+let NODES = [], TRAVEL = [], TOTAL = 0;
+const spin = { cont:0, pos:0 };
+
+function buildNodes(){
+  const N = [];
+  N.push({ sec:"TODAY", kind:"today", first:true });
+  const st = (State.standings && State.standings.standings) || [];
+  st.forEach((s, i) => N.push({ sec:"FINANCES", kind:"standing", s, first: i === 0 }));
+  if(!st.length) N.push({ sec:"FINANCES", kind:"empty", first:true });
+  N.push({ sec:"LEARN", kind:"learn", first:true });
+  N.push({ sec:"SOUL",  kind:"soul",  first:true });
+  NODES = N;
+  TRAVEL = [0];
+  for(let i = 1; i < N.length; i++) TRAVEL[i] = TRAVEL[i-1] + PITCH * (N[i].first ? HEAVY : 1);
+  TOTAL = TRAVEL[N.length-1];
+  if(spin.pos > N.length-1) spin.pos = 0;
+}
+const crosses = (a,b) => {
+  if(a===b) return false;
+  const hi = Math.max(a,b), lo = Math.min(a,b);
+  for(let i=lo+1;i<=hi;i++) if(NODES[i].first) return true;
+  return false;
+};
+function nodeAt(x){ let b=0,bd=Infinity;
+  for(let i=0;i<TRAVEL.length;i++){ const d=Math.abs(TRAVEL[i]-x); if(d<bd){bd=d;b=i;} } return b; }
+
+const cv = $("wheel"), g2 = cv.getContext("2d"), CW = 96, CH = 1200;
+function drawWheel(){
+  const x = spin.cont, mid = CH/2, sc = 2.2;
+  g2.clearRect(0,0,CW,CH);
+  const bg = g2.createLinearGradient(0,0,CW,0);
+  bg.addColorStop(0,"#141716"); bg.addColorStop(.18,"#3C423F"); bg.addColorStop(.5,"#596059");
+  bg.addColorStop(.82,"#333937"); bg.addColorStop(1,"#0E1110");
+  g2.fillStyle = bg; g2.fillRect(0,0,CW,CH);
+  const off = -(x*2.2) % 22;
+  g2.lineWidth = 1;
+  for(let y = off-22; y < CH+22; y += 11){
+    g2.strokeStyle = "rgba(255,255,255,.055)";
+    g2.beginPath(); g2.moveTo(0,y); g2.lineTo(CW,y+7); g2.stroke();
+    g2.strokeStyle = "rgba(0,0,0,.30)";
+    g2.beginPath(); g2.moveTo(0,y+5.5); g2.lineTo(CW,y+12.5); g2.stroke();
+  }
+  for(let i=0;i<NODES.length;i++){
+    const y = mid + (TRAVEL[i]-x)*sc;
+    if(y < -30 || y > CH+30) continue;
+    if(NODES[i].first){
+      g2.fillStyle="rgba(0,0,0,.62)"; g2.fillRect(0,y-4,CW,8);
+      g2.fillStyle="rgba(255,255,255,.10)"; g2.fillRect(0,y+4,CW,1.5);
+      g2.fillStyle="rgba(255,164,25,.30)"; g2.fillRect(CW-9,y-4,9,8);
+    } else { g2.fillStyle="rgba(0,0,0,.30)"; g2.fillRect(0,y-.75,CW,1.5); }
+  }
+  g2.fillStyle="rgba(255,106,42,.95)"; g2.fillRect(0,mid-1.5,CW,3);
+  g2.fillStyle="rgba(255,164,25,.22)"; g2.fillRect(0,mid-7,CW,14);
+  const cap = mid + (0-x)*sc;
+  if(cap > -40 && cap < CH+40){
+    g2.fillStyle="rgba(10,12,11,.92)"; g2.fillRect(0,cap-26,CW,26);
+    g2.fillStyle="rgba(255,255,255,.09)"; g2.fillRect(0,cap-3,CW,3);
+    for(let k=0;k<5;k++){ g2.fillStyle="rgba(255,255,255,.05)"; g2.fillRect(6+k*18,cap-21,9,15); }
+  }
+}
+
+/* ── render ───────────────────────────────────────────────────────────── */
+const SECS = ["TODAY","FINANCES","LEARN","SOUL"];
+SECS.forEach(k => { const d = document.createElement("div");
+  d.className = "rung"; d.dataset.k = k; d.innerHTML = "<i></i>" + k; $("ladder").appendChild(d); });
+
+function setFig(v, unit, unknown){
+  const f = $("fig");
+  f.classList.toggle("unk", !!unknown);
+  f.innerHTML = unknown ? "——" : (v + (unit ? `<span class="u">${unit}</span>` : ""));
+}
+
+function renderWork(){
+  const w = $("work"); w.textContent = ""; w.hidden = false;
+  const b = State.board;
+  if(!b){ return; }
+  const order = { now:0, next:1, qa:2, later:3 };
+  const live = b.cards.filter(c => c.column_name !== "done")
+    .sort((a,z) => (order[a.column_name] ?? 9) - (order[z.column_name] ?? 9) || a.sort - z.sort);
+  for(const c of live){
+    const el = document.createElement("div");
+    el.className = "card" + (c.column_name === "now" ? " now" : "") + (c.needs_bryan ? " bryan" : "");
+    const p = c.progress || {done:0,total:0};
+    const pct = p.total ? Math.round(100*p.done/p.total) : 0;
+    el.innerHTML =
+      `<span class="t"></span><span class="n">#${c.id}</span>` +
+      `<span class="m"><span class="bar"><i style="width:${pct}%"></i></span>` +
+      `<span class="p">${p.total ? p.done+"/"+p.total : "—"} · ${c.column_name.toUpperCase()}</span></span>`;
+    el.querySelector(".t").textContent = c.title;
+    w.appendChild(el);
+  }
+}
+
+function paint(){
+  const n = NODES[spin.pos]; if(!n) return;
+  $("kick").innerHTML = `<b>${n.sec}</b> &nbsp;·&nbsp; ${spin.pos+1} / ${NODES.length}`;
+  [...$("ladder").children].forEach(el => el.classList.toggle("on", el.dataset.k === n.sec));
+  $("whyLine").hidden = true;
+  $("work").hidden = true;
+  const lever = $("lever"); lever.disabled = true; lever.dataset.state = "";
+  $("rail").style.transform = "scaleX(0)";
+
+  if(n.kind === "today"){
+    const b = State.board, s = State.standings;
+    const nowN = b ? b.cards.filter(c => c.column_name === "now").length : null;
+    const openN = b ? b.cards.filter(c => c.column_name !== "done").length : null;
+    $("head").textContent = "The work";
+    setFig(nowN == null ? "" : String(nowN), openN == null ? "" : ` OF ${openN}`, nowN == null);
+    const needs = s ? s.counts.standing : null;
+    $("sub").textContent = needs == null ? "spine unavailable"
+      : `${needs} need your hand · ${money(s.left_this_month) || "——"} left this month`;
+    renderWork();
+    $("leverCap").textContent = "—";
+  }
+  else if(n.kind === "standing"){
+    const s = n.s;
+    $("head").textContent = s.title || "";
+    if(s.amount == null) setFig(null, null, true); else setFig(money(s.amount).split(".")[0], "." + money(s.amount).split(".")[1]);
+    $("sub").textContent = [s.kicker, s.sub].filter(Boolean).join(" · ");
+    const settleable = s.kind === "pay" && s.bill_type && s.bill_id;
+    lever.disabled = !(settleable && State.source === "live");
+    $("leverCap").textContent = settleable ? "RECORD PAID" : "NOT SETTLEABLE HERE";
+  }
+  else if(n.kind === "empty"){
+    $("head").textContent = "Nothing standing";
+    setFig("0", ""); $("sub").textContent = "no obligation needs your hand";
+    $("leverCap").textContent = "—";
+  }
+  else if(n.kind === "learn"){
+    const l = State.learn;
+    $("head").textContent = "The muscle";
+    const open = l ? (l.open || []).length : null;
+    setFig(open == null ? "" : String(open), " OPEN", open == null);
+    $("sub").textContent = l && l.open && l.open[0] ? l.open[0].question : (l ? "nothing open" : "spine unavailable");
+    $("leverCap").textContent = "—";
+  }
+  else if(n.kind === "soul"){
+    const d = State.soul;
+    $("head").textContent = "The soul";
+    setFig(d ? String(d.confirmed) : "", d ? "/" + d.total : "", !d);
+    $("sub").textContent = d ? "creeds confirmed, in your words" : "spine unavailable";
+    $("leverCap").textContent = "—";
+  }
+  $("lamp").classList.toggle("on",
+    !!(State.standings && State.standings.counts && State.standings.counts.standing > 0));
+  drawWheel();
+}
+
+function landOn(i){
+  i = Math.max(0, Math.min(NODES.length-1, i));
+  if(i === spin.pos) return;
+  const heavy = crosses(spin.pos, i);
+  spin.pos = i;
+  if(heavy){ buzz(HAPTIC.heavy); tickHeavy(); } else { buzz(HAPTIC.light); tickLight(); }
+  paint();
+}
+
+/* ── roll ─────────────────────────────────────────────────────────────── */
+const zone = $("zone");
+let drag = null, raf = 0;
+zone.addEventListener("pointerdown", e => {
+  e.preventDefault(); ctx();
+  try{ zone.setPointerCapture(e.pointerId); }catch(x){}
+  cancelAnimationFrame(raf); raf = 0;
+  drag = { y:e.clientY, base:spin.cont, walled:false };
+});
+zone.addEventListener("pointermove", e => {
+  if(!drag) return;
+  let next = drag.base + (drag.y - e.clientY);
+  if(next < 0){
+    next *= 0.18;                                     // the hard stop above TODAY
+    if(!drag.walled && next < -8){ drag.walled = true; buzz(HAPTIC.wall); tickWall(); }
+  } else if(next > TOTAL){ next = TOTAL + (next-TOTAL)*0.18; }
+  else drag.walled = false;
+  spin.cont = next;
+  const t = nodeAt(Math.max(0, Math.min(TOTAL, next)));
+  if(t !== spin.pos) landOn(t); else drawWheel();
+});
+function release(){
+  if(!drag) return; drag = null;
+  const target = TRAVEL[spin.pos];
+  const step = () => {
+    const d = target - spin.cont;
+    if(Math.abs(d) < .4 || reduce()){ spin.cont = target; drawWheel(); raf = 0; return; }
+    spin.cont += d*.28; drawWheel(); raf = requestAnimationFrame(step);
+  };
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
+}
+zone.addEventListener("pointerup", release);
+zone.addEventListener("pointercancel", release);
+zone.addEventListener("wheel", e => {
+  e.preventDefault(); ctx();
+  const t = spin.pos + (e.deltaY > 0 ? 1 : -1);
+  if(t < 0){ buzz(HAPTIC.wall); tickWall(); return; }
+  if(t > NODES.length-1) return;
+  landOn(t); spin.cont = TRAVEL[spin.pos]; drawWheel();
+}, {passive:false});
+addEventListener("keydown", e => {
+  if(e.target.tagName === "INPUT") return;
+  if(e.key === "ArrowDown" || e.key === "j"){ e.preventDefault(); ctx();
+    if(spin.pos < NODES.length-1){ landOn(spin.pos+1); spin.cont = TRAVEL[spin.pos]; drawWheel(); } }
+  if(e.key === "ArrowUp" || e.key === "k"){ e.preventDefault(); ctx();
+    if(spin.pos === 0){ buzz(HAPTIC.wall); tickWall(); }
+    else { landOn(spin.pos-1); spin.cont = TRAVEL[spin.pos]; drawWheel(); } }
+  if(e.key === "t" || e.key === "Home"){ e.preventDefault(); goHome(); }
+});
+function goHome(){
+  if(spin.pos === 0) return;
+  ctx(); buzz(HAPTIC.heavy); tickHeavy();
+  spin.pos = 0; paint();
+  const step = () => { const d = 0 - spin.cont;
+    if(Math.abs(d) < .4 || reduce()){ spin.cont = 0; drawWheel(); raf = 0; return; }
+    spin.cont += d*.20; drawWheel(); raf = requestAnimationFrame(step); };
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
+}
+$("plate").addEventListener("dblclick", goHome);
+
+/* ── THE LEVER — the latch, unchanged. The wall clock decides. ─────────── */
+const lever = $("lever"), rail = $("rail");
+let L = { held:false, t0:0, detent:null, boundary:null, armed:null, key:null };
+
+function leverDown(e){
+  const n = NODES[spin.pos];
+  if(!n || n.kind !== "standing") return;
+  if(lever.disabled || lever.dataset.state === "seating") return;
+  if(State.source !== "live") return;
+  if(document.visibilityState !== "visible") return;      // a hold he cannot see is not a hold
+  if(e && e.pointerId != null){ try{ lever.setPointerCapture(e.pointerId); }catch(x){} }
+  try{ rail.getAnimations().forEach(a => a.cancel()); }catch(x){}
+  lever.dataset.state = "arming"; rail.style.willChange = "transform";
+  buzz(HAPTIC.arm); ctx();
+  const r = reduce(), DUR = r ? 260 : 460;
+  L.held = true; L.t0 = performance.now();
+  if(!L.key) L.key = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
+  L.detent = setTimeout(() => buzz(HAPTIC.detent), r ? 220 : 391);
+  L.armed = rail.animate({transform:["scaleX(0)","scaleX(1)"]},
+    {duration:DUR, easing:EASE.settle, fill:"forwards"});
+  L.armed.finished.catch(()=>{});
+  /* The wall clock, never animation.finished — a hidden document freezes its
+     timeline and resumes it later, which once fired a write nobody asked for. */
+  L.boundary = setTimeout(() => {
+    if(!L.held) return;
+    if(lever.dataset.state !== "arming") return;
+    if(document.visibilityState !== "visible") return;
+    if(performance.now() - L.t0 < DUR - 16) return;
+    seat();
+  }, DUR);
+}
+function leverUp(){
+  L.held = false;
+  clearTimeout(L.boundary); L.boundary = null;
+  if(lever.dataset.state !== "arming") return;
+  clearTimeout(L.detent); L.detent = null;
+  let at = "scaleX(0)"; try{ at = getComputedStyle(rail).transform; }catch(x){}
+  try{ L.armed && L.armed.cancel(); }catch(x){}
+  const back = rail.animate({transform:[at === "none" ? "scaleX(0)" : at, "scaleX(0)"]},
+    {duration:180, easing:"ease-out"});
+  back.finished.then(() => { rail.style.transform = "scaleX(0)"; }).catch(()=>{});
+  rail.style.willChange = ""; lever.dataset.state = "";
+}
+async function seat(){
+  clearTimeout(L.detent); L.detent = null;
+  clearTimeout(L.boundary); L.boundary = null;
+  lever.dataset.state = "seating";
+  $("leverCap").textContent = "WRITING";
+  const s = NODES[spin.pos].s;
+  const net = new AbortController();
+  const kill = setTimeout(() => net.abort("timeout"), 9000);
+  try{
+    const r = await fetch(url(`/api/standings/${s.bill_type}/${s.bill_id}/settle`), {
+      method:"POST", signal:net.signal,
+      headers: hdr({ "Content-Type":"application/json", "Idempotency-Key": L.key }),
+      body: JSON.stringify({ cycle_key: s.cycle_key })
+    });
+    const text = await r.text();
+    if(!r.ok){ let m = text.slice(0,200); try{ m = JSON.parse(text).error || m; }catch(e){} throw new Error(m); }
+    clearTimeout(kill);
+    caught();                                   // ← only after a parsed 2xx
+  }catch(err){ clearTimeout(kill); refuse(err); }
+  finally{ rail.style.willChange = ""; }
+}
+function caught(){
+  buzz(HAPTIC.seat); tine();
+  L.key = null;
+  lever.dataset.state = ""; $("leverCap").textContent = "RECORDED";
+  load(true);                                   // the figure moves because HE moved it
+}
+function refuse(err){
+  buzz(HAPTIC.refuse); thud();
+  lever.dataset.state = "refused";
+  $("leverCap").textContent = "REFUSED";
+  rail.animate({transform:["scaleX(1)","scaleX(0)"]},
+    {duration:520, easing:EASE.refuse, fill:"forwards"});
+  const w = $("whyLine"); w.hidden = false;
+  w.textContent = (err && (err.name === "AbortError" || String(err.message) === "timeout"))
+    ? "no answer from the spine in 9s — nothing was written"
+    : `the spine refused: ${err && err.message ? err.message : err} — nothing was written`;
+  /* The lamp does not change. Nothing in the world changed, so nothing in the light does. */
+}
+lever.addEventListener("pointerdown", leverDown);
+["pointerup","pointercancel","pointerleave"].forEach(t => lever.addEventListener(t, leverUp));
+lever.addEventListener("keydown", e => {
+  if((e.key === "Enter" || e.key === " ") && !e.repeat){ e.preventDefault(); leverDown(null); } });
+lever.addEventListener("keyup", leverUp);
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden && lever.dataset.state === "arming") leverUp();
+});
+addEventListener("pagehide", () => { clearTimeout(L.detent); clearTimeout(L.boundary);
+  cancelAnimationFrame(raf); });
+
+/* ── load ─────────────────────────────────────────────────────────────── */
+async function grab(path){
+  const r = await fetch(url(path), { headers: hdr(), cache:"no-store" });
+  if(!r.ok) throw new Error(r.status + " " + (await r.text()).slice(0,120));
+  return r.json();
+}
+async function load(keepPos){
+  const at = spin.pos;
+  try{
+    const [st, bd] = await Promise.all([grab("/api/standings"), grab("/api/board")]);
+    State.standings = st; State.board = bd; State.source = "live";
+    // These two are not worth failing the page over.
+    grab("/api/learning").then(l => { State.learn = l; paint(); }).catch(()=>{});
+    grab("/api/doctrine").then(d => { State.soul = d; paint(); }).catch(()=>{});
+    buildNodes();
+    spin.pos = keepPos ? Math.min(at, NODES.length-1) : 0;
+    spin.cont = TRAVEL[spin.pos];
+    paint();
+  }catch(e){
+    State.source = "stale";
+    $("kick").textContent = "NO DATA";
+    $("head").textContent = "The spine did not answer";
+    setFig(null, null, true);
+    $("sub").textContent = String(e.message || e);
+    showConnect("could not reach the spine");
+  }
+}
+
+function showConnect(msg){
+  $("connect").hidden = false;
+  $("cfgApi").value = API || "";
+  if(msg){ $("cfgMsg").textContent = msg; $("cfgMsg").classList.add("bad"); }
+}
+$("cfgGo").addEventListener("click", async () => {
+  const a = $("cfgApi").value.trim().replace(/\/$/,""), t = $("cfgTok").value.trim();
+  const m = $("cfgMsg"); m.classList.remove("bad"); m.textContent = "checking…";
+  try{
+    const r = await fetch(a + "/api/health", { headers:{ Authorization:"Bearer " + t } });
+    if(!r.ok) throw new Error("the spine answered " + r.status);
+    localStorage.setItem("almanac_api", API = a);
+    localStorage.setItem("almanac_token", TOK = t);
+    $("connect").hidden = true; load();
+  }catch(e){ m.classList.add("bad"); m.textContent = "could not reach the spine: " + (e.message||e); }
+});
+
+buildNodes(); paint();
+if(!configured()){ $("kick").textContent = "NOT CONNECTED"; $("head").textContent = "Connect to the spine"; showConnect(); }
+else load();
+})();
+</script>
