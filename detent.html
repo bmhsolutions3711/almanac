@@ -33,7 +33,9 @@
   --lamp:#FFA419; --hot:#FF6A2A; --red:#C4271A; --unknown:#6E6E6E;
   --mono:ui-monospace,"SF Mono","Roboto Mono","DejaVu Sans Mono",Menlo,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI Variable Text","Segoe UI",Roboto,sans-serif;
-  --engrave:0 -1px .8px rgba(10,12,11,.55), 0 1px 0 rgba(190,198,194,.30);
+  --engrave:0 -1px .8px rgba(20,23,22,.55), 0 1px 0 rgba(190,198,194,.30);
+  --emboss:0 -1.6px 1.2px rgba(14,17,16,.9), 0 1.2px 0 rgba(154,162,158,.46);
+  --emboss-lg:0 -2px 1.6px rgba(14,17,16,.92), 0 2px 0 rgba(178,188,182,.34);
   --ease-settle:linear(0,.13 3.2%,.48 8.7%,.79 14.5%,.95 19.6%,1.02 25%,1.03 31%,1 40%,1 100%);
   --ease-refuse:linear(0,.42 12%,-.18 32%,.09 52%,-.03 72%,0 100%);
 }
@@ -43,40 +45,60 @@ html,body{margin:0;height:100%;background:#0B0C0C;overflow:hidden}
 body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;
      touch-action:none;user-select:none;-webkit-user-select:none}
 
-.plate{position:relative;width:min(420px,100vw);height:min(860px,100svh);overflow:hidden;
-  background:linear-gradient(180deg,var(--plate-hi) 0%,var(--plate) 12%,var(--plate) 88%,var(--plate-lo) 100%)}
-.plate::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
-  background:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,rgba(0,0,0,.03) 1px 2px,transparent 2px 4px)}
+.plate{position:relative;width:100vw;height:100svh;overflow:hidden;background:#2A2F2D}
+/* The plate IS the viewport. Brushed steel is painted to a canvas underneath —
+   a CSS gradient cannot do anisotropic grain, and the flat version read as a
+   card floating in a void rather than a machined face. */
+canvas.steel{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0}
+.plate{display:flex;flex-direction:column;padding:22px 26px 18px;gap:0}
+.plate > canvas.steel{position:absolute;inset:0}
+.plate > .screw{position:absolute;z-index:2}
+/* everything else is a row in the column, so height changes redistribute instead
+   of piling up at the top */
+.topbar{display:flex;align-items:center;gap:16px;z-index:1;flex:0 0 auto}
+.topbar .kick{flex:1}
+/* a faint vertical tooth over the grain, the way anodising catches light */
+.plate::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.5;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,rgba(0,0,0,.04) 1px 2px)}
 .screw{position:absolute;width:15px;height:15px;border-radius:50%;
   background:radial-gradient(circle at 34% 30%,#6E756F,#2C302E 68%);
   box-shadow:0 1px 0 rgba(255,255,255,.10),inset 0 -1px 1px rgba(0,0,0,.5)}
 .screw::after{content:"";position:absolute;inset:0;margin:auto;width:9px;height:1.6px;
   background:#141716;transform:rotate(28deg)}
+.toggle{position:relative;flex:0 0 auto;width:52px;height:27px;border-radius:3px;border:0;padding:0;
+  background:linear-gradient(180deg,#222624,#171A19);cursor:pointer;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.07);transition:box-shadow .2s}
+.toggle i{position:absolute;left:3px;top:3px;width:23px;height:21px;border-radius:2px;display:block;
+  background:linear-gradient(180deg,#D8D3C4,#8C887B);
+  box-shadow:0 1px 2px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.5);
+  transition:transform .16s cubic-bezier(.3,.8,.4,1)}
+.toggle[aria-pressed="true"] i{transform:translateX(23px)}
+.toggle[aria-pressed="true"]{box-shadow:inset 0 2px 4px rgba(0,0,0,.7),0 0 10px -2px var(--lamp)}
 .s1{left:12px;top:12px}.s2{right:12px;top:12px}.s3{left:12px;bottom:12px}.s4{right:12px;bottom:12px}
 
 /* the lamp — one light. amber = your hand is needed, dark = it is not. never green. */
-.lamp{position:absolute;right:96px;top:22px;width:19px;height:19px;border-radius:50%;
+.lamp{flex:0 0 auto;width:19px;height:19px;border-radius:50%;
   background:radial-gradient(circle at 36% 30%,#4A4340,#241F1D 70%);
   box-shadow:inset 0 1px 2px rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.07);transition:all .4s}
 .lamp.on{background:radial-gradient(circle at 36% 30%,#FFD98A,var(--lamp) 45%,#B96A08 100%);
   box-shadow:0 0 16px -1px rgba(255,164,25,.75),inset 0 1px 2px rgba(255,255,255,.35)}
 
 /* ── readout ───────────────────────────────────────────────────────────── */
-.stage{position:absolute;left:26px;top:40px;right:104px;bottom:170px;display:flex;flex-direction:column}
+.stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;z-index:1;padding-top:18px}
 .kick{font:700 12.5px/1 var(--mono);letter-spacing:.24em;color:var(--dim);text-shadow:var(--engrave)}
 .kick b{color:var(--lamp);font-weight:700}
-.head{margin-top:14px;font:700 27px/1.08 var(--sans);letter-spacing:.01em;text-transform:uppercase;
-  text-shadow:0 -1px 1px rgba(10,12,11,.55),0 1.5px 0 rgba(190,198,194,.18)}
-.fig{margin-top:8px;font:700 clamp(38px,11vw,52px)/1 var(--mono);letter-spacing:-.022em;
-  font-variant-numeric:tabular-nums slashed-zero}
+.head{margin-top:0;max-width:22ch;font:700 27px/1.08 var(--sans);letter-spacing:.01em;text-transform:uppercase;
+  text-shadow:var(--emboss-lg)}
+.fig{margin-top:8px;font:700 clamp(40px,12vw,64px)/1 var(--mono);letter-spacing:-.022em;
+  font-variant-numeric:tabular-nums slashed-zero;text-shadow:var(--emboss-lg)}
 .fig .u{color:var(--unknown);font-weight:400;letter-spacing:.1em;font-size:.6em}
 .fig.unk{color:var(--unknown);font-weight:400;letter-spacing:.12em}
-.sub{margin-top:12px;font:600 12.5px/1.55 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+.sub{margin-top:12px;max-width:44ch;font:600 12.5px/1.55 var(--mono);letter-spacing:.09em;text-transform:uppercase;
   color:var(--mid);text-shadow:var(--engrave)}
 .why{margin-top:10px;font:400 12px/1.55 var(--mono);letter-spacing:.02em;color:var(--hot)}
 
 /* ── the work: 3 visible, the rest scrolls ─────────────────────────────── */
-.work{margin-top:20px;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;gap:9px;
+.work{margin-top:20px;max-width:640px;flex:0 1 auto;min-height:0;display:flex;flex-direction:column;gap:9px;
   /* THREE cards, and a sliver of the fourth under the fade. The board WILL grow —
      the point of a fixed window is that growth never eats the page, and the fade is
      the only affordance needed to say there is more below. Measured, not guessed:
@@ -101,9 +123,9 @@ body{font-family:var(--sans);color:var(--ink);display:grid;place-items:center;
 .card.bryan .n{color:var(--lamp)}
 
 /* ── the ladder ────────────────────────────────────────────────────────── */
-.ladder{position:absolute;left:26px;bottom:82px;display:flex;flex-direction:column;gap:9px}
-.rung{display:flex;align-items:center;gap:9px;font:700 11.5px/1 var(--mono);letter-spacing:.2em;
-  color:var(--dim);transition:color .18s}
+.ladder{flex:0 0 auto;z-index:1;display:flex;flex-direction:column;gap:9px;padding:18px 0 14px}
+.rung{display:flex;align-items:center;gap:9px;font:700 12px/1 var(--mono);letter-spacing:.2em;
+  color:var(--dim);transition:color .18s;text-shadow:var(--engrave)}
 .rung i{width:14px;height:2px;background:#6B726E;display:block;transition:all .18s}
 .rung.on{color:var(--lamp)}
 .rung.on i{background:var(--lamp);width:24px;box-shadow:0 0 8px -1px var(--lamp)}
@@ -118,17 +140,29 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
   border-right-color:var(--lamp);filter:drop-shadow(0 0 5px rgba(255,164,25,.5))}
 
 /* ── the lever: the write, made physical ───────────────────────────────── */
-.lever{position:absolute;left:26px;right:104px;bottom:14px;height:56px;border-radius:3px;overflow:hidden;
-  background:linear-gradient(180deg,#3C423F,#252A28);
-  box-shadow:0 1px 0 rgba(255,255,255,.10) inset,0 -2px 0 rgba(0,0,0,.4) inset,0 2px 3px rgba(0,0,0,.45);
-  display:grid;place-items:center;touch-action:none;cursor:pointer;border:0;padding:0;width:auto}
-.lever .cap{position:relative;z-index:2;font:700 13px/1 var(--mono);letter-spacing:.22em;
-  color:var(--mid);text-shadow:var(--engrave)}
+.lever{flex:0 0 auto;z-index:1;margin-right:78px;height:68px;border-radius:4px;overflow:hidden;
+  background:linear-gradient(180deg,#373D3A 0%,#2E3331 40%,#242927 100%);
+  box-shadow:0 3px 0 rgba(0,0,0,.6),0 7px 16px rgba(0,0,0,.5),
+             inset 0 1px 0 rgba(150,158,154,.22),inset 0 -2px 4px rgba(0,0,0,.5);
+  display:grid;place-items:center;touch-action:none;cursor:pointer;border:0;padding:0;width:auto;
+  transition:transform .07s,box-shadow .07s}
+.lever:not([disabled]):active{transform:translateY(2px);
+  box-shadow:0 1px 0 rgba(0,0,0,.6),0 3px 8px rgba(0,0,0,.5),inset 0 1px 0 rgba(150,158,154,.18)}
+/* diamond knurl, cut both ways — the grip pads are the tell that this is a part */
+.lever::before,.lever::after{content:"";position:absolute;top:9px;width:74px;height:50px;
+  border-radius:3px;background-color:#262A28;z-index:2;
+  background-image:repeating-linear-gradient(45deg,rgba(88,96,93,.9) 0 1px,rgba(0,0,0,0) 1px 6px),
+                   repeating-linear-gradient(-45deg,rgba(14,17,16,.95) 0 1px,rgba(0,0,0,0) 1px 6px);
+  box-shadow:inset 0 1px 0 rgba(150,158,154,.16),inset 0 -1px 2px rgba(0,0,0,.5)}
+.lever::before{left:9px} .lever::after{right:9px}
+.lever .cap{position:relative;z-index:3;font:700 14px/1 var(--mono);letter-spacing:.22em;
+  color:#D8DDD9;text-shadow:var(--emboss)}
 .lever .rail{position:absolute;inset:0;background:linear-gradient(180deg,#6A736E,#414945);
   transform:scaleX(0);transform-origin:left center;z-index:1;opacity:.55}
 .lever[data-state="seating"] .rail{animation:breath 1.2s ease-in-out infinite}
 @keyframes breath{0%,100%{transform:scaleX(1)}50%{transform:scaleX(1.012)}}
 .lever[disabled]{opacity:.42;cursor:default}
+.lever[disabled] .cap{color:#6A716D;text-shadow:0 -1.2px 1px rgba(14,17,16,.8)}
 .lever[data-state="refused"]{box-shadow:0 0 0 1.5px var(--red) inset,0 2px 3px rgba(0,0,0,.45)}
 
 .hint{position:absolute;right:22px;bottom:16px;width:48px;text-align:center;
@@ -154,12 +188,17 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
 </style>
 
 <div class="plate" id="plate">
+  <canvas class="steel" id="steel"></canvas>
   <span class="screw s1"></span><span class="screw s2"></span>
   <span class="screw s3"></span><span class="screw s4"></span>
-  <span class="lamp" id="lamp"></span>
+
+  <div class="topbar">
+    <button class="toggle" id="toggle" aria-label="Switch instrument"><i></i></button>
+    <div class="kick" id="kick">reading the spine</div>
+    <span class="lamp" id="lamp"></span>
+  </div>
 
   <div class="stage">
-    <div class="kick" id="kick">reading the spine</div>
     <div class="head" id="head"></div>
     <div class="fig" id="fig"></div>
     <div class="sub" id="sub"></div>
@@ -192,6 +231,44 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
 <script>
 "use strict";
 (() => {
+
+/* ── brushed anodised steel, painted once ──────────────────────────────
+   Value noise at a 24:1 aspect is what makes grain read as BRUSHED rather than
+   as static, and no CSS gradient can do it. Painted at a capped resolution and
+   stretched by CSS — the grain is anisotropic, so mild stretching helps it. */
+function paintSteel(){
+  const cv = document.getElementById("steel");
+  const W = Math.min(Math.round(innerWidth), 720), H = Math.min(Math.round(innerHeight), 1480);
+  if(cv.width === W && cv.height === H) return;
+  cv.width = W; cv.height = H;
+  const g = cv.getContext("2d"), img = g.createImageData(W,H), px = img.data;
+  const h2 = (x,y,s) => { let n = (Math.imul(x,1836311903)^Math.imul(y,2971215073)^Math.imul(s,668265263));
+    n = Math.imul(n^(n>>>15),2246822519); n = Math.imul(n^(n>>>13),3266489917);
+    return ((n^(n>>>16))>>>0)/4294967295; };
+  const vn = (x,y,s) => { const x0=Math.floor(x), y0=Math.floor(y);
+    let fx=x-x0, fy=y-y0; fx=fx*fx*(3-2*fx); fy=fy*fy*(3-2*fy);
+    const a=h2(x0,y0,s), b=h2(x0+1,y0,s), c=h2(x0,y0+1,s), d=h2(x0+1,y0+1,s);
+    const t=a+(b-a)*fx; return t+((c+(d-c)*fx)-t)*fy; };
+  const BASE=[57,64,60], LO=[45,51,54], HI=[88,98,90], SPEC=[124,134,128];
+  let k = 0;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    let v = vn(x/24,y/1.05,7)*0.46 + vn(x/8,y/2.9,19)*0.26 + vn(x/70,y/11,31)*0.28;
+    const t = (v-0.5)*1.55;
+    let r,gg,b;
+    if(t>=0){ const m=Math.min(t*1.6,1);
+      r=BASE[0]+(HI[0]-BASE[0])*m; gg=BASE[1]+(HI[1]-BASE[1])*m; b=BASE[2]+(HI[2]-BASE[2])*m; }
+    else { const m=Math.min(-t*1.6,1);
+      r=BASE[0]+(LO[0]-BASE[0])*m; gg=BASE[1]+(LO[1]-BASE[1])*m; b=BASE[2]+(LO[2]-BASE[2])*m; }
+    /* one narrow specular streak down the plate, as a rolled sheet catches light */
+    const band = Math.exp(-Math.pow((x-W*0.33)/(W*0.20),2))*0.34*(0.45+0.55*vn(x/40,y/1.6,53));
+    if(band>0.02){ r+=(SPEC[0]-r)*band; gg+=(SPEC[1]-gg)*band; b+=(SPEC[2]-b)*band; }
+    px[k++]=r; px[k++]=gg; px[k++]=b; px[k++]=255;
+  }
+  g.putImageData(img,0,0);
+}
+paintSteel();
+let steelT = 0;
+addEventListener("resize", () => { clearTimeout(steelT); steelT = setTimeout(paintSteel, 180); });
 
 /* ── config ───────────────────────────────────────────────────────────── */
 let API = localStorage.getItem("almanac_api") || "";
@@ -466,6 +543,18 @@ function goHome(){
   cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
 }
 $("plate").addEventListener("dblclick", goHome);
+
+/* The instrument switch. The review surface does not exist yet, so it says so
+   rather than flipping to nothing — an instrument that pretends to act is the
+   one thing this whole design refuses to be. */
+$("toggle").addEventListener("click", () => {
+  const t = $("toggle"), on = t.getAttribute("aria-pressed") === "true";
+  t.setAttribute("aria-pressed", String(!on));
+  ctx(); buzz(HAPTIC.detent); tickHeavy();
+  const w = $("whyLine");
+  if(!on){ w.hidden = false; w.textContent = "the review surface is not built yet — nothing switched"; }
+  else { w.hidden = true; }
+});
 
 /* ── THE LEVER — the latch, unchanged. The wall clock decides. ─────────── */
 const lever = $("lever"), rail = $("rail");
