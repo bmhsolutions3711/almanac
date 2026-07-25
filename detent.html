@@ -62,7 +62,7 @@ canvas.steel{position:absolute;inset:0;width:100%;height:100%;display:block;z-in
 .plate > .screw{position:absolute;z-index:2}
 /* everything else is a row in the column, so height changes redistribute instead
    of piling up at the top */
-.topbar{display:flex;align-items:center;gap:16px;z-index:1;flex:0 0 auto}
+.topbar{display:flex;align-items:center;gap:16px;z-index:1;flex:0 0 auto;margin-right:78px}
 .topbar .kick{flex:1}
 /* a faint vertical tooth over the grain, the way anodising catches light */
 .plate::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.5;
@@ -91,7 +91,7 @@ canvas.steel{position:absolute;inset:0;width:100%;height:100%;display:block;z-in
   box-shadow:0 0 16px -1px rgba(255,164,25,.75),inset 0 1px 2px rgba(255,255,255,.35)}
 
 /* ── readout ───────────────────────────────────────────────────────────── */
-.stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;z-index:1;padding-top:18px}
+.stage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;z-index:1;padding-top:18px;margin-right:78px}
 .kick{font:700 12.5px/1 var(--mono);letter-spacing:.24em;color:var(--dim);text-shadow:var(--engrave)}
 .kick b{color:var(--lamp);font-weight:700}
 .head{margin-top:0;max-width:22ch;font:700 27px/1.08 var(--sans);letter-spacing:.01em;text-transform:uppercase;
@@ -138,7 +138,7 @@ canvas.steel{position:absolute;inset:0;width:100%;height:100%;display:block;z-in
 .rung.on i{background:var(--lamp);width:24px;box-shadow:0 0 8px -1px var(--lamp)}
 
 /* ── the spindle ───────────────────────────────────────────────────────── */
-.zone{position:absolute;right:0;top:0;width:92px;height:100%;touch-action:none;cursor:grab}
+.zone{position:absolute;right:0;top:0;width:92px;height:100%;touch-action:none;cursor:grab;z-index:3}
 .zone:active{cursor:grabbing}
 canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;display:block;border-radius:3px;
   box-shadow:0 0 0 1px rgba(0,0,0,.55),inset 0 0 22px rgba(0,0,0,.6),-2px 0 10px -6px rgba(0,0,0,.8)}
