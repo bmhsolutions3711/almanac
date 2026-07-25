@@ -14,7 +14,7 @@
  *    network every time; the SW cache is then only ever a genuine offline
  *    fallback.
  */
-const VERSION = 'almanac-shell-v3';
+const VERSION = 'almanac-shell-v4';
 const SHELL = ['./', './index.html', './manifest.json',
                './icons/icon-192.png', './icons/icon-512.png'];
 
