@@ -706,7 +706,7 @@ async function load(keepPos){
     $("head").textContent = "The spine did not answer";
     setFig(null, null, true);
     $("sub").textContent = String(e.message || e);
-    showConnect("could not reach the spine");
+    showConnect("could not reach the spine — if you are on the phone, check Tailscale is connected first");
   }
 }
 
