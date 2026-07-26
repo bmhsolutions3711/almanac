@@ -15,10 +15,13 @@
   of the plate returns you from anywhere. "First in front of me is always today"
   is a property of the machine, not a rule written on it.
 
-  WHAT THE SPINDLE INDEXES: things you act on. Today, Learn and Soul are one node
-  each — pages you read, which scroll on their own. Finances expands into one node
-  per obligation, because those are settled one at a time and a detent is exactly
-  the right control for that.
+  WHAT THE SPINDLE INDEXES: things you act on. TODAY is the standing — the
+  morning answer, served whole from the spine's one judgement, every figure able
+  to show its arithmetic in place (tap the row; the working unfolds engraved
+  beneath it — the page computes NOTHING). WORK is the board. Learn and Soul are
+  one node each — pages you read. Finances expands into one node per obligation,
+  because those are settled one at a time and a detent is exactly the right
+  control for that.
 
   THE LATCH IS UNCHANGED and is the thing this whole surface exists to carry: the
   progress of the lever IS the progress of the write. The request leaves at the
@@ -143,6 +146,32 @@ canvas.steel{position:absolute;inset:0;width:100%;height:100%;display:block;z-in
 .card.now{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
   inset 2px 0 0 var(--lamp)}
 .card.bryan .n{color:var(--lamp)}
+
+/* ── the standing on the plate: each judgement sentence is an engraved row;
+   a figure wearing the dotted mark opens its working in place — served whole
+   by the spine, typeset here, computed NOWHERE on this machine ───────────── */
+.card.judge{display:block; font:400 13px/1.55 var(--sans); color:var(--mid); cursor:default}
+.card.judge b{color:var(--ink); font-weight:700}
+.card.judge .jf{font:600 1em var(--mono); color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.card.judge .jf[data-w]{cursor:pointer;
+  text-decoration:underline dotted 1px rgba(255,164,25,.5); text-underline-offset:.2em}
+.card.judge.open .jf[data-w]{text-decoration:underline solid 1px var(--lamp)}
+.ledgerx{display:block; background:#171A19; box-shadow:inset 0 1px 3px rgba(0,0,0,.55);
+  border-radius:2px; padding:9px 11px}
+.ledgerx .lr{display:flex; justify-content:space-between; gap:12px; padding:3px 0;
+  font:400 12px/1.4 var(--sans); color:var(--dim); border-bottom:1px dotted #232827}
+.ledgerx .lr:last-of-type{border-bottom:0}
+.ledgerx .lr b{font:600 12px var(--mono); color:var(--ink); font-variant-numeric:tabular-nums}
+.ledgerx .lt{display:flex; justify-content:space-between; gap:12px; margin-top:5px;
+  padding-top:6px; border-top:3px double #3A403D; font:600 12px/1.4 var(--sans); color:var(--ink)}
+.ledgerx .lt b{font:700 12px var(--mono); font-variant-numeric:tabular-nums}
+.ledgerx .flag{display:inline-block; width:30px; height:10px; align-self:center;
+  background:repeating-linear-gradient(135deg,#6E6E6E 0 5px,#8A8A8A 5px 10px)}
+.ledgerx .whole,.ledgerx .lnote{font:italic 400 11.5px/1.5 var(--sans); color:var(--dim);
+  padding:2px 0}
+.ledgerx .prov{font:600 8.5px/1.4 var(--mono); letter-spacing:.1em; color:var(--etch);
+  text-transform:uppercase; margin-top:7px}
 
 /* ── the ladder ────────────────────────────────────────────────────────── */
 .ladder{flex:0 0 auto;z-index:1;display:flex;flex-direction:column;gap:9px;padding:18px 0 14px}
@@ -343,7 +372,10 @@ const hdr = x => Object.assign({ Authorization: "Bearer " + TOK }, x || {});
 const money = v => v == null ? null :
   "$" + Number(v).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
 
-const State = { source:"none", standings:null, board:null, learn:null, soul:null };
+const State = { source:"none", standings:null, board:null, learn:null, soul:null,
+                standing:null };   /* the money page: the spine's ONE judgement */
+const esc = s => String(s ?? "").replace(/[&<>"]/g,
+  m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 
 /* ── feel ─────────────────────────────────────────────────────────────── */
 const HAPTIC = { light:[7], heavy:[16,42,16], wall:[26], arm:[8], detent:[14],
@@ -395,6 +427,7 @@ const spin = { cont:0, pos:0 };
 function buildNodes(){
   const N = [];
   N.push({ sec:"TODAY", kind:"today", first:true });
+  N.push({ sec:"WORK",  kind:"work",  first:true });
   const st = (State.standings && State.standings.standings) || [];
   st.forEach((s, i) => N.push({ sec:"FINANCES", kind:"standing", s, first: i === 0 }));
   if(!st.length) N.push({ sec:"FINANCES", kind:"empty", first:true });
@@ -455,7 +488,7 @@ function drawWheel(){
 }
 
 /* ── render ───────────────────────────────────────────────────────────── */
-const SECS = ["TODAY","FINANCES","LEARN","SOUL","CLOSE"];
+const SECS = ["TODAY","WORK","FINANCES","LEARN","SOUL","CLOSE"];
 SECS.forEach(k => { const d = document.createElement("button");
   d.type = "button"; d.className = "rung"; d.dataset.k = k;
   d.setAttribute("aria-label", "go to " + k.toLowerCase());
@@ -499,6 +532,73 @@ function renderWork(){
   }
 }
 
+function renderJudge(){
+  const w = $("work"); w.textContent = ""; w.hidden = false;
+  const j = State.standing && State.standing.judgement;
+  if(!j || !j.ok){
+    const el = document.createElement("div");
+    el.className = "card judge";
+    el.textContent = (j && j.error) || "the spine has not answered with the money page";
+    w.appendChild(el);
+    return;
+  }
+  const W = j.workings || {};
+  (j.segments || []).forEach(seg => {
+    const el = document.createElement("div");
+    el.className = "card judge";
+    let html = "", bold = false;
+    for(const s of seg){
+      if("t" in s){
+        const parts = esc(s.t).split("**");
+        for(let i = 0; i < parts.length; i++){
+          html += parts[i];
+          if(i < parts.length - 1){ html += bold ? "</b>" : "<b>"; bold = !bold; }
+        }
+      }
+      if("f" in s){
+        const traceable = s.w && W[s.w];
+        html += `<span class="jf"${traceable ? ` data-w="${esc(s.w)}"` : ""}>${esc(s.f)}</span>`;
+      }
+    }
+    if(bold) html += "</b>";
+    el.innerHTML = html;
+    w.appendChild(el);
+  });
+}
+
+function ledgerXHTML(k){
+  const W = (State.standing && State.standing.judgement &&
+             State.standing.judgement.workings) || {};
+  const d = W[k]; if(!d) return "";
+  const rows = (d.rows || []).map(r => r[1] == null
+    ? `<div class="lr"><span>${esc(r[0])}</span><span class="flag" title="UNKNOWN"></span></div>`
+    : `<div class="lr"><span>${esc(r[0])}</span><b>${money(r[1])}</b></div>`).join("");
+  const whole = d.whole
+    ? `<div class="whole">this figure arrives whole — the spine serves no further breakdown.</div>` : "";
+  const tot = d.total
+    ? `<div class="lt"><span>${esc(d.total[0])}</span><b>${d.total[1] == null ? "——" : money(d.total[1])}</b></div>` : "";
+  const note = d.note ? `<div class="lnote">${esc(d.note)}</div>` : "";
+  return `<div class="ledgerx card" data-lx="${esc(k)}">${rows}${whole}${tot}${note}` +
+         `<div class="prov">${esc(d.stamp || "")}</div></div>`;
+}
+
+/* one working open at a time — ledger discipline; tap the same figure to fold
+   it back. The ledger is a card in the scroll, so the window's fade still says
+   there is more below. */
+$("work").addEventListener("click", e => {
+  const f = e.target.closest(".jf[data-w]");
+  if(!f) return;
+  const k = f.dataset.w, row = f.closest(".card.judge");
+  const prior = document.querySelector(".ledgerx");
+  const wasThis = prior && prior.dataset.lx === k;
+  document.querySelectorAll(".ledgerx").forEach(x => x.remove());
+  document.querySelectorAll(".card.judge.open").forEach(x => x.classList.remove("open"));
+  if(wasThis) return;
+  ctx(); buzz(HAPTIC.light); tickLight();
+  row.insertAdjacentHTML("afterend", ledgerXHTML(k));
+  row.classList.add("open");
+});
+
 function paint(){
   const n = NODES[spin.pos]; if(!n) return;
   $("kick").innerHTML = `<b>${n.sec}</b> &nbsp;·&nbsp; ${spin.pos+1} / ${NODES.length}`;
@@ -509,6 +609,31 @@ function paint(){
   $("rail").style.transform = "scaleX(0)";
 
   if(n.kind === "today"){
+    // The standing — the morning answer, served whole. The plate typesets the
+    // spine's one judgement; the figure seats on the readout and every marked
+    // figure in the rows below opens its arithmetic in place.
+    const j = State.standing && State.standing.judgement;
+    const p = (j && j.parts) || {};
+    $("head").textContent = "The standing";
+    if(!j || !j.ok || p.to_go == null){
+      setFig(null, null, true);
+      $("sub").textContent = j && j.ok === false
+        ? "money page unreadable" : "not enough is known to say — nothing is guessed";
+    } else if(p.to_go > 0){
+      const m = money(p.to_go);
+      setFig(m.split(".")[0], "." + m.split(".")[1]);
+      const needs = State.standings ? State.standings.counts.standing : null;
+      $("sub").textContent = "to go this month" +
+        (needs != null ? ` · ${needs} need your hand` : "");
+    } else {
+      const m = money(-p.to_go);
+      setFig(m.split(".")[0], "." + m.split(".")[1]);
+      $("sub").textContent = "clear — everything past this is yours";
+    }
+    renderJudge();
+    $("leverCap").textContent = "—";
+  }
+  else if(n.kind === "work"){
     const b = State.board, s = State.standings;
     const nowN = b ? b.cards.filter(c => c.column_name === "now").length : null;
     const openN = b ? b.cards.filter(c => c.column_name !== "done").length : null;
@@ -768,7 +893,9 @@ async function load(keepPos){
   try{
     const [st, bd] = await Promise.all([grab("/api/standings"), grab("/api/board")]);
     State.standings = st; State.board = bd; State.source = "live";
-    // These two are not worth failing the page over.
+    // These are not worth failing the page over — TODAY renders honestly
+    // unavailable until the standing lands, then repaints.
+    grab("/api/standing").then(s => { State.standing = s; paint(); }).catch(()=>{});
     grab("/api/learning").then(l => { State.learn = l; paint(); }).catch(()=>{});
     grab("/api/doctrine").then(d => { State.soul = d; paint(); }).catch(()=>{});
     buildNodes();

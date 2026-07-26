@@ -14,7 +14,16 @@
  *    network every time; the SW cache is then only ever a genuine offline
  *    fallback.
  */
-const VERSION = 'almanac-shell-v7';
+const VERSION = 'almanac-shell-v8';
+
+// The version gauge that cannot lie (Almanac #8): the page asks, the worker
+// answers — the chip renders what is actually installed, never a hardcoded
+// string that drifts. SKIP_WAITING lets the chip's tap activate an update.
+self.addEventListener('message', e => {
+  if (e.data?.type === 'VERSION')
+    e.source?.postMessage({type: 'VERSION', version: VERSION});
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
 const SHELL = ['./', './index.html', './manifest.json',
                './detent.html', './detent.webmanifest',
                './icons/icon-192.png', './icons/icon-512.png'];
