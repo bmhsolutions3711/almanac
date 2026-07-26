@@ -544,69 +544,60 @@ function renderStanding(s){
   $("dateline").textContent = d.toLocaleDateString("en-US",
     {weekday:"long", month:"long", day:"numeric"});
 
-  if(!s || s.error || !s.money || s.money.error){
+  // FORMATTING ONLY (Almanac #16): every figure below was derived ONCE, in
+  // inventory.standing_judgement, and arrives on s.judgement. This renderer
+  // was the THIRD copy of the per-day fiction — corrected in inventory.py,
+  // corrected again in render_context, missed here, twice in one night.
+  // Consolidation removed the whole class of bug; do not compute money here.
+  const j = s && s.judgement;
+  if(!s || s.error || !j || !j.ok){
     $("headline").textContent = "The money page is unreadable.";
-    $("standsub").textContent = (s && (s.error || (s.money||{}).error)) || "Source unavailable.";
+    $("standsub").textContent = (j && j.error) || (s && s.error) || "Source unavailable.";
     return;
   }
-  const m = s.money;
-  const contrib = m.contribution_mtd, nut = m.fixed_as_built;
+  const p = j.parts || {};
 
-  if(contrib == null || nut == null){
+  if(p.to_go == null){
     $("headline").textContent = "Not enough is known yet to say where you stand.";
     $("standsub").textContent = "Some figures could not be derived. Nothing here is guessed.";
-  } else {
-    const togo = Math.round((nut - contrib) * 100) / 100;
-    if(togo > 0){
-      // LOADS, never days. This renderer was the THIRD copy of the per-day
-      // fiction Bryan corrected — inventory.py and render_context were fixed and
-      // this one was missed, twice in one night. A trucker does not earn on
-      // calendar days; he earns on loads, and a day with nothing booked is not
-      // earning capacity. Whoever consolidates these three into one renderer
-      // removes the whole class of bug.
-      const ahead = m.booked_ahead || [];
-      const booked = m.booked_ahead_total || 0;
-      const uncovered = Math.round((togo - booked) * 100) / 100;
-      $("headline").innerHTML =
-        `<span class="fig short">${money(togo)}</span> to go this month.`;
-      if(ahead.length){
-        const bits = ahead.map(l => `${l.delivery_date.slice(5)} ${money(l.rate)}`).join(", ");
-        $("standsub").innerHTML = uncovered > 0
-          ? `<b>${money(booked)} booked</b> (${bits}) — <b>${money(uncovered)} still uncovered</b>. Those are rates; each still owes its fuel.`
-          : `<b>${money(booked)} booked</b> (${bits}) covers it, before fuel.`;
-      } else {
-        $("standsub").innerHTML =
-          `<b>Nothing booked</b> for the rest of the month. Contribution so far is ${money(contrib)}.`;
-      }
+  } else if(p.to_go > 0){
+    const ahead = p.booked_ahead || [];
+    $("headline").innerHTML =
+      `<span class="fig short">${money(p.to_go)}</span> to go this month.`;
+    if(ahead.length){
+      const bits = ahead.map(l => `${l.delivery_date.slice(5)} ${money(l.rate)}`).join(", ");
+      $("standsub").innerHTML = p.uncovered > 0
+        ? `<b>${money(p.booked_ahead_total)} booked</b> (${bits}) — <b>${money(p.uncovered)} still uncovered</b>. Those are rates; each still owes its fuel.`
+        : `<b>${money(p.booked_ahead_total)} booked</b> (${bits}) covers it, before fuel.`;
     } else {
-      $("headline").innerHTML =
-        `Clear by <span class="fig clear">${money(-togo)}</span> this month.`;
       $("standsub").innerHTML =
-        `Everything past this is yours. Contribution so far is <b>${money(contrib)}</b>.`;
+        `<b>Nothing booked</b> for the rest of the month. Contribution so far is ${money(p.contribution)}.`;
     }
+  } else {
+    $("headline").innerHTML =
+      `Clear by <span class="fig clear">${money(-p.to_go)}</span> this month.`;
+    $("standsub").innerHTML =
+      `Everything past this is yours. Contribution so far is <b>${money(p.contribution)}</b>.`;
   }
 
+  const twoNuts = p.nut_run_rate != null && p.nut != null &&
+                  Math.abs(p.nut_run_rate - p.nut) > 0.005;
   const L = [];
   const row = (k,v,cls="") => L.push(
     `<div class="row ${cls}"><span>${k}</span><b>${money(v)}</b></div>`);
-  row("Earned, delivered", m.mtd_revenue);
-  row("Road cost, actual", m.road_mtd_actual);
-  row("Contribution", m.contribution_mtd, "total");
-  row("The nut", m.fixed_as_built);
-  if(m.fixed_run_rate != null && m.fixed_as_built != null &&
-     Math.abs(m.fixed_run_rate - m.fixed_as_built) > 0.005){
-    row("The nut, honest reserve", m.fixed_run_rate);
-  }
+  row("Earned, delivered", p.earned);
+  row("Road cost, actual", p.road_mtd);
+  row("Contribution", p.contribution, "total");
+  row("The nut", p.nut);
+  if(twoNuts) row("The nut, honest reserve", p.nut_run_rate);
   $("ledger").innerHTML = L.join("");
   $("whyBox").hidden = false;
 
   const notes = [];
-  if(m.blind_days) notes.push(
-    `Spend is known through ${m.txn_through} — ${m.blind_days} day(s) not yet visible. Recent cost is incomplete, not zero.`);
-  if(m.fixed_run_rate != null && m.fixed_as_built != null &&
-     Math.abs(m.fixed_run_rate - m.fixed_as_built) > 0.005){
-    notes.push(`Two nuts are shown because the maintenance reserve denominator is still your call. The honest one is ${money(m.fixed_run_rate)}.`);
-  }
+  if(p.blind_days) notes.push(
+    `Spend is known through ${p.txn_through} — ${p.blind_days} day(s) not yet visible. Recent cost is incomplete, not zero.`);
+  if(twoNuts)
+    notes.push(`Two nuts are shown because the maintenance reserve denominator is still your call. The honest one is ${money(p.nut_run_rate)}.`);
   if(s.unavailable && Object.keys(s.unavailable).length)
     notes.push(`Sources that did not answer: ${Object.keys(s.unavailable).join(", ")}. Figures touching them are missing, not zero.`);
   $("standnote").textContent = notes.join(" ");
