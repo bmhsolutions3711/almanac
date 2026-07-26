@@ -1,10 +1,15 @@
 <!--
   ALMANAC — DETENT.
 
-  One machined plate. A spindle down the right side is the only navigation there
-  is: light detents step through things you act on, a HEAVY detent crosses into
+  One machined plate. A spindle down the right side steps through everything:
+  light detents step through things you act on, a HEAVY detent crosses into
   another part of your life. Tabs break at five; a spindle has no fixed number of
   positions, so a new domain is one more detent and never a fifth tab.
+
+  THE LADDER IS AN INDEX PLATE, not a legend. Tap a section name and the spindle
+  swings straight to that section's first detent, with the same heavy click the
+  boundary earns when rolled across. Rolling is for neighbours; the index is for
+  crossing the plate in one move.
 
   TODAY IS POSITION ZERO WITH A HARD STOP. You cannot roll above it, and one press
   of the plate returns you from anywhere. "First in front of me is always today"
@@ -23,6 +28,11 @@
   NOT written. The WALL CLOCK decides, never animation.finished — a hidden document
   freezes its animation timeline and resumes it later, which once fired a $1,500
   write nobody asked for.
+
+  AN EARLY RELEASE ANSWERS OUT LOUD. A tap on a control shaped like a button, met
+  with silence, reads as "the button did not capture" — and on a money gesture
+  that doubt is worse than a refusal. So releasing before the latch seats says,
+  in words, that nothing was written and that the lever is held, not tapped.
 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -136,9 +146,15 @@ canvas.steel{position:absolute;inset:0;width:100%;height:100%;display:block;z-in
 
 /* ── the ladder ────────────────────────────────────────────────────────── */
 .ladder{flex:0 0 auto;z-index:1;display:flex;flex-direction:column;gap:9px;padding:18px 0 14px}
+/* Each rung is a control on the index plate, so the hit area is a thumb's, not the
+   type's — padding grows the target, the negative margin gives the extra back so
+   the engraved rhythm of the column does not change. */
 .rung{display:flex;align-items:center;gap:9px;font:700 12px/1 var(--mono);letter-spacing:.2em;
-  color:var(--dim);transition:color .18s;text-shadow:var(--engrave)}
+  color:var(--dim);transition:color .18s;text-shadow:var(--engrave);
+  cursor:pointer;padding:7px 14px 7px 0;margin:-7px 0;border:0;background:none;
+  text-align:left;align-self:flex-start}
 .rung i{width:14px;height:2px;background:#6B726E;display:block;transition:all .18s}
+.rung:active{color:var(--mid)}
 .rung.on{color:var(--lamp)}
 .rung.on i{background:var(--lamp);width:24px;box-shadow:0 0 8px -1px var(--lamp)}
 
@@ -440,8 +456,21 @@ function drawWheel(){
 
 /* ── render ───────────────────────────────────────────────────────────── */
 const SECS = ["TODAY","FINANCES","LEARN","SOUL","CLOSE"];
-SECS.forEach(k => { const d = document.createElement("div");
-  d.className = "rung"; d.dataset.k = k; d.innerHTML = "<i></i>" + k; $("ladder").appendChild(d); });
+SECS.forEach(k => { const d = document.createElement("button");
+  d.type = "button"; d.className = "rung"; d.dataset.k = k;
+  d.setAttribute("aria-label", "go to " + k.toLowerCase());
+  d.innerHTML = "<i></i>" + k; $("ladder").appendChild(d); });
+/* The index plate: a rung swings the spindle straight to that section's first
+   detent. landOn supplies the feel — heavy when a boundary is crossed, exactly
+   as if it had been rolled — and the wheel glides to the new position. */
+$("ladder").addEventListener("click", e => {
+  const r = e.target.closest(".rung"); if(!r) return;
+  const i = NODES.findIndex(n => n.sec === r.dataset.k);
+  if(i < 0) return;
+  ctx();
+  if(i !== spin.pos) landOn(i);
+  glideTo(TRAVEL[i]);
+});
 
 function setFig(v, unit, unknown){
   const f = $("fig");
@@ -597,14 +626,17 @@ addEventListener("keydown", e => {
     else { landOn(spin.pos-1); spin.cont = TRAVEL[spin.pos]; drawWheel(); } }
   if(e.key === "t" || e.key === "Home"){ e.preventDefault(); goHome(); }
 });
+function glideTo(target){
+  const step = () => { const d = target - spin.cont;
+    if(Math.abs(d) < .4 || reduce()){ spin.cont = target; drawWheel(); raf = 0; return; }
+    spin.cont += d*.20; drawWheel(); raf = requestAnimationFrame(step); };
+  cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
+}
 function goHome(){
   if(spin.pos === 0) return;
   ctx(); buzz(HAPTIC.heavy); tickHeavy();
   spin.pos = 0; paint();
-  const step = () => { const d = 0 - spin.cont;
-    if(Math.abs(d) < .4 || reduce()){ spin.cont = 0; drawWheel(); raf = 0; return; }
-    spin.cont += d*.20; drawWheel(); raf = requestAnimationFrame(step); };
-  cancelAnimationFrame(raf); raf = requestAnimationFrame(step);
+  glideTo(0);
 }
 $("plate").addEventListener("dblclick", goHome);
 
@@ -623,6 +655,7 @@ $("toggle").addEventListener("click", () => {
 /* ── THE LEVER — the latch, unchanged. The wall clock decides. ─────────── */
 const lever = $("lever"), rail = $("rail");
 let L = { held:false, t0:0, detent:null, boundary:null, armed:null, key:null };
+let hintT = 0;
 
 function leverDown(e){
   const n = NODES[spin.pos];
@@ -633,6 +666,7 @@ function leverDown(e){
   if(document.visibilityState !== "visible") return;      // a hold he cannot see is not a hold
   if(e && e.pointerId != null){ try{ lever.setPointerCapture(e.pointerId); }catch(x){} }
   try{ rail.getAnimations().forEach(a => a.cancel()); }catch(x){}
+  clearTimeout(hintT); $("whyLine").hidden = true;
   lever.dataset.state = "arming"; rail.style.willChange = "transform";
   buzz(HAPTIC.arm); ctx();
   const r = reduce(), DUR = r ? 260 : 460;
@@ -663,6 +697,10 @@ function leverUp(){
     {duration:180, easing:"ease-out"});
   back.finished.then(() => { rail.style.transform = "scaleX(0)"; }).catch(()=>{});
   rail.style.willChange = ""; lever.dataset.state = "";
+  /* A silent reset here is indistinguishable from a broken button. Say it. */
+  const w = $("whyLine"); w.hidden = false;
+  w.textContent = "released before it seated — nothing was written. the lever is held, not tapped";
+  clearTimeout(hintT); hintT = setTimeout(() => { w.hidden = true; }, 2600);
 }
 async function seat(){
   clearTimeout(L.detent); L.detent = null;
