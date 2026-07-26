@@ -384,6 +384,10 @@ function buildNodes(){
   if(!st.length) N.push({ sec:"FINANCES", kind:"empty", first:true });
   N.push({ sec:"LEARN", kind:"learn", first:true });
   N.push({ sec:"SOUL",  kind:"soul",  first:true });
+  // The last standing of every day is always the same object: CLOSE THE BOOK.
+  // It lives at the very bottom of the spindle, so no sort can ever put the end
+  // of the day anywhere but last — ordering as a property of the machine.
+  N.push({ sec:"CLOSE", kind:"close", c: (State.standings && State.standings.close) || null, first:true });
   NODES = N;
   TRAVEL = [0];
   for(let i = 1; i < N.length; i++) TRAVEL[i] = TRAVEL[i-1] + PITCH * (N[i].first ? HEAVY : 1);
@@ -435,7 +439,7 @@ function drawWheel(){
 }
 
 /* ── render ───────────────────────────────────────────────────────────── */
-const SECS = ["TODAY","FINANCES","LEARN","SOUL"];
+const SECS = ["TODAY","FINANCES","LEARN","SOUL","CLOSE"];
 SECS.forEach(k => { const d = document.createElement("div");
   d.className = "rung"; d.dataset.k = k; d.innerHTML = "<i></i>" + k; $("ladder").appendChild(d); });
 
@@ -508,6 +512,20 @@ function paint(){
     setFig(open == null ? "" : String(open), " OPEN", open == null);
     $("sub").textContent = l && l.open && l.open[0] ? l.open[0].question : (l ? "nothing open" : "spine unavailable");
     $("leverCap").textContent = "—";
+  }
+  else if(n.kind === "close"){
+    const c = n.c;
+    $("head").textContent = "The book";
+    if(c){
+      setFig(String(c.moves), " MOVES");
+      $("sub").textContent = (c.sub || "") + " · hold the lever to close the day";
+      lever.disabled = (State.source !== "live");
+      $("leverCap").textContent = "CLOSE THE BOOK";
+    } else {
+      setFig(null, null, true);
+      $("sub").textContent = "no entry is open — the book is already closed";
+      $("leverCap").textContent = "NOTHING TO CLOSE";
+    }
   }
   else if(n.kind === "soul"){
     const d = State.soul;
@@ -608,7 +626,8 @@ let L = { held:false, t0:0, detent:null, boundary:null, armed:null, key:null };
 
 function leverDown(e){
   const n = NODES[spin.pos];
-  if(!n || n.kind !== "standing") return;
+  if(!n || (n.kind !== "standing" && n.kind !== "close")) return;
+  if(n.kind === "close" && !n.c) return;
   if(lever.disabled || lever.dataset.state === "seating") return;
   if(State.source !== "live") return;
   if(document.visibilityState !== "visible") return;      // a hold he cannot see is not a hold
@@ -650,14 +669,17 @@ async function seat(){
   clearTimeout(L.boundary); L.boundary = null;
   lever.dataset.state = "seating";
   $("leverCap").textContent = "WRITING";
-  const s = NODES[spin.pos].s;
+  const node = NODES[spin.pos];
+  const path = node.kind === "close" ? "/api/entry/close"
+             : `/api/standings/${node.s.bill_type}/${node.s.bill_id}/settle`;
+  const body = node.kind === "close" ? {} : { cycle_key: node.s.cycle_key };
   const net = new AbortController();
   const kill = setTimeout(() => net.abort("timeout"), 9000);
   try{
-    const r = await fetch(url(`/api/standings/${s.bill_type}/${s.bill_id}/settle`), {
+    const r = await fetch(url(path), {
       method:"POST", signal:net.signal,
       headers: hdr({ "Content-Type":"application/json", "Idempotency-Key": L.key }),
-      body: JSON.stringify({ cycle_key: s.cycle_key })
+      body: JSON.stringify(body)
     });
     const text = await r.text();
     if(!r.ok){ let m = text.slice(0,200); try{ m = JSON.parse(text).error || m; }catch(e){} throw new Error(m); }
@@ -669,7 +691,9 @@ async function seat(){
 function caught(){
   buzz(HAPTIC.seat); tine();
   L.key = null;
-  lever.dataset.state = ""; $("leverCap").textContent = "RECORDED";
+  const wasClose = NODES[spin.pos] && NODES[spin.pos].kind === "close";
+  lever.dataset.state = "";
+  $("leverCap").textContent = wasClose ? "CLOSED" : "RECORDED";
   load(true);                                   // the figure moves because HE moved it
 }
 function refuse(err){
