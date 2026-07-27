@@ -172,6 +172,26 @@
   .creed .cb{font-family:var(--serif); font-size:15px; line-height:1.7; color:var(--mid);
     margin-top:8px; white-space:pre-wrap}
 
+  /* ── RADIO: the channel log ───────────────────────────────────────────── */
+  .chlog{max-width:78ch}
+  .tx{display:flex; gap:14px; padding:8px 0; border-bottom:1px dotted var(--rule);
+    font:400 14px/1.6 var(--sans); color:var(--mid); align-items:baseline}
+  .tx .stamp{flex:0 0 auto; font:600 10px/1.6 var(--mono); letter-spacing:.08em;
+    color:var(--faint); width:88px}
+  .tx .voice{flex:0 0 auto; font:700 10px/1.6 var(--mono); letter-spacing:.14em; width:34px}
+  .tx.op .voice{color:var(--red)}
+  .tx.bry{color:var(--ink)}
+  .tx.bry .voice{color:var(--dim)}
+  .tx .squelch{color:var(--red); font-weight:700}
+  .tx.held{opacity:.62; font-style:italic}
+  .tx .txt b{color:var(--ink)}
+  .keyup{display:flex; gap:10px; margin-top:18px; max-width:78ch}
+  .keyup input{flex:1; background:var(--sunk); border:1px solid var(--rule);
+    border-radius:var(--r); color:var(--ink); font:400 14px/1.4 var(--sans); padding:12px}
+  .keyup button{background:var(--red); color:var(--paper); border:0; border-radius:var(--r);
+    font:700 11px/1 var(--mono); letter-spacing:.18em; padding:0 22px; cursor:pointer}
+  .keyup button:disabled{opacity:.5; cursor:default}
+
   /* ── folio + states ───────────────────────────────────────────────────── */
   footer{margin-top:48px; padding-top:10px; border-top:1px solid var(--rule);
     display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
@@ -224,6 +244,14 @@
       <div class="dept"><span id="donecap">closed</span></div>
       <div class="grid" id="donegrid"></div>
     </div>
+  </section>
+
+  <section data-tab="RADIO" hidden>
+    <div class="chlog" id="chlog"></div>
+    <form class="keyup" id="keyup">
+      <input id="keyupText" placeholder="key up — the spine reads this at the next kickoff" autocomplete="off" maxlength="500">
+      <button type="submit" id="keyupGo">KEY UP</button>
+    </form>
   </section>
 
   <section data-tab="FINANCES" hidden>
@@ -301,7 +329,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g,
   m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 
 const State = { standings:null, board:null, learn:null, soul:null, standing:null,
-                held:null, readAt:null };
+                held:null, radio:null, readAt:null };
 
 /* ── the cross-reference back to the instrument ──────────────────────────── */
 $("toInstrument").addEventListener("click", () => {
@@ -310,8 +338,8 @@ $("toInstrument").addEventListener("click", () => {
 });
 
 /* ── thumb-index tabs ────────────────────────────────────────────────────── */
-const TABS = ["TODAY","WORK","FINANCES","LEARN","SOUL"];
-const TABLABEL = { TODAY:"today", WORK:"the work", FINANCES:"finances", LEARN:"learn", SOUL:"soul" };
+const TABS = ["TODAY","WORK","RADIO","FINANCES","LEARN","SOUL"];
+const TABLABEL = { TODAY:"today", WORK:"the work", RADIO:"radio", FINANCES:"finances", LEARN:"learn", SOUL:"soul" };
 let TAB = "TODAY";           /* first in front of me is always today */
 TABS.forEach(k => {
   const b = document.createElement("button");
@@ -323,10 +351,17 @@ function setTab(k){
   TAB = k;
   [...$("tabs").children].forEach(b => b.classList.toggle("on", b.dataset.k === k));
   document.querySelectorAll("section[data-tab]").forEach(s => s.hidden = s.dataset.tab !== k);
+  // Opening the radio IS reading it — the read mark is his eyes on the log,
+  // never a passive fetch.
+  if(k === "RADIO" && State.radio && State.radio.unread > 0 && configured()){
+    fetch(url("/api/messages/read"), { method:"POST", headers: hdr({"Content-Type":"application/json"}), body:"{}" })
+      .then(() => grab("/api/messages")).then(r => { State.radio = r; renderRadio(); })
+      .catch(()=>{});
+  }
 }
 addEventListener("keydown", e => {
   if(e.target.tagName === "INPUT") return;
-  const i = "12345".indexOf(e.key);
+  const i = "123456".indexOf(e.key);
   if(i >= 0 && i < TABS.length){ setTab(TABS[i]); return; }
   const at = TABS.indexOf(TAB);
   if(e.key === "ArrowRight") setTab(TABS[Math.min(TABS.length-1, at+1)]);
@@ -510,6 +545,56 @@ function kcardEl(c, isNow){
   return el;
 }
 
+/* ── RADIO — the channel log. OP keys up through the budget; BRY keys up
+   here. ▲ broke squelch; dim italic stayed under it. The log only records —
+   squelch is structural and lives on the spine. ───────────────────────────── */
+function renderRadio(){
+  const host = $("chlog"); host.textContent = "";
+  const r = State.radio;
+  if(!r){
+    host.innerHTML = '<p class="nodata">the spine has not answered with the radio log</p>';
+    return;
+  }
+  if(!(r.messages || []).length){
+    host.innerHTML = '<p class="nodata">a quiet channel — nothing said yet. ' +
+      'the operation keys up through the budget; you key up below.</p>';
+  }
+  for(const m of (r.messages || [])){
+    const el = document.createElement("div");
+    const op = m.sender === "operation";
+    el.className = "tx " + (op ? "op" : "bry") + (m.kind === "held" ? " held" : "");
+    const mark = m.kind === "pushed" ? '<span class="squelch" title="broke squelch">&#9650; </span>'
+               : m.kind === "undelivered" ? '<span class="squelch" title="said, not heard">&#9651; </span>' : "";
+    el.innerHTML = '<span class="stamp">' + esc((m.at || "").slice(5,16).replace("T"," ")) + '</span>' +
+      '<span class="voice">' + (op ? "OP" : "BRY") + '</span>' +
+      '<span class="txt">' + mark +
+      (op && m.title && m.title !== m.body ? "<b>" + esc(m.title) + "</b> — " : "") +
+      esc(m.body) + '</span>';
+    host.appendChild(el);
+  }
+  tabCount("RADIO", r.unread ? String(r.unread) : "");
+  host.scrollTop = host.scrollHeight;
+}
+$("keyup").addEventListener("submit", async e => {
+  e.preventDefault();
+  const inp = $("keyupText"), btn = $("keyupGo");
+  const body = inp.value.trim();
+  if(!body || !configured()) return;
+  btn.disabled = true; btn.textContent = "KEYING";
+  try{
+    const res = await fetch(url("/api/messages"), { method:"POST",
+      headers: hdr({"Content-Type":"application/json"}), body: JSON.stringify({ body }) });
+    if(!res.ok) throw new Error("the spine refused: " + res.status);
+    inp.value = "";
+    State.radio = await grab("/api/messages");
+    renderRadio();
+  }catch(err){
+    const el = document.createElement("p"); el.className = "hotline";
+    el.textContent = "not transmitted — " + (err.message || err);
+    $("chlog").appendChild(el);
+  }finally{ btn.disabled = false; btn.textContent = "KEY UP"; }
+});
+
 /* ── FINANCES — the ledger ───────────────────────────────────────────────── */
 function rowHTML(s, dim){
   const short = s.severity === "short";
@@ -648,6 +733,7 @@ async function load(){
     grab("/api/learning").then(l => { State.learn = l; renderLearn(); }).catch(()=>{});
     grab("/api/doctrine").then(d => { State.soul = d; renderSoul(); }).catch(()=>{});
     grab("/api/push/held").then(h => { State.held = h; renderToday(); }).catch(()=>{});
+    grab("/api/messages").then(r => { State.radio = r; renderRadio(); }).catch(()=>{});
     renderToday(); renderBoard(); renderLedger(); renderLearn(); renderSoul(); renderChrome();
   }catch(e){
     $("fig").classList.add("unk"); $("fig").innerHTML = "&#8212;&#8212;";
@@ -680,7 +766,18 @@ $("cfgGo").addEventListener("click", async () => {
 
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 
-setTab("TODAY");
+/* Today first is the machine's property — except answering the radio: a
+   notification tap deep-links to the thing that spoke. The hashchange
+   listener matters: when a desk window already exists, the service worker's
+   navigate() is a hash-only change and boot never re-runs. */
+function answerRadioHash(){
+  if(location.hash !== "#radio") return false;
+  setTab("RADIO");
+  history.replaceState(null, "", location.pathname + location.search);
+  return true;
+}
+addEventListener("hashchange", answerRadioHash);
+if(!answerRadioHash()) setTab("TODAY");
 if(!configured()){ $("figsub").textContent = "not connected"; showConnect(); }
 else load();
 })();
