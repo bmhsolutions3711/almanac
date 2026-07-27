@@ -300,7 +300,8 @@ const money = v => v == null ? null :
 const esc = s => String(s ?? "").replace(/[&<>"]/g,
   m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 
-const State = { standings:null, board:null, learn:null, soul:null, standing:null, readAt:null };
+const State = { standings:null, board:null, learn:null, soul:null, standing:null,
+                held:null, readAt:null };
 
 /* ── the cross-reference back to the instrument ──────────────────────────── */
 $("toInstrument").addEventListener("click", () => {
@@ -387,6 +388,7 @@ function renderToday(){
     el.innerHTML = html;
     box.appendChild(el);
   });
+  renderHeld();
 }
 function lxHTML(k){
   const W = (State.standing && State.standing.judgement &&
@@ -404,6 +406,20 @@ function lxHTML(k){
   return '<div class="lx" data-lx="' + esc(k) + '">' + rows + whole + tot + note +
          '<div class="prov">' + esc(d.stamp || "") + '</div></div>';
 }
+/* What the push budget kept quiet today. Suppressed is not lost — it is
+   printed here, which is the bargain that makes one-push-a-day honest. */
+function renderHeld(){
+  const held = (State.held && State.held.held) || [];
+  const box = $("judge");
+  if(!held.length) return;
+  const el = document.createElement("p");
+  el.className = "seg";
+  el.style.fontStyle = "italic";
+  el.innerHTML = "held back today — <b>" + held.length + "</b>: " +
+    held.map(h => esc(h.title) + (h.body ? " — " + esc(h.body) : "")).join(" · ");
+  box.appendChild(el);
+}
+
 /* one working open at a time — ledger discipline */
 $("judge").addEventListener("click", e => {
   const f = e.target.closest(".jf[data-w]");
@@ -631,6 +647,7 @@ async function load(){
     grab("/api/standing").then(s => { State.standing = s; renderToday(); }).catch(()=>{});
     grab("/api/learning").then(l => { State.learn = l; renderLearn(); }).catch(()=>{});
     grab("/api/doctrine").then(d => { State.soul = d; renderSoul(); }).catch(()=>{});
+    grab("/api/push/held").then(h => { State.held = h; renderToday(); }).catch(()=>{});
     renderToday(); renderBoard(); renderLedger(); renderLearn(); renderSoul(); renderChrome();
   }catch(e){
     $("fig").classList.add("unk"); $("fig").innerHTML = "&#8212;&#8212;";

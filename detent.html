@@ -383,7 +383,8 @@ const money = v => v == null ? null :
   "$" + Number(v).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
 
 const State = { source:"none", standings:null, board:null, learn:null, soul:null,
-                standing:null };   /* the money page: the spine's ONE judgement */
+                standing:null,     /* the money page: the spine's ONE judgement */
+                held:null };       /* pushes the budget kept quiet today */
 const esc = s => String(s ?? "").replace(/[&<>"]/g,
   m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 
@@ -574,6 +575,16 @@ function renderJudge(){
     el.innerHTML = html;
     w.appendChild(el);
   });
+  // What the budget kept quiet. Suppressed is not lost — it is HERE, in dim
+  // type, which is the whole bargain that makes one-push-a-day honest.
+  const held = (State.held && State.held.held) || [];
+  if(held.length){
+    const el = document.createElement("div");
+    el.className = "card judge";
+    el.innerHTML = `held back today — <b>${held.length}</b>: ` +
+      held.map(h => esc(h.title)).join(" · ");
+    w.appendChild(el);
+  }
 }
 
 function ledgerXHTML(k){
@@ -970,6 +981,7 @@ async function load(keepPos){
     grab("/api/standing").then(s => { State.standing = s; paint(); }).catch(()=>{});
     grab("/api/learning").then(l => { State.learn = l; paint(); }).catch(()=>{});
     grab("/api/doctrine").then(d => { State.soul = d; paint(); }).catch(()=>{});
+    grab("/api/push/held").then(h => { State.held = h; paint(); }).catch(()=>{});
     buildNodes();
     spin.pos = keepPos ? Math.min(at, NODES.length-1) : 0;
     spin.cont = TRAVEL[spin.pos];
