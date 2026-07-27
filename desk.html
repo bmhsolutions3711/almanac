@@ -338,7 +338,9 @@ $("toInstrument").addEventListener("click", () => {
 });
 
 /* ── thumb-index tabs ────────────────────────────────────────────────────── */
-const TABS = ["TODAY","WORK","RADIO","FINANCES","LEARN","SOUL"];
+/* RADIO leads — Bryan's ruling 2026-07-27 ("radio should be first tab"):
+   on the desk, the first read is the conversation with the operation. */
+const TABS = ["RADIO","TODAY","WORK","FINANCES","LEARN","SOUL"];
 const TABLABEL = { TODAY:"today", WORK:"the work", RADIO:"radio", FINANCES:"finances", LEARN:"learn", SOUL:"soul" };
 let TAB = "TODAY";           /* first in front of me is always today */
 TABS.forEach(k => {
@@ -733,7 +735,15 @@ async function load(){
     grab("/api/learning").then(l => { State.learn = l; renderLearn(); }).catch(()=>{});
     grab("/api/doctrine").then(d => { State.soul = d; renderSoul(); }).catch(()=>{});
     grab("/api/push/held").then(h => { State.held = h; renderToday(); }).catch(()=>{});
-    grab("/api/messages").then(r => { State.radio = r; renderRadio(); }).catch(()=>{});
+    grab("/api/messages").then(r => { State.radio = r; renderRadio();
+      // Landing ON the radio counts as reading it — boot's setTab ran before
+      // the thread arrived, so the read mark fires here for that case.
+      if(TAB === "RADIO" && r.unread > 0)
+        fetch(url("/api/messages/read"), { method:"POST",
+          headers: hdr({"Content-Type":"application/json"}), body:"{}" })
+          .then(() => grab("/api/messages"))
+          .then(r2 => { State.radio = r2; renderRadio(); }).catch(()=>{});
+    }).catch(()=>{});
     renderToday(); renderBoard(); renderLedger(); renderLearn(); renderSoul(); renderChrome();
   }catch(e){
     $("fig").classList.add("unk"); $("fig").innerHTML = "&#8212;&#8212;";
@@ -777,7 +787,7 @@ function answerRadioHash(){
   return true;
 }
 addEventListener("hashchange", answerRadioHash);
-if(!answerRadioHash()) setTab("TODAY");
+if(!answerRadioHash()) setTab("RADIO");
 if(!configured()){ $("figsub").textContent = "not connected"; showConnect(); }
 else load();
 })();
