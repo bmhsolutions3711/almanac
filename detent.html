@@ -786,6 +786,69 @@ $("toggle").addEventListener("click", () => {
   setTimeout(() => { location.href = "desk.html"; }, 160);
 });
 
+/* THE LAMP REACHES OUT (Almanac #10). Tap the lamp: this device goes in
+   reach — the light can find you when the plate is in your pocket. Tap it
+   again while in reach: the spine sends a REAL push, proof in the hand.
+   On boot, an already-granted device re-subscribes silently: Android battery
+   management churns FCM registrations (all 9 historical subscriptions died
+   within minutes-to-days), so refresh-on-every-boot is the fix — the spine
+   upserts by endpoint, so the norm costs nothing. */
+const b64ToU8 = s => {
+  const pad = "=".repeat((4 - s.length % 4) % 4);
+  const raw = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
+};
+async function pushSubscribe(silent){
+  if(!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if(!sub){
+    if(Notification.permission !== "granted"){
+      if(silent) return null;
+      if(await Notification.requestPermission() !== "granted") return null;
+    }
+    const r = await fetch(url("/api/push/vapid"), { headers: hdr() });
+    const key = (await r.json()).publicKey;
+    if(!key) throw new Error("the spine has no VAPID key");
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true,
+      applicationServerKey: b64ToU8(key) });
+  }
+  const res = await fetch(url("/api/push/subscribe"), { method: "POST",
+    headers: hdr({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ subscription: sub.toJSON(),
+                           label: navigator.userAgent.slice(0, 80) }) });
+  if(!res.ok) throw new Error("the spine refused the subscription");
+  return sub;
+}
+let lampBusy = false;
+$("lamp").addEventListener("click", async () => {
+  if(lampBusy) return; lampBusy = true;
+  const w = $("whyLine"); w.hidden = false;
+  try{
+    if(!configured()){ w.textContent = "connect to the spine first"; return; }
+    const reg = await navigator.serviceWorker.ready;
+    const had = await reg.pushManager.getSubscription();
+    if(!had){
+      w.textContent = "putting this device in reach…";
+      const sub = await pushSubscribe(false);
+      w.textContent = sub
+        ? "in reach — the light can find you now. tap the lamp again to prove it"
+        : "notifications were not allowed — nothing subscribed";
+    } else {
+      await pushSubscribe(true);              // refresh before proving
+      w.textContent = "asking the spine to reach this device…";
+      const r = await fetch(url("/api/push/test"), { method: "POST",
+        headers: hdr({ "Content-Type": "application/json" }), body: "{}" });
+      const out = await r.json().catch(() => ({}));
+      w.textContent = r.ok && out.sent
+        ? `the spine pushed to ${out.sent} device(s) — it should be in your hand`
+        : `the push did not go: ${out.error || out.decision || r.status}`;
+    }
+  }catch(e){ w.textContent = "push failed: " + (e.message || e); }
+  finally{ lampBusy = false;
+    clearTimeout(hintT); hintT = setTimeout(() => { w.hidden = true; }, 5000); }
+});
+
 /* ── THE LEVER — the latch, unchanged. The wall clock decides. ─────────── */
 const lever = $("lever"), rail = $("rail");
 let L = { held:false, t0:0, detent:null, boundary:null, armed:null, key:null };
@@ -942,6 +1005,12 @@ if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catc
 
 buildNodes(); paint();
 if(!configured()){ $("kick").textContent = "NOT CONNECTED"; $("head").textContent = "Connect to the spine"; showConnect(); }
-else load();
+else {
+  load();
+  // The churn fix: a device that already granted notifications re-subscribes
+  // on every boot, silently. New endpoint or same, the spine upserts.
+  if("serviceWorker" in navigator && "PushManager" in window)
+    navigator.serviceWorker.ready.then(() => pushSubscribe(true)).catch(() => {});
+}
 })();
 </script>

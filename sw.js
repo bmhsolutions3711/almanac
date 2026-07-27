@@ -14,7 +14,7 @@
  *    network every time; the SW cache is then only ever a genuine offline
  *    fallback.
  */
-const VERSION = 'almanac-shell-v9';
+const VERSION = 'almanac-shell-v10';
 
 // The version gauge that cannot lie (Almanac #8): the page asks, the worker
 // answers — the chip renders what is actually installed, never a hardcoded
@@ -43,6 +43,35 @@ self.addEventListener('activate', e => {
       .then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// Web Push (Almanac #10). The payload is written by spine/push.py; the url
+// says which surface answers the tap. Budgeted at the SENDER — by the time a
+// push reaches this handler it has already earned its place, so it is shown.
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) {}
+  e.waitUntil(self.registration.showNotification(d.title || 'Almanac', {
+    body: d.body || '',
+    data: { url: d.url || './detent.html' },
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    tag: 'almanac',
+  }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const target = new URL((e.notification.data && e.notification.data.url) || './detent.html',
+                         self.registration.scope).href;
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list)
+      if (c.url.startsWith(self.registration.scope) && 'focus' in c) {
+        c.navigate(target);
+        return c.focus();
+      }
+    return clients.openWindow(target);
+  }));
 });
 
 self.addEventListener('fetch', e => {
