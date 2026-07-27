@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#13110E">
+<title>Almanac — the desk</title>
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<style>
+  /* DESK — the almanac laid open flat. Detent is the instrument in the hand;
+     this is the printed page on the desk. Tabs at the top are the book's
+     thumb-index tabs. Everything on this page is typeset from what the spine
+     serves — THE PAGE COMPUTES NOTHING. LEAF's paper-and-ink language
+     (ruled the laptop seed, 2026-07-26), built fresh: no boot defect carried. */
+  :root{
+    color-scheme: dark;
+    /* ground */
+    --paper:#13110E; --paper-hi:#1B1814; --sunk:#0D0B09; --rule:#332E27;
+    /* ink ramp */
+    --ink:#EDE6D8; --mid:#B9AF9E; --dim:#8A8172; --faint:#5C554A;
+    /* the inks — each has ONE job. green does not exist. */
+    --red:#E0705A;      /* print red: rules, marks, the shortfall */
+    --lamp:#FFA419;     /* your hand is needed. never decoration. */
+    --hot:#FF6A2A;      /* refusal words only — what is NOT known/written */
+    --unknown:#6E6E6E;  /* the OFF-flag. the only achromatic. */
+    --mono:ui-monospace,"Roboto Mono","SF Mono",Menlo,monospace;
+    --sans:system-ui,"Segoe UI Variable Text",Roboto,sans-serif;
+    --serif:Georgia,"Iowan Old Style",serif;   /* prose — money is scanned in mono */
+    --r:2px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  /* Author display rules beat the UA's [hidden] — this must stay above everything. */
+  [hidden]{display:none !important}
+  html,body{margin:0}
+  body{background:var(--paper); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
+    padding-bottom:64px}
+  .wrap{max-width:1240px; margin:0 auto; padding:0 28px}
+  button{font-family:inherit}
+  :focus-visible{outline:2px solid var(--red); outline-offset:2px}
+  .cap{font-family:var(--mono); font-weight:600; font-size:10.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--dim)}
+
+  /* ── masthead ─────────────────────────────────────────────────────────── */
+  header{padding-top:26px}
+  .masthead{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap}
+  h1{font-family:var(--serif); font-size:32px; font-weight:600; margin:0;
+    letter-spacing:.01em; font-variant:small-caps}
+  .dateline{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--red)}
+  .hand{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--lamp)}
+  .xref{margin-left:auto; background:none; border:1px solid var(--rule); border-radius:var(--r);
+    color:var(--dim); font:600 10.5px/1 var(--mono); letter-spacing:.16em;
+    text-transform:uppercase; padding:8px 12px; cursor:pointer}
+  .xref:hover{color:var(--ink); border-color:var(--dim)}
+
+  /* ── thumb-index tabs on the red rule ─────────────────────────────────── */
+  nav{display:flex; gap:6px; margin-top:18px; border-bottom:2px solid var(--red);
+    flex-wrap:wrap}
+  nav button{background:none; border:1px solid transparent; border-bottom:0;
+    border-radius:var(--r) var(--r) 0 0; padding:9px 16px 8px; cursor:pointer;
+    font:600 11.5px/1 var(--mono); letter-spacing:.18em; text-transform:uppercase;
+    color:var(--dim); margin-bottom:0}
+  nav button i{font-style:normal; color:var(--faint); margin-left:7px; letter-spacing:0}
+  nav button.on{background:var(--paper-hi); border-color:var(--rule); color:var(--ink);
+    box-shadow:0 2px 0 var(--paper-hi)}
+  nav button.on i{color:var(--red)}
+
+  main{padding-top:26px}
+  section[data-tab]{min-height:40vh}
+
+  /* ── departments: printed rules, never boxes ──────────────────────────── */
+  .dept{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px;
+    margin:34px 0 14px}
+  .dept::before,.dept::after{content:""; height:1px; background:var(--rule)}
+  .dept span{font-family:var(--mono); font-weight:600; font-size:10.5px;
+    letter-spacing:.22em; text-transform:uppercase; color:var(--dim)}
+
+  /* ── TODAY: the standing ──────────────────────────────────────────────── */
+  .prose{max-width:74ch}
+  .headfig{font:700 clamp(36px,5vw,52px)/1 var(--mono); letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums slashed-zero; margin:4px 0 0;
+    padding-bottom:8px; border-bottom:2px solid var(--red); display:inline-block}
+  .headfig.short{color:var(--red)}
+  .headfig.unk{color:var(--unknown); font-weight:400; letter-spacing:.1em}
+  .standsub{margin-top:10px; font:600 12px/1.6 var(--mono); letter-spacing:.1em;
+    text-transform:uppercase; color:var(--mid)}
+  .seg{font-family:var(--serif); font-size:17px; line-height:1.75; color:var(--mid);
+    margin:14px 0}
+  .seg b{color:var(--ink)}
+  .seg .jf{font:600 15px var(--mono); color:var(--ink); font-variant-numeric:tabular-nums}
+  .seg .jf[data-w]{cursor:pointer;
+    text-decoration:underline dotted 1px rgba(224,112,90,.6); text-underline-offset:.22em}
+  .seg.open .jf[data-w]{text-decoration:underline solid 1px var(--red)}
+
+  /* the working, unfolded in the margin hand */
+  .lx{background:var(--sunk); border-left:2px solid var(--red); border-radius:var(--r);
+    padding:12px 16px; margin:6px 0 16px; max-width:56ch}
+  .lx .lr{display:flex; justify-content:space-between; gap:16px; padding:3px 0;
+    font:400 13px/1.5 var(--sans); color:var(--dim); border-bottom:1px dotted var(--rule)}
+  .lx .lr:last-of-type{border-bottom:0}
+  .lx .lr b{font:600 13px var(--mono); color:var(--ink); font-variant-numeric:tabular-nums}
+  .lx .lt{display:flex; justify-content:space-between; gap:16px; margin-top:6px;
+    padding-top:7px; border-top:3px double var(--rule); font:600 13px/1.5 var(--sans); color:var(--ink)}
+  .lx .lt b{font:700 13px var(--mono); font-variant-numeric:tabular-nums}
+  .lx .flag{display:inline-block; width:30px; height:10px; align-self:center;
+    background:repeating-linear-gradient(135deg,#6E6E6E 0 5px,#8A8A8A 5px 10px)}
+  .lx .whole,.lx .lnote{font:italic 400 12.5px/1.5 var(--serif); color:var(--dim); padding:2px 0}
+  .lx .prov{font:600 8.5px/1.4 var(--mono); letter-spacing:.1em; color:var(--faint);
+    text-transform:uppercase; margin-top:8px}
+
+  /* ── THE WORK: the board printed across the desk ──────────────────────── */
+  .boardgrid{display:grid; grid-template-columns:repeat(4,minmax(230px,1fr)); gap:20px}
+  @media (max-width:1000px){ .boardgrid{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:620px){ .boardgrid{grid-template-columns:1fr} }
+  .col h3{font:600 10.5px/1 var(--mono); letter-spacing:.22em; text-transform:uppercase;
+    color:var(--dim); margin:0 0 10px; padding-bottom:7px; border-bottom:1px solid var(--rule);
+    display:flex; justify-content:space-between}
+  .col h3 i{font-style:normal; color:var(--faint)}
+  .col.now h3{color:var(--ink); border-bottom-color:var(--red)}
+  .kcard{border:1px solid var(--rule); border-radius:var(--r); background:var(--paper-hi);
+    padding:11px 13px; margin-bottom:10px; cursor:pointer}
+  .kcard:hover{border-color:var(--dim)}
+  .kcard .kt{font:600 14px/1.35 var(--sans); color:var(--ink)}
+  .kcard .kn{font:700 10.5px/1 var(--mono); letter-spacing:.14em; color:var(--faint);
+    display:flex; gap:10px; align-items:center; margin-top:7px}
+  .kcard .kn .bry{color:var(--lamp)}
+  .kcard .kn .hi{color:var(--red)}
+  .kcard .bar{flex:1; height:3px; background:var(--sunk); border-radius:2px; overflow:hidden}
+  .kcard .bar i{display:block; height:100%; background:var(--mid)}
+  .kcard.now{border-left:2px solid var(--red)}
+  .kcard.open{border-color:var(--dim)}
+  .kdetail{margin-top:10px; padding-top:10px; border-top:1px dotted var(--rule);
+    font:400 13.5px/1.65 var(--sans); color:var(--mid); cursor:auto}
+  .kdetail b{color:var(--ink)}
+  .kdetail code{font:600 12px var(--mono); color:var(--ink); background:var(--sunk);
+    padding:1px 4px; border-radius:2px}
+  .kdetail ul{margin:6px 0; padding-left:18px}
+  .kdetail .kimp{font-style:italic; font-family:var(--serif); color:var(--dim)}
+  .donestrip{margin-top:6px}
+  .donestrip .kcard{cursor:pointer; opacity:.62}
+  .donestrip .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px}
+
+  /* ── FINANCES: the ledger ─────────────────────────────────────────────── */
+  .ledger{max-width:860px}
+  .row{display:grid; grid-template-columns:1fr auto; gap:4px 20px; padding:10px 0;
+    border-bottom:1px dotted var(--rule); align-items:baseline}
+  .row .rt{font:600 14.5px/1.35 var(--sans); color:var(--ink)}
+  .row .rs{grid-column:1; font:400 12.5px/1.5 var(--sans); color:var(--dim)}
+  .row .ra{grid-row:1/span 2; align-self:center; font:600 15px var(--mono);
+    font-variant-numeric:tabular-nums; color:var(--ink); text-align:right}
+  .row.short .rt{color:var(--red)}
+  .row.dimrow{opacity:.55}
+  .row .ra .u{color:var(--unknown); font-weight:400}
+  .fault{font:400 13px/1.6 var(--sans); color:var(--hot); padding:6px 0}
+
+  /* ── LEARN + SOUL ─────────────────────────────────────────────────────── */
+  .obj{border-left:2px solid var(--rule); padding:2px 0 2px 16px; margin:16px 0}
+  .obj .q{font-family:var(--serif); font-size:17px; line-height:1.6; color:var(--ink)}
+  .obj .om{font:600 10.5px/1.8 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dim)}
+  .obj .ta{font:italic 400 14px/1.6 var(--serif); color:var(--mid); margin-top:4px}
+  .creed{padding:10px 0; border-bottom:1px dotted var(--rule); cursor:pointer; max-width:74ch}
+  .creed .ct{font:600 15px/1.4 var(--sans); color:var(--ink);
+    display:flex; gap:12px; align-items:baseline}
+  .creed .ct i{font-style:normal; font:600 9.5px var(--mono); letter-spacing:.16em;
+    color:var(--faint); text-transform:uppercase}
+  .creed .ct .cf{margin-left:auto; font:600 9.5px var(--mono); letter-spacing:.14em;
+    color:var(--dim); text-transform:uppercase}
+  .creed .ct .cf.yes{color:var(--ink)}
+  .creed .cb{font-family:var(--serif); font-size:15px; line-height:1.7; color:var(--mid);
+    margin-top:8px; white-space:pre-wrap}
+
+  /* ── folio + states ───────────────────────────────────────────────────── */
+  footer{margin-top:48px; padding-top:10px; border-top:1px solid var(--rule);
+    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    font:600 10px/1.6 var(--mono); letter-spacing:.14em; color:var(--faint);
+    text-transform:uppercase}
+  .nodata{font-family:var(--serif); font-size:17px; color:var(--dim); font-style:italic}
+  .hotline{color:var(--hot); font:400 13px/1.6 var(--mono)}
+
+  /* ── connect ──────────────────────────────────────────────────────────── */
+  .panel{position:fixed; inset:0; background:rgba(13,11,9,.9); z-index:9;
+    display:flex; align-items:center; justify-content:center; padding:24px}
+  .panel .in{background:var(--paper-hi); border:1px solid var(--rule); border-radius:var(--r);
+    padding:24px; width:min(440px,100%); display:flex; flex-direction:column; gap:13px}
+  .panel h2{margin:0; font-family:var(--serif); font-size:20px; font-variant:small-caps}
+  .panel p{margin:0; color:var(--dim); font-size:13.5px}
+  .panel label{display:flex; flex-direction:column; gap:5px; font:700 10.5px/1 var(--mono);
+    letter-spacing:.16em; color:var(--dim); text-transform:uppercase}
+  .panel input{background:var(--sunk); border:1px solid var(--rule); border-radius:var(--r);
+    color:var(--ink); font:400 14px/1.3 var(--mono); padding:11px}
+  .panel button{background:var(--mid); color:var(--sunk); border:0; border-radius:var(--r);
+    font:700 12px/1 var(--mono); letter-spacing:.18em; padding:13px; cursor:pointer}
+  .panel .msg{font:400 11.5px/1.5 var(--mono); color:var(--dim)}
+  .panel .msg.bad{color:var(--hot)}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="masthead">
+    <h1>Almanac</h1>
+    <span class="dateline" id="dateline"></span>
+    <span class="hand" id="hand" hidden></span>
+    <button class="xref" id="toInstrument" title="back to the phone instrument">&#8646; the instrument</button>
+  </div>
+  <nav id="tabs"></nav>
+</header>
+
+<main class="wrap">
+  <section data-tab="TODAY">
+    <div class="prose">
+      <div class="cap">the standing</div>
+      <div class="headfig unk" id="fig">&#8212;&#8212;</div>
+      <div class="standsub" id="figsub">reading the spine</div>
+      <div id="judge"></div>
+    </div>
+  </section>
+
+  <section data-tab="WORK" hidden>
+    <div class="boardgrid" id="board"></div>
+    <div class="donestrip" id="donestrip" hidden>
+      <div class="dept"><span id="donecap">closed</span></div>
+      <div class="grid" id="donegrid"></div>
+    </div>
+  </section>
+
+  <section data-tab="FINANCES" hidden>
+    <div class="ledger" id="ledger"></div>
+  </section>
+
+  <section data-tab="LEARN" hidden>
+    <div id="learn"></div>
+  </section>
+
+  <section data-tab="SOUL" hidden>
+    <div id="soul"></div>
+  </section>
+
+  <footer>
+    <span id="folio-entry"></span>
+    <span id="folio-read"></span>
+    <span>the page computed nothing</span>
+  </footer>
+</main>
+
+<div class="panel" id="connect" hidden>
+  <div class="in">
+    <h2>Connect</h2>
+    <p>Both values stay on this device.</p>
+    <label>backend<input id="cfgApi" inputmode="url" placeholder="https://&#8230;"></label>
+    <label>token<input id="cfgTok" type="password" placeholder="ALMANAC_TOKEN"></label>
+    <button id="cfgGo">CONNECT</button>
+    <span class="msg" id="cfgMsg">Checked against the spine before it is saved.</span>
+  </div>
+</div>
+
+<script>
+"use strict";
+(() => {
+
+/* ── config — same keys as the instrument; same origin, same credentials ── */
+let API = localStorage.getItem("almanac_api") || "";
+let TOK = localStorage.getItem("almanac_token") || "";
+
+/* #cfg / #reset — PWA doctrine, identical to the instrument's bootstrap. */
+(function bootstrap(){
+  const h = location.hash || "";
+  if(h === "#reset" || h === "#nuke"){
+    (async () => {
+      try{
+        const regs = await (navigator.serviceWorker?.getRegistrations?.() ?? []);
+        await Promise.all(regs.map(r => r.unregister()));
+        const ks = await (caches?.keys?.() ?? []);
+        await Promise.all(ks.map(k => caches.delete(k)));
+      }catch(e){}
+      if(h === "#nuke"){ localStorage.removeItem("almanac_api"); localStorage.removeItem("almanac_token"); }
+      location.replace(location.pathname + location.search);
+    })();
+    return;
+  }
+  const m = h.match(/[#&]cfg=([^&]+)/);
+  if(m){
+    try{
+      const cfg = JSON.parse(decodeURIComponent(m[1]));
+      if(cfg.api)   localStorage.setItem("almanac_api",   API = cfg.api.replace(/\/$/, ""));
+      if(cfg.token) localStorage.setItem("almanac_token", TOK = cfg.token);
+      history.replaceState(null, "", location.pathname + location.search);
+    }catch(e){}
+  }
+})();
+
+const $ = id => document.getElementById(id);
+const url = p => (API || "") + p;
+const hdr = x => Object.assign({ Authorization: "Bearer " + TOK }, x || {});
+const configured = () => localStorage.getItem("almanac_token") !== null && TOK !== "";
+const money = v => v == null ? null :
+  "$" + Number(v).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+const esc = s => String(s ?? "").replace(/[&<>"]/g,
+  m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+
+const State = { standings:null, board:null, learn:null, soul:null, standing:null, readAt:null };
+
+/* ── the cross-reference back to the instrument ──────────────────────────── */
+$("toInstrument").addEventListener("click", () => {
+  localStorage.setItem("almanac_view", "detent");
+  location.href = "detent.html";
+});
+
+/* ── thumb-index tabs ────────────────────────────────────────────────────── */
+const TABS = ["TODAY","WORK","FINANCES","LEARN","SOUL"];
+const TABLABEL = { TODAY:"today", WORK:"the work", FINANCES:"finances", LEARN:"learn", SOUL:"soul" };
+let TAB = "TODAY";           /* first in front of me is always today */
+TABS.forEach(k => {
+  const b = document.createElement("button");
+  b.dataset.k = k; b.innerHTML = esc(TABLABEL[k]) + '<i data-count></i>';
+  b.addEventListener("click", () => setTab(k));
+  $("tabs").appendChild(b);
+});
+function setTab(k){
+  TAB = k;
+  [...$("tabs").children].forEach(b => b.classList.toggle("on", b.dataset.k === k));
+  document.querySelectorAll("section[data-tab]").forEach(s => s.hidden = s.dataset.tab !== k);
+}
+addEventListener("keydown", e => {
+  if(e.target.tagName === "INPUT") return;
+  const i = "12345".indexOf(e.key);
+  if(i >= 0 && i < TABS.length){ setTab(TABS[i]); return; }
+  const at = TABS.indexOf(TAB);
+  if(e.key === "ArrowRight") setTab(TABS[Math.min(TABS.length-1, at+1)]);
+  if(e.key === "ArrowLeft")  setTab(TABS[Math.max(0, at-1)]);
+});
+function tabCount(k, text){
+  const b = [...$("tabs").children].find(x => x.dataset.k === k);
+  if(b) b.querySelector("i").textContent = text ?? "";
+}
+
+/* ── masthead ────────────────────────────────────────────────────────────── */
+$("dateline").textContent = new Date().toLocaleDateString("en-US",
+  { weekday:"long", month:"long", day:"numeric", year:"numeric" });
+
+/* ── TODAY — the judgement, typeset; workings unfold in the margin ───────── */
+function renderToday(){
+  const j = State.standing && State.standing.judgement;
+  const p = (j && j.parts) || {};
+  const fig = $("fig"), sub = $("figsub");
+  fig.classList.remove("unk","short");
+  if(!j || !j.ok || p.to_go == null){
+    fig.classList.add("unk"); fig.innerHTML = "&#8212;&#8212;";
+    sub.textContent = j && j.ok === false
+      ? "money page unreadable" : "not enough is known to say — nothing is guessed";
+  } else if(p.to_go > 0){
+    fig.classList.add("short"); fig.textContent = money(p.to_go);
+    const needs = State.standings ? State.standings.counts.standing : null;
+    sub.textContent = "to go this month" + (needs != null ? " · " + needs + " need your hand" : "");
+  } else {
+    fig.textContent = money(-p.to_go);
+    sub.textContent = "clear — everything past this is yours";
+  }
+  const box = $("judge"); box.textContent = "";
+  if(!j || !j.ok){
+    const d = document.createElement("p"); d.className = "nodata";
+    d.textContent = (j && j.error) || "the spine has not answered with the money page";
+    box.appendChild(d);
+    return;
+  }
+  const W = j.workings || {};
+  (j.segments || []).forEach(seg => {
+    const el = document.createElement("p");
+    el.className = "seg";
+    let html = "", bold = false;
+    for(const s of seg){
+      if("t" in s){
+        const parts = esc(s.t).split("**");
+        for(let i = 0; i < parts.length; i++){
+          html += parts[i];
+          if(i < parts.length - 1){ html += bold ? "</b>" : "<b>"; bold = !bold; }
+        }
+      }
+      if("f" in s){
+        const traceable = s.w && W[s.w];
+        html += '<span class="jf"' + (traceable ? ' data-w="' + esc(s.w) + '"' : '') + '>' + esc(s.f) + '</span>';
+      }
+    }
+    if(bold) html += "</b>";
+    el.innerHTML = html;
+    box.appendChild(el);
+  });
+}
+function lxHTML(k){
+  const W = (State.standing && State.standing.judgement &&
+             State.standing.judgement.workings) || {};
+  const d = W[k]; if(!d) return "";
+  const rows = (d.rows || []).map(r => r[1] == null
+    ? '<div class="lr"><span>' + esc(r[0]) + '</span><span class="flag" title="UNKNOWN"></span></div>'
+    : '<div class="lr"><span>' + esc(r[0]) + '</span><b>' + money(r[1]) + '</b></div>').join("");
+  const whole = d.whole
+    ? '<div class="whole">this figure arrives whole — the spine serves no further breakdown.</div>' : "";
+  const tot = d.total
+    ? '<div class="lt"><span>' + esc(d.total[0]) + '</span><b>' +
+      (d.total[1] == null ? "&#8212;&#8212;" : money(d.total[1])) + '</b></div>' : "";
+  const note = d.note ? '<div class="lnote">' + esc(d.note) + '</div>' : "";
+  return '<div class="lx" data-lx="' + esc(k) + '">' + rows + whole + tot + note +
+         '<div class="prov">' + esc(d.stamp || "") + '</div></div>';
+}
+/* one working open at a time — ledger discipline */
+$("judge").addEventListener("click", e => {
+  const f = e.target.closest(".jf[data-w]");
+  if(!f) return;
+  const k = f.dataset.w, row = f.closest(".seg");
+  const prior = document.querySelector(".lx");
+  const wasThis = prior && prior.dataset.lx === k;
+  document.querySelectorAll(".lx").forEach(x => x.remove());
+  document.querySelectorAll(".seg.open").forEach(x => x.classList.remove("open"));
+  if(wasThis) return;
+  row.insertAdjacentHTML("afterend", lxHTML(k));
+  row.classList.add("open");
+});
+
+/* ── THE WORK — the board printed across the desk ────────────────────────── */
+const COLS = [["now","in hand"],["next","next"],["qa","in qa"],["later","later"]];
+/* card detail arrives as light markdown; typeset the four things it uses */
+function md(t){
+  const lines = esc(t).split("\n");
+  let out = "", inUl = false;
+  for(const ln of lines){
+    if(/^\s*-\s+/.test(ln)){
+      if(!inUl){ out += "<ul>"; inUl = true; }
+      out += "<li>" + ln.replace(/^\s*-\s+/,"") + "</li>";
+    } else {
+      if(inUl){ out += "</ul>"; inUl = false; }
+      out += ln.trim() === "" ? "<br>" : ln + "<br>";
+    }
+  }
+  if(inUl) out += "</ul>";
+  return out
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+function kcardHTML(c){
+  const p = c.progress || {done:0,total:0};
+  const pct = p.total ? Math.round(100*p.done/p.total) : 0;
+  return '<div class="kt">' + esc(c.title) + '</div>' +
+    '<div class="kn"><span>#' + c.id + '</span>' +
+    (c.priority === "high" ? '<span class="hi">HIGH</span>' : '') +
+    (c.needs_bryan ? '<span class="bry">YOUR HAND</span>' : '') +
+    '<span class="bar"><i style="width:' + pct + '%"></i></span>' +
+    '<span>' + (p.total ? p.done + "/" + p.total : "&#8212;") + '</span></div>';
+}
+function renderBoard(){
+  const host = $("board"); host.textContent = "";
+  const b = State.board;
+  if(!b){
+    host.innerHTML = '<p class="nodata">the spine has not answered with the board</p>';
+    return;
+  }
+  for(const [key,label] of COLS){
+    const cards = b.cards.filter(c => c.column_name === key).sort((a,z) => a.sort - z.sort);
+    const col = document.createElement("div");
+    col.className = "col " + key;
+    col.innerHTML = '<h3>' + esc(label) + '<i>' + cards.length + '</i></h3>';
+    for(const c of cards) col.appendChild(kcardEl(c, key === "now"));
+    if(!cards.length){
+      const e = document.createElement("p"); e.className = "nodata"; e.textContent = "nothing here";
+      col.appendChild(e);
+    }
+    host.appendChild(col);
+  }
+  const done = b.cards.filter(c => c.column_name === "done")
+    .sort((a,z) => (z.done_at || "").localeCompare(a.done_at || ""));
+  const strip = $("donestrip");
+  strip.hidden = !done.length && !b.done_total;
+  $("donecap").textContent = "closed · " + done.length + " this week · " +
+    (b.done_total ?? "?") + " all time";
+  const grid = $("donegrid"); grid.textContent = "";
+  for(const c of done) grid.appendChild(kcardEl(c, false));
+  tabCount("WORK", String(b.cards.filter(c => c.column_name !== "done").length));
+}
+function kcardEl(c, isNow){
+  const el = document.createElement("div");
+  el.className = "kcard" + (isNow ? " now" : "");
+  el.innerHTML = kcardHTML(c);
+  el.addEventListener("click", e => {
+    if(e.target.closest(".kdetail")) return;
+    const open = el.querySelector(".kdetail");
+    if(open){ open.remove(); el.classList.remove("open"); return; }
+    const d = document.createElement("div");
+    d.className = "kdetail";
+    d.innerHTML = (c.impact ? '<div class="kimp">' + esc(c.impact) + '</div><br>' : '') +
+                  (c.detail ? md(c.detail) : '<span class="nodata">no detail on this card</span>');
+    el.appendChild(d); el.classList.add("open");
+  });
+  return el;
+}
+
+/* ── FINANCES — the ledger ───────────────────────────────────────────────── */
+function rowHTML(s, dim){
+  const short = s.severity === "short";
+  return '<div class="row' + (short ? " short" : "") + (dim ? " dimrow" : "") + '">' +
+    '<div class="rt">' + esc(s.title) + '</div>' +
+    '<div class="ra">' + (s.amount == null ? '<span class="u">&#8212;&#8212;</span>' : money(s.amount)) + '</div>' +
+    '<div class="rs">' + esc(s.sub || s.kicker || "") + '</div></div>';
+}
+function renderLedger(){
+  const host = $("ledger"); host.textContent = "";
+  const d = State.standings;
+  if(!d){
+    host.innerHTML = '<p class="nodata">the spine has not answered with the standings</p>';
+    return;
+  }
+  let html = "";
+  const st = d.standings || [];
+  html += '<div class="dept"><span>standing — ' + st.length + ' need your hand</span></div>';
+  html += st.length ? st.map(s => rowHTML(s, false)).join("")
+                    : '<p class="nodata">nothing standing — no obligation needs your hand</p>';
+  html += '<p class="standsub" style="margin-top:10px">settling is done on the instrument — '
+        + 'the lever is the only control that writes money</p>';
+  const tape = d.tape || [];
+  if(tape.length){
+    html += '<div class="dept"><span>the tape — settled this month</span></div>';
+    html += tape.map(s => rowHTML(s, true)).join("");
+  }
+  const faults = d.faults || [];
+  if(faults.length){
+    html += '<div class="dept"><span>faults</span></div>';
+    html += faults.map(f => '<div class="fault">' + esc(f.name || f.bill_id || "?") +
+      (f.amount != null ? " · " + money(f.amount) : "") + " — " + esc(f.why || f.kind || "") +
+      '</div>').join("");
+  }
+  host.innerHTML = html;
+  tabCount("FINANCES", String(d.counts ? d.counts.standing : st.length));
+}
+
+/* ── LEARN — the muscle ──────────────────────────────────────────────────── */
+function renderLearn(){
+  const host = $("learn"); host.textContent = "";
+  const l = State.learn;
+  if(!l){
+    host.innerHTML = '<p class="nodata">the spine has not answered with the muscle</p>';
+    return;
+  }
+  let html = "";
+  const open = l.open || [];
+  html += '<div class="dept"><span>open — ' + open.length + '</span></div>';
+  html += open.length ? open.map(o =>
+      '<div class="obj"><div class="q">' + esc(o.question) + '</div>' +
+      '<div class="om">' + esc(o.status || "open") +
+      (o.track ? " · " + esc(o.track) : "") +
+      ((o.options || []).length ? " · " + o.options.length + " options waiting" : "") +
+      '</div></div>').join("")
+    : '<p class="nodata">nothing open</p>';
+  const rec = l.recent || [];
+  if(rec.length){
+    html += '<div class="dept"><span>recently closed</span></div>';
+    html += rec.map(r =>
+      '<div class="obj"><div class="q">' + esc(r.question) + '</div>' +
+      (r.took_away ? '<div class="ta">' + esc(r.took_away) + '</div>' : '') +
+      '<div class="om">' + esc((r.done_at || "").slice(0,10)) + '</div></div>').join("");
+  }
+  host.innerHTML = html;
+  tabCount("LEARN", String(open.length));
+}
+
+/* ── SOUL — the creeds, in his words ─────────────────────────────────────── */
+function renderSoul(){
+  const host = $("soul"); host.textContent = "";
+  const d = State.soul;
+  if(!d){
+    host.innerHTML = '<p class="nodata">the spine has not answered with the doctrine</p>';
+    return;
+  }
+  const tiers = [["bedrock","bedrock"],["working","working"]];
+  let html = "";
+  for(const [key,label] of tiers){
+    const rows = (d.rows || []).filter(r => r.tier === key);
+    if(!rows.length) continue;
+    html += '<div class="dept"><span>' + label + " — " + rows.length + '</span></div>';
+    html += rows.map(r =>
+      '<div class="creed" data-id="' + r.id + '"><div class="ct">' +
+      '<span>' + esc(r.title) + '</span>' +
+      (r.version ? '<i>v' + esc(r.version) + '</i>' : '') +
+      '<span class="cf' + (r.confirmed ? " yes" : "") + '">' +
+      (r.confirmed ? "confirmed" : "unconfirmed") + '</span></div>' +
+      '<div class="cb" hidden>' + esc(r.body || "") + '</div></div>').join("");
+  }
+  const rest = (d.rows || []).filter(r => r.tier !== "bedrock" && r.tier !== "working");
+  if(rest.length){
+    html += '<div class="dept"><span>other — ' + rest.length + '</span></div>';
+    html += rest.map(r =>
+      '<div class="creed" data-id="' + r.id + '"><div class="ct"><span>' + esc(r.title) +
+      '</span><span class="cf' + (r.confirmed ? " yes" : "") + '">' +
+      (r.confirmed ? "confirmed" : "unconfirmed") + '</span></div>' +
+      '<div class="cb" hidden>' + esc(r.body || "") + '</div></div>').join("");
+  }
+  host.innerHTML = html || '<p class="nodata">no doctrine rows served</p>';
+  tabCount("SOUL", d.confirmed + "/" + d.total);
+  host.querySelectorAll(".creed").forEach(el =>
+    el.addEventListener("click", () => {
+      const b = el.querySelector(".cb"); b.hidden = !b.hidden;
+    }));
+}
+
+/* ── folio + lamp ────────────────────────────────────────────────────────── */
+function renderChrome(){
+  const d = State.standings;
+  const needs = d && d.counts ? d.counts.standing : null;
+  const hand = $("hand");
+  if(needs != null && needs > 0){ hand.hidden = false; hand.textContent = needs + " need your hand"; }
+  else hand.hidden = true;
+  const c = d && d.close;
+  $("folio-entry").textContent = c
+    ? (c.title || "the book") + " · " + (c.sub || "")
+    : "no entry is open — the book is closed";
+  $("folio-read").textContent = State.readAt
+    ? "read from the spine at " + State.readAt.toLocaleTimeString("en-US",
+        {hour:"numeric", minute:"2-digit"})
+    : "";
+}
+
+/* ── load ────────────────────────────────────────────────────────────────── */
+async function grab(path){
+  const r = await fetch(url(path), { headers: hdr(), cache:"no-store" });
+  if(!r.ok) throw new Error(r.status + " " + (await r.text()).slice(0,120));
+  return r.json();
+}
+async function load(){
+  try{
+    const [st, bd] = await Promise.all([grab("/api/standings"), grab("/api/board")]);
+    State.standings = st; State.board = bd; State.readAt = new Date();
+    grab("/api/standing").then(s => { State.standing = s; renderToday(); }).catch(()=>{});
+    grab("/api/learning").then(l => { State.learn = l; renderLearn(); }).catch(()=>{});
+    grab("/api/doctrine").then(d => { State.soul = d; renderSoul(); }).catch(()=>{});
+    renderToday(); renderBoard(); renderLedger(); renderLearn(); renderSoul(); renderChrome();
+  }catch(e){
+    $("fig").classList.add("unk"); $("fig").innerHTML = "&#8212;&#8212;";
+    $("figsub").textContent = "the spine did not answer";
+    $("judge").innerHTML = '<p class="hotline">' + esc(String(e.message || e)) + '</p>';
+    showConnect("could not reach the spine — if you are away from home, check Tailscale first");
+  }
+}
+/* a page left open on a desk goes honest again when you come back to it */
+document.addEventListener("visibilitychange", () => {
+  if(!document.hidden && configured()) load();
+});
+
+function showConnect(msg){
+  $("connect").hidden = false;
+  $("cfgApi").value = API || "";
+  if(msg){ $("cfgMsg").textContent = msg; $("cfgMsg").classList.add("bad"); }
+}
+$("cfgGo").addEventListener("click", async () => {
+  const a = $("cfgApi").value.trim().replace(/\/$/,""), t = $("cfgTok").value.trim();
+  const m = $("cfgMsg"); m.classList.remove("bad"); m.textContent = "checking…";
+  try{
+    const r = await fetch(a + "/api/health", { headers:{ Authorization:"Bearer " + t } });
+    if(!r.ok) throw new Error("the spine answered " + r.status);
+    localStorage.setItem("almanac_api", API = a);
+    localStorage.setItem("almanac_token", TOK = t);
+    $("connect").hidden = true; load();
+  }catch(e){ m.classList.add("bad"); m.textContent = "could not reach the spine: " + (e.message||e); }
+});
+
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+
+setTab("TODAY");
+if(!configured()){ $("figsub").textContent = "not connected"; showConnect(); }
+else load();
+})();
+</script>
+</body>
+</html>

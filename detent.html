@@ -364,6 +364,16 @@ let TOK = localStorage.getItem("almanac_token") || "";
     }catch(e){}
   }
 })();
+/* A laptop that chose the desk goes straight there. Guarded three ways: only
+   AFTER the #reset/#cfg bootstrap, only on a wide screen (a phone with a
+   stray pref must never be trapped), and #stay is the escape hatch.
+   screen.width, not innerWidth — a prerendered or hidden document can report
+   a zero-size viewport at parse time, and the DEVICE is what the pref is per. */
+if(!location.hash && localStorage.getItem("almanac_view") === "desk" &&
+   Math.max(innerWidth, screen.width) >= 900){
+  location.replace("desk.html");
+}
+
 const configured = () => localStorage.getItem("almanac_token") !== null && TOK !== "";
 const $ = id => document.getElementById(id);
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -765,16 +775,15 @@ function goHome(){
 }
 $("plate").addEventListener("dblclick", goHome);
 
-/* The instrument switch. The review surface does not exist yet, so it says so
-   rather than flipping to nothing — an instrument that pretends to act is the
-   one thing this whole design refuses to be. */
+/* The instrument switch. Flips to the desk — the almanac laid open flat
+   (desk.html), the laptop's traditional tabbed page. The choice persists per
+   device; the throw is shown before the page turns so the switch reads as a
+   switch, not a link. */
 $("toggle").addEventListener("click", () => {
-  const t = $("toggle"), on = t.getAttribute("aria-pressed") === "true";
-  t.setAttribute("aria-pressed", String(!on));
+  $("toggle").setAttribute("aria-pressed", "true");
   ctx(); buzz(HAPTIC.detent); tickHeavy();
-  const w = $("whyLine");
-  if(!on){ w.hidden = false; w.textContent = "the review surface is not built yet — nothing switched"; }
-  else { w.hidden = true; }
+  localStorage.setItem("almanac_view", "desk");
+  setTimeout(() => { location.href = "desk.html"; }, 160);
 });
 
 /* ── THE LEVER — the latch, unchanged. The wall clock decides. ─────────── */
