@@ -14,7 +14,7 @@
  *    network every time; the SW cache is then only ever a genuine offline
  *    fallback.
  */
-const VERSION = 'almanac-shell-v11';
+const VERSION = 'almanac-shell-v12';
 
 // The version gauge that cannot lie (Almanac #8): the page asks, the worker
 // answers — the chip renders what is actually installed, never a hardcoded
@@ -51,12 +51,17 @@ self.addEventListener('activate', e => {
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) {}
+  // requireInteraction + a heavy vibration: a push that costs a day's budget
+  // must not scroll away with the sea — it stays until Bryan dismisses it.
   e.waitUntil(self.registration.showNotification(d.title || 'Almanac', {
     body: d.body || '',
     data: { url: d.url || './detent.html' },
     icon: './icons/icon-192.png',
     badge: './icons/icon-192.png',
     tag: 'almanac',
+    renotify: true,
+    requireInteraction: true,
+    vibrate: [180, 60, 180, 60, 320],
   }));
 });
 
