@@ -1,0 +1,631 @@
+<meta charset="utf-8">
+<style>
+/* ══ THE DESK ══════════════════════════════════════════════════════════
+   Bryan's ruling, 2026-07-27: the orb field is the world; the rooms live
+   underneath it in the same light.
+
+   TWO AXES, NEVER CONFUSED:
+     HUE        = identity. Which domain you are standing in. This is how
+                  twenty domains stay navigable — a new one is one more orb,
+                  never a seventh tab.
+     TEMPERATURE = state. Cold while the month is covered; hot when served
+                  numbers earn it. The room goes red because the numbers are
+                  red, never for drama, and it cools the moment one load
+                  covers the gap.
+
+   Every figure here is served by the spine. The page computes nothing. */
+:root{
+  --void:#07080A; --glass:rgba(30,36,44,.86); --glass2:rgba(20,25,31,.9);
+  --line:rgba(150,170,190,.15);
+  --ink:#E9EDF0; --mid:#AEB8C0; --dim:#8B96A0; --etch:#5E6870;
+  --amber:#FFA419; --hot:#FF3B18;
+  --key:255,164,25;              /* the active domain's hue, set by JS */
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--void)}
+body{font-family:var(--sans);color:var(--ink);font-variant-numeric:tabular-nums;
+  user-select:none;-webkit-user-select:none}
+
+/* ── the sky ─────────────────────────────────────────────────────── */
+.sky{position:fixed;inset:0;z-index:0;transition:background 1s ease;
+  background:
+    radial-gradient(1100px 700px at 50% 40%, rgba(38,48,66,.55), transparent 70%),
+    radial-gradient(760px 520px at 14% 76%, rgba(52,34,24,.34), transparent 70%),
+    var(--void)}
+body.hot .sky{
+  background:
+    radial-gradient(1200px 760px at 50% 30%, rgba(96,20,10,.55), transparent 70%),
+    radial-gradient(760px 520px at 14% 78%, rgba(70,14,8,.42), transparent 70%),
+    #0B0403}
+canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
+.grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.42;
+  background-image:linear-gradient(rgba(130,150,165,.05) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(130,150,165,.05) 1px,transparent 1px);
+  background-size:132px 132px}
+
+.stage{position:relative;z-index:2;width:100%;height:100vh;display:flex;flex-direction:column}
+
+/* ── top bar ─────────────────────────────────────────────────────── */
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:18px;padding:16px 26px}
+.wm{font:700 14px/1 var(--mono);letter-spacing:.38em}
+.bar .d{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
+.bar .hand{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--amber)}
+.bar .right{margin-left:auto;display:flex;align-items:center;gap:9px}
+.pill{font:700 9px/1 var(--mono);letter-spacing:.16em;padding:8px 12px;border-radius:20px;
+  border:1px solid var(--line);color:var(--dim);transition:all .6s}
+.pill.on{color:var(--hot);border-color:rgba(255,59,24,.55);box-shadow:0 0 18px -5px rgba(255,59,24,.65)}
+.btn{background:var(--glass);border:1px solid var(--line);border-radius:3px;color:var(--mid);
+  font:700 9px/1 var(--mono);letter-spacing:.14em;padding:9px 13px;cursor:pointer;backdrop-filter:blur(8px)}
+.btn:hover{color:var(--ink);border-color:rgba(var(--key),.5)}
+
+/* ── the orb field / rail ────────────────────────────────────────── */
+.field{position:relative;flex:0 0 auto;transition:height .75s cubic-bezier(.22,.61,.36,1)}
+.orb{position:absolute;cursor:pointer;transform:translate(-50%,-50%);
+  transition:left .75s cubic-bezier(.22,.61,.36,1), top .75s cubic-bezier(.22,.61,.36,1);
+  display:flex;flex-direction:column;align-items:center;gap:7px}
+.ball{position:relative;border-radius:50%;transition:width .75s cubic-bezier(.22,.61,.36,1),
+  height .75s cubic-bezier(.22,.61,.36,1), box-shadow .4s, filter .3s}
+.ball::after{content:"";position:absolute;left:16%;top:9%;width:44%;height:32%;border-radius:50%;
+  background:linear-gradient(160deg,rgba(255,255,255,.5),transparent 70%);filter:blur(1px)}
+.orb:hover .ball{filter:brightness(1.18)}
+.orb .fig{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none;
+  transition:opacity .4s}
+.orb .fig .n{font:700 20px/1 var(--mono);color:#fff;text-shadow:0 0 16px rgba(0,0,0,.65)}
+.orb .fig .u{display:block;margin-top:3px;font:700 7px/1 var(--mono);letter-spacing:.15em;color:rgba(255,255,255,.75)}
+.orb .name{font:700 10px/1 var(--mono);letter-spacing:.2em;text-shadow:0 2px 10px rgba(0,0,0,.85);
+  transition:font-size .5s,color .3s}
+.orb .sig{font:600 9px/1 var(--mono);letter-spacing:.1em;color:var(--dim);transition:opacity .4s}
+.orb .sig b{color:var(--amber)}
+.orb .sig b.h{color:var(--hot)}
+.stage.entered .orb .sig{opacity:0;pointer-events:none}
+.stage.entered .orb .fig{opacity:0}
+.stage.entered .orb .name{font-size:8.5px}
+.orb.active .name{color:#fff}
+.orb.active .ball{box-shadow:0 0 34px -4px rgba(var(--key),.95),
+  inset 0 -10px 24px rgba(0,0,0,.5), inset 0 4px 10px rgba(255,255,255,.16),
+  0 0 0 2px rgba(var(--key),.35)}
+
+.core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:230px;height:230px;border-radius:50%;display:grid;place-items:center;pointer-events:none;
+  transition:opacity .5s,transform .75s cubic-bezier(.22,.61,.36,1);
+  background:radial-gradient(circle at 38% 32%, rgba(215,228,255,.4), rgba(118,142,205,.24) 42%,
+    rgba(28,36,58,.55) 72%, rgba(10,14,24,.7));
+  box-shadow:0 0 90px -10px rgba(120,150,220,.4), inset 0 0 60px rgba(190,210,255,.14)}
+.core .t{font:700 11px/1 var(--mono);letter-spacing:.3em;color:rgba(232,240,255,.92);text-align:center}
+.core .s{margin-top:8px;font:600 8px/1.5 var(--mono);letter-spacing:.1em;color:rgba(200,215,245,.55);text-align:center}
+.stage.entered .core{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+
+/* the machine's one pick, on the home field */
+.consider{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);width:min(600px,84%);
+  background:var(--glass);border:1px solid var(--line);border-radius:9px;padding:15px 19px 14px;
+  backdrop-filter:blur(11px);box-shadow:0 26px 60px -20px rgba(0,0,0,.9);
+  transition:opacity .45s,transform .45s}
+.stage.entered .consider{opacity:0;transform:translateX(-50%) translateY(26px);pointer-events:none}
+.consider .lbl{display:inline-block;font:700 8px/1 var(--mono);letter-spacing:.19em;color:var(--amber);
+  border:1px solid rgba(255,164,25,.35);border-radius:20px;padding:6px 10px}
+.consider .q{margin-top:11px;font:600 17px/1.4 var(--sans);text-wrap:balance}
+.consider .why{margin-top:7px;font:400 12px/1.5 var(--sans);color:var(--dim)}
+.consider .acts{margin-top:12px;display:flex;gap:8px}
+.consider .btn.go{color:var(--amber);border-color:rgba(255,164,25,.4)}
+
+/* ── the room ────────────────────────────────────────────────────── */
+.room{flex:1 1 auto;min-height:0;padding:0 22px 16px;display:flex;flex-direction:column;gap:10px;
+  opacity:0;transform:translateY(22px);pointer-events:none;
+  transition:opacity .5s .18s, transform .5s .18s}
+.stage.entered .room{opacity:1;transform:none;pointer-events:auto}
+.why{flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:9px 14px;border-radius:4px;
+  background:rgba(var(--key),.09);border-left:3px solid rgba(var(--key),.8);
+  font:400 12px/1.4 var(--sans);color:var(--mid);transition:all .6s}
+body.hot .why{background:rgba(255,59,24,.11);border-left-color:var(--hot)}
+.why b{color:var(--ink)}
+.why .tag{font:700 8px/1 var(--mono);letter-spacing:.16em;color:rgba(var(--key),1);flex:0 0 auto}
+body.hot .why .tag{color:var(--hot)}
+
+.panel{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:12px 15px;
+  backdrop-filter:blur(10px);min-width:0;display:flex;flex-direction:column;transition:border-color .6s}
+body.hot .panel{border-color:rgba(255,59,24,.22)}
+.cap{font:700 8px/1 var(--mono);letter-spacing:.2em;color:var(--etch);text-transform:uppercase;flex:0 0 auto}
+.big{margin-top:8px;font:700 32px/1 var(--mono);color:rgba(var(--key),1);
+  text-shadow:0 0 28px rgba(var(--key),.45)}
+body.hot .big{color:var(--hot);text-shadow:0 0 30px rgba(255,59,24,.5)}
+.sm{margin-top:5px;font:400 11px/1.4 var(--sans);color:var(--dim)}
+
+.rgrid{flex:1 1 auto;min-height:0;display:grid;gap:10px;
+  grid-template-columns:290px minmax(0,1fr) 310px;grid-template-rows:minmax(0,1fr) auto}
+/* a definite floor: a canvas sized only by flex growth and CSS percentages
+   is circular — it resolves to zero and paints nothing, silently */
+.spark{flex:1 1 auto;min-height:150px;margin-top:8px;position:relative}
+.spark canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.centre{grid-column:2;grid-row:1;align-items:center;justify-content:center;text-align:center}
+.centre .lab{font:700 9.5px/1 var(--mono);letter-spacing:.26em;color:var(--dim)}
+.centre .n{margin:8px 0 3px;font:700 clamp(70px,9.6vw,132px)/.9 var(--mono);letter-spacing:-.03em;
+  color:var(--ink);text-shadow:0 0 60px rgba(var(--key),.4)}
+body.hot .centre .n{color:var(--hot);text-shadow:0 0 70px rgba(255,59,24,.55)}
+.centre .u{font:700 10px/1 var(--mono);letter-spacing:.28em;color:var(--dim)}
+.centre .weeks{margin-top:13px;display:flex;gap:3px;justify-content:center}
+.centre .weeks i{width:15px;height:6px;border-radius:1px;background:rgba(255,255,255,.12)}
+.centre .weeks i.gone{background:rgba(255,255,255,.3)}
+.centre .weeks i.now{background:rgba(var(--key),1);box-shadow:0 0 10px -2px rgba(var(--key),1)}
+body.hot .centre .weeks i.now{background:var(--hot);box-shadow:0 0 10px -2px var(--hot)}
+.centre .sub{margin-top:13px;font:400 12.5px/1.5 var(--sans);color:var(--mid);max-width:46ch}
+.radar{display:grid;place-items:center;flex:1;min-height:0}
+.rows{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.row{display:flex;align-items:center;gap:9px;font:400 11px/1.3 var(--sans);color:var(--mid)}
+.row .b{flex:1;height:4px;background:rgba(255,255,255,.09);border-radius:2px;overflow:hidden;min-width:18px}
+.row .b i{display:block;height:100%;background:var(--mid)}
+.row .b i.k{background:rgba(var(--key),1)}
+body.hot .row .b i.k{background:var(--hot)}
+.row .v{font:600 10.5px var(--mono);color:var(--ink);flex:0 0 auto}
+.chip{font:700 7px/1 var(--mono);letter-spacing:.11em;padding:4px 7px;border-radius:10px;
+  border:1px solid var(--line);color:var(--dim);flex:0 0 auto}
+
+.acts{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.act{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:11px 13px;
+  display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px);transition:border-color .6s}
+body.hot .act{border-color:rgba(255,59,24,.26)}
+.act .h{display:flex;align-items:baseline;gap:9px}
+.act .h .n{font:700 8px/1 var(--mono);letter-spacing:.15em;color:rgba(var(--key),1)}
+body.hot .act .h .n{color:var(--hot)}
+.act .h .imp{margin-left:auto;font:700 12.5px/1 var(--mono)}
+.act .t{font:600 12.5px/1.35 var(--sans)}
+.act .w{font:400 10.5px/1.45 var(--sans);color:var(--dim)}
+.act .go{margin-top:auto;align-self:flex-start;background:none;border:1px solid var(--line);
+  border-radius:3px;color:var(--mid);font:700 8px/1 var(--mono);letter-spacing:.14em;padding:7px 11px;cursor:pointer}
+.act .go:hover{color:rgba(var(--key),1);border-color:rgba(var(--key),.6)}
+
+/* the board room */
+.board{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.col{display:flex;flex-direction:column;min-height:0}
+.colhead{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;
+  border-bottom:1px solid var(--line);margin-bottom:8px}
+.colhead .t{font:700 8.5px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
+.colhead .n{font:700 8.5px/1 var(--mono);color:var(--etch)}
+.col.qa .colhead{border-bottom-color:rgba(var(--key),.9)}
+.col.qa .colhead .t{color:rgba(var(--key),1)}
+.cards{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-right:2px}
+.cards::-webkit-scrollbar{width:0}
+.kc{flex:0 0 auto;background:var(--glass2);border:1px solid var(--line);border-radius:5px;padding:9px 11px;
+  backdrop-filter:blur(8px)}
+.kc .t{font:600 12px/1.32 var(--sans)}
+.kc .m{display:flex;align-items:center;gap:7px;margin-top:6px;font:700 8px/1 var(--mono);
+  letter-spacing:.1em;color:var(--etch)}
+/* .pb, not .bar — the top bar owns .bar and its padding would swallow this */
+.kc .m .pb{flex:1;height:2px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;min-width:14px}
+.kc .m .pb i{display:block;height:100%;background:var(--mid)}
+.kc .m .hi{color:var(--hot)}
+.kc .m .bry{color:var(--amber)}
+.kc.nowc{border-left:2px solid rgba(var(--key),.9)}
+.closer{position:relative;margin-top:8px;height:27px;border-radius:4px;overflow:hidden;cursor:pointer;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);width:100%;display:grid;place-items:center;
+  touch-action:none}
+.closer .r2{position:absolute;inset:0;background:rgba(var(--key),.5);transform:scaleX(0);transform-origin:left center}
+.closer .cc{position:relative;z-index:2;font:700 8.5px/1 var(--mono);letter-spacing:.15em;color:var(--mid)}
+.kc.closed{opacity:.42}
+.kc.closed .t{text-decoration:line-through;text-decoration-color:var(--etch)}
+
+/* the radio room */
+.chan{flex:1 1 auto;min-height:0;display:flex;flex-direction:column-reverse;gap:7px;overflow-y:auto;padding-right:3px}
+.chan::-webkit-scrollbar{width:0}
+.tx{display:flex;gap:12px;padding:8px 0;border-bottom:1px dotted var(--line);align-items:baseline;
+  font:400 13px/1.55 var(--sans);color:var(--mid)}
+.tx .st{flex:0 0 76px;font:600 9px/1.6 var(--mono);letter-spacing:.07em;color:var(--etch)}
+.tx .vo{flex:0 0 30px;font:700 9px/1.6 var(--mono);letter-spacing:.13em}
+.tx.op .vo{color:rgba(var(--key),1)}
+.tx.bry{color:var(--ink)} .tx.bry .vo{color:var(--dim)}
+.tx .mk{color:rgba(var(--key),1);font-weight:700}
+.tx.held{opacity:.55;font-style:italic}
+.sqline{flex:0 0 auto;position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin:10px 0 3px}
+.sqline::after{content:"SQUELCH · 1 HELD BELOW";position:absolute;right:0;top:-13px;
+  font:700 7.5px/1 var(--mono);letter-spacing:.16em;color:var(--etch)}
+.keyup{flex:0 0 auto;display:flex;gap:9px;margin-top:10px}
+.keyup input{flex:1;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:4px;color:var(--ink);
+  font:400 13px/1.3 var(--sans);padding:11px 13px;user-select:text}
+.keyup input:focus{outline:2px solid rgba(var(--key),.6);outline-offset:1px}
+.keyup .hold{flex:0 0 auto;padding:0 22px;border-radius:4px;border:1px solid rgba(var(--key),.5);
+  background:rgba(var(--key),.14);color:rgba(var(--key),1);font:700 9.5px/1 var(--mono);letter-spacing:.16em;
+  cursor:pointer;position:relative;overflow:hidden}
+.keyup .hold .r3{position:absolute;inset:0;background:rgba(var(--key),.35);transform:scaleX(0);transform-origin:left}
+
+.gen{flex:1;display:grid;place-items:center;color:var(--dim);font:400 14px/1.6 var(--sans);text-align:center}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:20;
+  background:rgba(16,20,24,.96);border:1px solid var(--line);border-radius:4px;padding:9px 15px;
+  font:600 10px/1 var(--mono);letter-spacing:.12em;color:rgba(var(--key),1);opacity:0;
+  transition:opacity .25s;pointer-events:none;backdrop-filter:blur(8px)}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+
+<div class="sky"></div>
+<canvas class="stars" id="stars"></canvas>
+<div class="grid"></div>
+
+<div class="stage" id="stage">
+  <div class="bar">
+    <span class="wm">ALMANAC</span>
+    <span class="d">MON · JULY 27 · 2026</span>
+    <span class="hand">7 NEED YOUR HAND</span>
+    <span class="right">
+      <span class="pill" id="pill">COLD · COVERED</span>
+      <button class="btn" id="flip">FLIP THE ROOM</button>
+      <button class="btn" id="home" hidden>◂ THE FIELD</button>
+    </span>
+  </div>
+
+  <div class="field" id="field">
+    <div class="core"><div><div class="t">THE SPINE</div>
+      <div class="s">one service · one database<br>everything above is served</div></div></div>
+    <div id="orbs"></div>
+    <div class="consider" id="consider">
+      <span class="lbl">THE MACHINE PUT THIS IN FRONT OF YOU</span>
+      <div class="q" id="cq">$749.53 is not covered by anything booked — and there are 4 days left.</div>
+      <div class="why" id="cwhy" style="background:none;border:0;padding:0;color:var(--dim);font-size:12px">
+        Nothing is on the calendar for the rest of July. One load at your floor rate covers it.
+        Chosen over 6 other things because it is the only one with a deadline you cannot move.</div>
+      <div class="acts"><button class="btn go" id="cgo">OPEN THE HUNT</button>
+        <button class="btn" id="cnext">SHOW ME ANOTHER</button></div>
+    </div>
+  </div>
+
+  <div class="room" id="room"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+(() => {
+const $ = id => document.getElementById(id);
+const stage = $("stage");
+let HOT = true, ACTIVE = null;
+
+/* dust */
+(function(){
+  const cv = $("stars"); cv.width = innerWidth; cv.height = innerHeight;
+  const g = cv.getContext("2d"); let s = 7;
+  const rnd = () => { s = (s*1664525 + 1013904223) >>> 0; return s/4294967296; };
+  for(let i=0;i<300;i++){
+    g.fillStyle = `rgba(200,218,240,${rnd()*0.45+0.05})`;
+    g.beginPath(); g.arc(rnd()*cv.width, rnd()*cv.height, rnd()*1.2+0.25, 0, 7); g.fill();
+  }
+})();
+
+/* ── the domains. hue = identity. ─────────────────────────────────── */
+const D = [
+  {k:"HOTSHOT", hue:"255,110,50",  fx:19, fy:36, r:118, sig:'<b class="h">$749.53</b> TO GO', fig:["$749","TO GO"], wave:1, room:"money"},
+  {k:"THE WORK",hue:"70,190,200",  fx:80, fy:30, r:102, sig:'<b>2</b> IN QA · 18 OPEN',       fig:["2","IN QA"],   room:"work"},
+  {k:"RADIO",   hue:"255,164,25",  fx:50, fy:16, r:80,  sig:'<b>1</b> UNREAD · CH 19',        fig:["1","UNREAD"],  room:"radio"},
+  {k:"MONEY",   hue:"190,160,60",  fx:85, fy:60, r:90,  sig:'<b>7</b> NEED YOUR HAND',        fig:["7","STANDING"],room:"ledger"},
+  {k:"LEARN",   hue:"150,90,220",  fx:18, fy:68, r:84,  sig:'<b>1</b> OPEN QUESTION',         fig:["1","OPEN"],    room:"learn"},
+  {k:"SOUL",    hue:"120,200,120", fx:73, fy:80, r:72,  sig:'<b>24</b>/26 CONFIRMED',         fig:["24","OF 26"],  room:"soul"}
+];
+const field = $("field"), host = $("orbs");
+function fieldH(){ return stage.classList.contains("entered") ? 96 : Math.round(innerHeight*0.72); }
+field.style.height = fieldH() + "px";
+
+D.forEach((o,i) => {
+  const el = document.createElement("div");
+  el.className = "orb"; el.dataset.i = i;
+  el.style.setProperty("--key", o.hue);
+  el.innerHTML =
+    `<div class="ball" style="--k:${o.hue};background:radial-gradient(circle at 36% 30%,
+       rgba(${o.hue},.96), rgba(${o.hue},.62) 46%, rgba(${o.hue},.16) 78%, rgba(6,8,12,.98));
+       box-shadow:0 0 40px -8px rgba(${o.hue},.6), inset 0 -14px 26px rgba(0,0,0,.55),
+       inset 0 5px 12px rgba(255,255,255,.12)">
+       ${o.wave ? `<canvas class="wv"></canvas>` : ""}
+       <div class="fig"><div><span class="n">${o.fig[0]}</span><span class="u">${o.fig[1]}</span></div></div>
+     </div><div class="name">${o.k}</div><div class="sig">${o.sig}</div>`;
+  el.addEventListener("click", () => enter(i));
+  host.appendChild(el);
+  o.el = el;
+});
+function layout(){
+  const entered = stage.classList.contains("entered");
+  const W = innerWidth, H = fieldH();
+  field.style.height = H + "px";
+  D.forEach((o,i) => {
+    const r = entered ? 44 : o.r;
+    const b = o.el.querySelector(".ball");
+    b.style.width = r + "px"; b.style.height = r + "px";
+    const wv = o.el.querySelector(".wv");
+    if(wv){ wv.width = r; wv.height = r; wv.style.width = r+"px"; wv.style.height = r+"px"; paintWave(wv, r); }
+    if(entered){
+      const n = D.length, span = Math.min(W*0.62, 660), x0 = W/2 - span/2;
+      o.el.style.left = (x0 + (i+0.5)*(span/n)) + "px";
+      o.el.style.top  = "48px";
+    } else {
+      o.el.style.left = (o.fx/100*W) + "px";
+      o.el.style.top  = (o.fy/100*H) + "px";
+    }
+  });
+}
+function paintWave(cv, n){
+  const g = cv.getContext("2d");
+  g.clearRect(0,0,n,n);
+  const DATA=[.42,.55,.38,.61,.72,.5,.44,.68,.81,.6,.52,.39,.47,.58,.7,.63];
+  g.strokeStyle="rgba(255,238,222,.85)"; g.lineWidth=Math.max(1.2,n/56);
+  g.shadowColor="rgba(255,190,140,.9)"; g.shadowBlur=n/14;
+  g.beginPath();
+  DATA.forEach((v,j)=>{ const x=n*.12+j*((n*.76)/(DATA.length-1)), y=n*.6-v*n*.2;
+    j?g.lineTo(x,y):g.moveTo(x,y); });
+  g.stroke();
+}
+layout();
+addEventListener("resize", () => { clearTimeout(window.__l); window.__l = setTimeout(layout, 140); });
+
+/* ── entering a domain: the field collapses into a rail ──────────── */
+function enter(i){
+  const o = D[i];
+  ACTIVE = i;
+  document.documentElement.style.setProperty("--key", o.hue);
+  D.forEach(x => x.el.classList.remove("active"));
+  o.el.classList.add("active");
+  stage.classList.add("entered");
+  $("home").hidden = false;
+  layout();
+  renderRoom(o);
+  toast("→ " + o.k);
+}
+$("home").addEventListener("click", () => {
+  stage.classList.remove("entered");
+  $("home").hidden = true;
+  D.forEach(x => x.el.classList.remove("active"));
+  document.documentElement.style.setProperty("--key","255,164,25");
+  ACTIVE = null; layout(); $("room").innerHTML = "";
+});
+
+/* ── the rooms ───────────────────────────────────────────────────── */
+const WHYS = {
+  hot:{tag:"WHY THIS ROOM IS RED", t:"Three served facts turned it: uncovered <b>$749.53</b>, booked ahead <b>$0.00</b>, <b>4 days</b> left. It goes cold the moment one load covers the gap."},
+  cold:{tag:"WHY THIS ROOM", t:"Contribution cleared the nut and two loads are booked. Nothing here needs your hand today."}
+};
+function whyBar(){
+  const w = HOT ? WHYS.hot : WHYS.cold;
+  return `<div class="why"><span class="tag">${w.tag}</span><span>${w.t}</span></div>`;
+}
+const ACTS_HOT = [
+  {n:"ACTION 1",imp:"+$1,200",t:"Run the hunt: OH → PA, rampable equipment.",w:"Your lane at floor rate covers the gap in one load. Mega ramps widen it — the scan skipped those for six weeks until today.",go:"OPEN THE HUNT"},
+  {n:"ACTION 2",imp:"+$6,344",t:"Chase what is earned but unpaid.",w:"54% of the month is booked and not collected. Money you already drove for — one call beats one load.",go:"OPEN THE AGING"},
+  {n:"ACTION 3",imp:"5 MIN",t:"Clear 12 bills marked unpaid that may be paid.",w:"The old surfaces made the marks vanish. The standing may move in your favour without a mile driven.",go:"OPEN THE LEDGER"}
+];
+const ACTS_COLD = [
+  {n:"NEXT MOVE",imp:"+$0",t:"Nothing is asking for your hand.",w:"2 in QA waiting on your approval, nothing overdue. This is what covered looks like.",go:"GO TO QA"},
+  {n:"THE MUSCLE",imp:"9 DAYS",t:"One open question, none of its 5 options chosen.",w:"Quiet months are when this gets answered. It decides what you build after 10/1.",go:"OPEN IT"},
+  {n:"THE BOOK",imp:"41 MOVES",t:"Close the day when you're done.",w:"Entry 12 is open. The close is one held lever on the plate.",go:"CLOSE THE BOOK"}
+];
+function actsHTML(){
+  return `<div class="acts">` + (HOT?ACTS_HOT:ACTS_COLD).map(a =>
+    `<div class="act"><div class="h"><span class="n">${a.n}</span><span class="imp">${a.imp}</span></div>
+     <div class="t">${a.t}</div><div class="w">${a.w}</div><button class="go">${a.go}</button></div>`).join("") + `</div>`;
+}
+function moneyRoom(){
+  return whyBar() + `<div class="rgrid">
+    <div class="panel" style="grid-column:1;grid-row:1">
+      <div class="cap">the standing</div>
+      <div class="big">${HOT ? "$749.53" : "$1,430.00"}</div>
+      <div class="sm">${HOT ? "to go this month · nothing booked" : "clear — everything past this is yours"}</div>
+      <div class="spark"><canvas id="spark"></canvas></div>
+      <div class="cap" style="margin-top:6px">contribution, day by day · july</div>
+    </div>
+    <div class="panel centre">
+      <div class="lab">MILEAGE INSIGHTS · PUBLIC LAUNCH</div>
+      <div class="n">66</div><div class="u">DAYS TO 10 / 1</div>
+      <div class="weeks" id="weeks"></div>
+      <div class="sub">Nine weeks and change. The date is the heartbeat — it does not move because the month got hard.</div>
+    </div>
+    <div class="panel" style="grid-column:3;grid-row:1">
+      <div class="cap">where the month actually stands</div>
+      <div class="radar"><canvas id="radar" width="280" height="230"></canvas></div>
+      <div class="rows">
+        <div class="row"><span style="width:70px">collected</span><span class="b"><i style="width:46%"></i></span><span class="v">46%</span></div>
+        <div class="row"><span style="width:70px">covered</span><span class="b"><i class="k" style="width:${HOT?92:100}%"></i></span><span class="v">${HOT?"92%":"108%"}</span></div>
+        <div class="row"><span style="width:70px">watch</span><span class="b"><i style="width:100%"></i></span><span class="chip">23/23 UP</span></div>
+      </div>
+    </div>` + actsHTML() + `</div>`;
+}
+const CARDS = {
+  qa:[{id:35,t:"RADIO on the plate — the detent node",hi:1,p:[6,6]},{id:8,t:"Today — simple enough for a niece",hi:1,p:[7,7]}],
+  now:[{id:9,t:"The manifest — the thing that ends the amnesia",hi:1,p:[5,7]}],
+  next:[{id:2,t:"Eight credit cards, $70,700, two never paid",hi:1,b:1,p:[0,5]},
+        {id:30,t:"Your soul maps sit on cloud-synced Drive",hi:1,b:1,p:[0,0]},
+        {id:18,t:"Increment 2 — One Soul: doctrine unification",hi:1,b:1,p:[4,6]},
+        {id:19,t:"Ratify four doctrine amendments",hi:1,b:1,p:[0,0]},
+        {id:36,t:"Parameterize /idea-engine",p:[0,0]}],
+  later:[{id:11,t:"The inventory runs itself every morning",p:[0,5]},
+         {id:12,t:"Split the board API out of the Discord bot",p:[0,5]},
+         {id:23,t:"Increment 8 — the memory spine",p:[0,0]},
+         {id:34,t:"The native app — a post-10/1 gate",b:1,p:[0,0]}]
+};
+function workRoom(){
+  const COLS=[["qa","QA · YOUR REVIEW"],["now","IN HAND"],["next","NEXT"],["later","LATER"]];
+  return whyBar() + `<div class="board">` + COLS.map(([k,l]) =>
+    `<div class="col ${k}"><div class="colhead"><span class="t">${l}</span><span class="n">${CARDS[k].length}</span></div>
+     <div class="cards">` + CARDS[k].map(c => {
+       const pct = c.p[1] ? Math.round(100*c.p[0]/c.p[1]) : 0;
+       return `<div class="kc ${k==="now"?"nowc":""}" data-id="${c.id}"><div class="t">${c.t}</div>
+         <div class="m"><span>#${c.id}</span>${c.hi?'<span class="hi">HIGH</span>':""}${c.b?'<span class="bry">YOUR HAND</span>':""}
+         <span class="pb"><i style="width:${pct}%"></i></span><span>${c.p[1]?c.p[0]+"/"+c.p[1]:"—"}</span></div>` +
+         (k==="qa" ? `<button class="closer"><span class="r2"></span><span class="cc">HOLD TO CLOSE</span></button>` : "") +
+       `</div>`; }).join("") + `</div></div>`).join("") + `</div>`;
+}
+function radioRoom(){
+  const MSG = [
+    {s:"op", k:"pushed", at:"07-27 12:57", t:"Almanac — the spine can reach this device"},
+    {s:"bry", at:"07-27 12:59", t:"Test"},
+    {s:"op", k:"pushed", at:"07-27 13:08", t:"THE WATCH — notebooks went down · one 503 mid-restart"},
+    {s:"bry", at:"07-27 20:31", t:"hold the axle load money until the invoice clears"}
+  ];
+  const held = `<div class="tx held"><span class="st">07-27 14:02</span><span class="vo">OP</span>
+    <span>held — the standing moved by $500 · printed, not spoken</span></div>`;
+  return whyBar() + `<div class="panel" style="flex:1;min-height:0">
+    <div class="cap">ch 19 · one channel · the operation may key up once a day</div>
+    <div class="chan">` +
+      MSG.slice().reverse().map(m => `<div class="tx ${m.s==="op"?"op":"bry"}">
+        <span class="st">${m.at}</span><span class="vo">${m.s==="op"?"OP":"BRY"}</span>
+        <span>${m.s==="op"?'<span class="mk">▲</span> ':""}${m.t}</span></div>`).join("") +
+      `<div class="sqline"></div>` + held + `</div>
+    <div class="keyup"><input id="mic" placeholder="key up — the spine reads this at the next kickoff">
+      <button class="hold" id="hold"><span class="r3"></span><span style="position:relative;z-index:2">HOLD TO KEY UP</span></button></div>
+  </div>`;
+}
+function genRoom(name, line){
+  return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
+    <div><div style="font:700 11px/1 var(--mono);letter-spacing:.24em;color:rgba(var(--key),1)">${name}</div>
+    <div style="margin-top:14px;max-width:46ch">${line}</div></div></div></div>`;
+}
+function renderRoom(o){
+  const R = $("room");
+  if(o.room === "money") R.innerHTML = moneyRoom();
+  else if(o.room === "work") R.innerHTML = workRoom();
+  else if(o.room === "radio") R.innerHTML = radioRoom();
+  else if(o.room === "ledger") R.innerHTML = genRoom("THE LEDGER",
+    "Seven obligations need your hand — settled one at a time on the plate, because a write is held, never tapped.");
+  else if(o.room === "learn") R.innerHTML = genRoom("THE MUSCLE",
+    "What actually makes a small operator pay for software? Five options waiting, none chosen — 9 days open.");
+  else R.innerHTML = genRoom("THE SOUL", "24 of 26 creeds confirmed in your words. Two await your reading.");
+  if(o.room === "money"){ buildWeeks(); paintSpark(); paintRadar(); }
+  if(o.room === "work") wireClosers();
+  if(o.room === "radio") wireKeyup();
+}
+function buildWeeks(){
+  const w = $("weeks"); if(!w) return;
+  for(let i=0;i<13;i++){ const b=document.createElement("i");
+    if(i<3) b.className="gone"; if(i===3) b.className="now"; w.appendChild(b); }
+}
+function keyRGB(){ return getComputedStyle(document.documentElement).getPropertyValue("--key").trim(); }
+function paintSpark(){
+  const cv = $("spark"); if(!cv) return;
+  /* Paint SYNCHRONOUSLY off a measured box, never off requestAnimationFrame:
+     a hidden document does not run rAF, so a deferred first paint leaves the
+     instrument blank until something else happens to move. Reading the rect
+     forces the layout we need; min-height guarantees it is never zero. */
+  const r = cv.getBoundingClientRect();
+  const w = Math.max(120, r.width), h = Math.max(150, r.height);
+  cv.width = w*2; cv.height = h*2;
+  const g = cv.getContext("2d"), W = cv.width, H = cv.height;
+  const key = HOT ? "255,59,24" : keyRGB();
+  const DATA=[0,.08,.06,.19,.24,.22,.35,.41,.38,.5,.62,.58,.66,.71,.69,.78,.82,.86,.9,.92];
+  g.clearRect(0,0,W,H);
+  g.strokeStyle="rgba(255,255,255,.26)"; g.lineWidth=2; g.setLineDash([6,6]);
+  g.beginPath(); g.moveTo(0,H*.14); g.lineTo(W,H*.14); g.stroke(); g.setLineDash([]);
+  g.fillStyle="rgba(255,255,255,.45)"; g.font="600 17px ui-monospace,Menlo,monospace";
+  g.fillText("THE NUT", 8, H*.14-9);
+  const px=i=>i/(DATA.length-1)*W, py=v=>H-v*H*.86;
+  const grd=g.createLinearGradient(0,0,0,H);
+  grd.addColorStop(0,`rgba(${key},.42)`); grd.addColorStop(1,`rgba(${key},0)`);
+  g.beginPath(); g.moveTo(0,H); DATA.forEach((v,i)=>g.lineTo(px(i),py(v)));
+  g.lineTo(W,H); g.closePath(); g.fillStyle=grd; g.fill();
+  g.beginPath(); DATA.forEach((v,i)=> i?g.lineTo(px(i),py(v)):g.moveTo(px(i),py(v)));
+  g.strokeStyle=`rgb(${key})`; g.lineWidth=3; g.shadowColor=`rgb(${key})`; g.shadowBlur=14; g.stroke(); g.shadowBlur=0;
+  g.fillStyle=`rgb(${key})`; g.beginPath();
+  g.arc(px(DATA.length-1)-4, py(DATA[DATA.length-1]), 6, 0, 7); g.fill();
+}
+function paintRadar(){
+  const cv = $("radar"); if(!cv) return;
+  const g = cv.getContext("2d"), W=280, H=230, cx=W/2, cy=H/2+4, R=88;
+  const key = HOT ? "255,59,24" : keyRGB();
+  const AX=[["EARNED",.92],["COLLECTED",.46],["BOOKED",0],["ROAD HELD",.78],["WATCH",1],["BOARD",.62]];
+  g.clearRect(0,0,W,H);
+  for(let ring=1;ring<=3;ring++){
+    g.beginPath();
+    AX.forEach((_,i)=>{const a=-Math.PI/2+i/AX.length*Math.PI*2, r=R*ring/3;
+      const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r; i?g.lineTo(x,y):g.moveTo(x,y);});
+    g.closePath(); g.strokeStyle="rgba(255,255,255,.08)"; g.lineWidth=1; g.stroke();
+  }
+  AX.forEach((ax,i)=>{
+    const a=-Math.PI/2+i/AX.length*Math.PI*2;
+    g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);
+    g.strokeStyle="rgba(255,255,255,.06)"; g.stroke();
+    g.fillStyle="rgba(255,255,255,.4)"; g.font="700 7.5px ui-monospace,Menlo,monospace";
+    g.textAlign=Math.cos(a)>.3?"left":Math.cos(a)<-.3?"right":"center";
+    g.fillText(ax[0], cx+Math.cos(a)*(R+12), cy+Math.sin(a)*(R+12)+3);
+  });
+  g.beginPath();
+  AX.forEach((ax,i)=>{const a=-Math.PI/2+i/AX.length*Math.PI*2, r=R*Math.max(.04,ax[1]);
+    const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r; i?g.lineTo(x,y):g.moveTo(x,y);});
+  g.closePath(); g.fillStyle=`rgba(${key},.24)`; g.fill();
+  g.strokeStyle=`rgb(${key})`; g.lineWidth=2; g.shadowColor=`rgb(${key})`; g.shadowBlur=12; g.stroke(); g.shadowBlur=0;
+}
+/* a close is a write — held, never tapped (the qa-gate creed) */
+function wireClosers(){
+  document.querySelectorAll(".closer").forEach(btn => {
+    const kc = btn.closest(".kc"); let t=0, anim=null;
+    btn.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      const r2 = btn.querySelector(".r2"), cc = btn.querySelector(".cc");
+      cc.textContent = "HOLDING";
+      anim = r2.animate({transform:["scaleX(0)","scaleX(1)"]},
+        {duration:640, easing:"cubic-bezier(.22,.61,.36,1)", fill:"forwards"});
+      t = setTimeout(() => { cc.textContent="CLOSED"; kc.classList.add("closed");
+        toast("#" + kc.dataset.id + " CLOSED BY YOUR HAND");
+        setTimeout(()=>btn.remove(), 700); }, 640);
+    });
+    ["pointerup","pointerleave","pointercancel"].forEach(ev => btn.addEventListener(ev, () => {
+      clearTimeout(t); if(anim) anim.cancel();
+      const cc = btn.querySelector(".cc");
+      if(cc.textContent==="HOLDING"){ cc.textContent="HOLD TO CLOSE";
+        toast("released before it closed — nothing was approved"); }
+    }));
+  });
+}
+function wireKeyup(){
+  const btn = $("hold"), mic = $("mic"); if(!btn) return;
+  let t=0, anim=null;
+  btn.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if(!mic.value.trim()){ toast("nothing to send — the mic is empty"); return; }
+    const r3 = btn.querySelector(".r3");
+    anim = r3.animate({transform:["scaleX(0)","scaleX(1)"]},
+      {duration:620, easing:"cubic-bezier(.22,.61,.36,1)", fill:"forwards"});
+    t = setTimeout(() => {
+      const chan = document.querySelector(".chan");
+      const el = document.createElement("div");
+      el.className = "tx bry";
+      el.innerHTML = `<span class="st">now</span><span class="vo">BRY</span><span></span>`;
+      el.lastElementChild.textContent = mic.value.trim();
+      chan.prepend(el);
+      mic.value = ""; r3.getAnimations().forEach(a=>a.cancel()); r3.style.transform="scaleX(0)";
+      toast("SENT — the spine has it");
+    }, 620);
+  });
+  ["pointerup","pointerleave","pointercancel"].forEach(ev => btn.addEventListener(ev, () => {
+    clearTimeout(t); if(anim) anim.cancel();
+    const r3 = btn.querySelector(".r3"); r3.style.transform = "scaleX(0)";
+  }));
+}
+
+/* temperature */
+function applyTemp(){
+  document.body.classList.toggle("hot", HOT);
+  $("pill").textContent = HOT ? "HOT · SHORT WITH NOTHING BOOKED" : "COLD · THE MONTH IS COVERED";
+  $("pill").classList.toggle("on", HOT);
+  D[0].el.querySelector(".sig").innerHTML = HOT ? '<b class="h">$749.53</b> TO GO' : '<b>$1,430.00</b> CLEAR';
+  D[0].el.querySelector(".fig .n").textContent = HOT ? "$749" : "$1,430";
+  if(ACTIVE !== null) renderRoom(D[ACTIVE]);
+}
+$("flip").addEventListener("click", () => { HOT = !HOT; applyTemp(); toast(HOT ? "the numbers turned it red" : "covered — the room cools"); });
+
+const QUEUE = [
+  {q:"$749.53 is not covered by anything booked — and there are 4 days left.",
+   w:"Nothing is on the calendar for the rest of July. One load at your floor rate covers it. Chosen over 6 other things because it is the only one with a deadline you cannot move.", go:"OPEN THE HUNT"},
+  {q:"Two cards are sitting in QA waiting for your hand.",
+   w:"#35 the radio on the plate, #8 Today. Both shipped and verified — nothing closes until you approve it, so they will sit here as long as it takes.", go:"GO TO QA"},
+  {q:"What actually makes a small operator pay for software?",
+   w:"Your open question, 5 options waiting, none chosen. It decides what you build after 10/1 — and it has been open 9 days.", go:"OPEN THE MUSCLE"}
+];
+let qi = 0;
+$("cnext").addEventListener("click", () => { qi=(qi+1)%QUEUE.length;
+  $("cq").textContent=QUEUE[qi].q; $("cwhy").textContent=QUEUE[qi].w; $("cgo").textContent=QUEUE[qi].go; });
+$("cgo").addEventListener("click", () => enter(qi===1 ? 1 : qi===2 ? 4 : 0));
+
+/* a page restored from the background repaints its instruments */
+document.addEventListener("visibilitychange", () => {
+  if(!document.hidden && ACTIVE !== null && D[ACTIVE].room === "money"){ paintSpark(); paintRadar(); }
+});
+
+let tT=0;
+function toast(m){ const el=$("toast"); el.textContent=m; el.classList.add("on");
+  clearTimeout(tT); tT=setTimeout(()=>el.classList.remove("on"),1900); }
+applyTemp();
+})();
+</script>
