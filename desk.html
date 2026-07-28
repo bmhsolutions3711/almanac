@@ -3,283 +3,335 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#13110E">
+<meta name="theme-color" content="#07080A">
 <title>Almanac — the desk</title>
 <link rel="icon" href="icons/icon-192.png" type="image/png">
 <style>
-  /* DESK — the almanac laid open flat. Detent is the instrument in the hand;
-     this is the printed page on the desk. Tabs at the top are the book's
-     thumb-index tabs. Everything on this page is typeset from what the spine
-     serves — THE PAGE COMPUTES NOTHING. LEAF's paper-and-ink language
-     (ruled the laptop seed, 2026-07-26), built fresh: no boot defect carried. */
-  :root{
-    color-scheme: dark;
-    /* ground */
-    --paper:#13110E; --paper-hi:#1B1814; --sunk:#0D0B09; --rule:#332E27;
-    /* ink ramp */
-    --ink:#EDE6D8; --mid:#B9AF9E; --dim:#8A8172; --faint:#5C554A;
-    /* the inks — each has ONE job. green does not exist. */
-    --red:#E0705A;      /* print red: rules, marks, the shortfall */
-    --lamp:#FFA419;     /* your hand is needed. never decoration. */
-    --hot:#FF6A2A;      /* refusal words only — what is NOT known/written */
-    --unknown:#6E6E6E;  /* the OFF-flag. the only achromatic. */
-    --mono:ui-monospace,"Roboto Mono","SF Mono",Menlo,monospace;
-    --sans:system-ui,"Segoe UI Variable Text",Roboto,sans-serif;
-    --serif:Georgia,"Iowan Old Style",serif;   /* prose — money is scanned in mono */
-    --r:2px;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
-  /* Author display rules beat the UA's [hidden] — this must stay above everything. */
-  [hidden]{display:none !important}
-  html,body{margin:0}
-  body{background:var(--paper); color:var(--ink); font-family:var(--sans);
-    font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased;
-    padding-bottom:64px}
-  .wrap{max-width:1240px; margin:0 auto; padding:0 28px}
-  button{font-family:inherit}
-  :focus-visible{outline:2px solid var(--red); outline-offset:2px}
-  .cap{font-family:var(--mono); font-weight:600; font-size:10.5px; letter-spacing:.16em;
-    text-transform:uppercase; color:var(--dim)}
+/* ══ THE DESK ══════════════════════════════════════════════════════════
+   Bryan's ruling, 2026-07-27: the orb field is the world; the rooms live
+   underneath it in the same light.
 
-  /* ── masthead ─────────────────────────────────────────────────────────── */
-  header{padding-top:26px}
-  .masthead{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap}
-  h1{font-family:var(--serif); font-size:32px; font-weight:600; margin:0;
-    letter-spacing:.01em; font-variant:small-caps}
-  .dateline{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
-    text-transform:uppercase; color:var(--red)}
-  .hand{font-family:var(--mono); font-size:11px; letter-spacing:.14em;
-    text-transform:uppercase; color:var(--lamp)}
-  .xref{margin-left:auto; background:none; border:1px solid var(--rule); border-radius:var(--r);
-    color:var(--dim); font:600 10.5px/1 var(--mono); letter-spacing:.16em;
-    text-transform:uppercase; padding:8px 12px; cursor:pointer}
-  .xref:hover{color:var(--ink); border-color:var(--dim)}
+   TWO AXES, NEVER CONFUSED
+     HUE         = identity. Which domain you are standing in. This is how
+                   depth stays navigable — a new domain is one more orb,
+                   never a seventh tab.
+     TEMPERATURE = state. The room is cold while the month is covered and
+                   the machines answer; it goes hot when SERVED numbers earn
+                   it, and the banner names the facts that turned it. Honest,
+                   not grim: it cools the moment one load covers the gap.
+                   Temperature is DERIVED, never a mood switch.
 
-  /* ── thumb-index tabs on the red rule ─────────────────────────────────── */
-  nav{display:flex; gap:6px; margin-top:18px; border-bottom:2px solid var(--red);
-    flex-wrap:wrap}
-  nav button{background:none; border:1px solid transparent; border-bottom:0;
-    border-radius:var(--r) var(--r) 0 0; padding:9px 16px 8px; cursor:pointer;
-    font:600 11.5px/1 var(--mono); letter-spacing:.18em; text-transform:uppercase;
-    color:var(--dim); margin-bottom:0}
-  nav button i{font-style:normal; color:var(--faint); margin-left:7px; letter-spacing:0}
-  nav button.on{background:var(--paper-hi); border-color:var(--rule); color:var(--ink);
-    box-shadow:0 2px 0 var(--paper-hi)}
-  nav button.on i{color:var(--red)}
+   THE PAGE COMPUTES NOTHING. Every figure is fetched. Needle positions and
+   bar widths are drawn FROM served figures — that is rendering, not
+   arithmetic, and no number is ever derived here that the spine did not say.
 
-  main{padding-top:26px}
-  section[data-tab]{min-height:40vh}
+   A CLOSE IS A WRITE. QA cards close under a held control, never a tap, and
+   only Bryan closes them (creed: qa-gate). */
+:root{
+  --void:#07080A; --glass:rgba(30,36,44,.86); --glass2:rgba(20,25,31,.9);
+  --line:rgba(150,170,190,.15);
+  --ink:#E9EDF0; --mid:#AEB8C0; --dim:#8B96A0; --etch:#5E6870;
+  --amber:#FFA419; --hot:#FF3B18; --unknown:#6E6E6E;
+  --key:255,164,25;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none !important}
+html,body{height:100%;overflow:hidden;background:var(--void)}
+body{font-family:var(--sans);color:var(--ink);font-variant-numeric:tabular-nums;
+  user-select:none;-webkit-user-select:none}
 
-  /* ── departments: printed rules, never boxes ──────────────────────────── */
-  .dept{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px;
-    margin:34px 0 14px}
-  .dept::before,.dept::after{content:""; height:1px; background:var(--rule)}
-  .dept span{font-family:var(--mono); font-weight:600; font-size:10.5px;
-    letter-spacing:.22em; text-transform:uppercase; color:var(--dim)}
+.sky{position:fixed;inset:0;z-index:0;transition:background 1s ease;
+  background:radial-gradient(1100px 700px at 50% 40%, rgba(38,48,66,.55), transparent 70%),
+             radial-gradient(760px 520px at 14% 76%, rgba(52,34,24,.34), transparent 70%), var(--void)}
+body.hot .sky{background:radial-gradient(1200px 760px at 50% 30%, rgba(96,20,10,.55), transparent 70%),
+             radial-gradient(760px 520px at 14% 78%, rgba(70,14,8,.42), transparent 70%), #0B0403}
+canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
+.grid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.42;
+  background-image:linear-gradient(rgba(130,150,165,.05) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(130,150,165,.05) 1px,transparent 1px);
+  background-size:132px 132px}
+.stage{position:relative;z-index:2;width:100%;height:100vh;display:flex;flex-direction:column}
 
-  /* ── TODAY: the standing ──────────────────────────────────────────────── */
-  .prose{max-width:74ch}
-  .headfig{font:700 clamp(36px,5vw,52px)/1 var(--mono); letter-spacing:-.02em;
-    font-variant-numeric:tabular-nums slashed-zero; margin:4px 0 0;
-    padding-bottom:8px; border-bottom:2px solid var(--red); display:inline-block}
-  .headfig.short{color:var(--red)}
-  .headfig.unk{color:var(--unknown); font-weight:400; letter-spacing:.1em}
-  .standsub{margin-top:10px; font:600 12px/1.6 var(--mono); letter-spacing:.1em;
-    text-transform:uppercase; color:var(--mid)}
-  .seg{font-family:var(--serif); font-size:17px; line-height:1.75; color:var(--mid);
-    margin:14px 0}
-  .seg b{color:var(--ink)}
-  .seg .jf{font:600 15px var(--mono); color:var(--ink); font-variant-numeric:tabular-nums}
-  .seg .jf[data-w]{cursor:pointer;
-    text-decoration:underline dotted 1px rgba(224,112,90,.6); text-underline-offset:.22em}
-  .seg.open .jf[data-w]{text-decoration:underline solid 1px var(--red)}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:18px;padding:16px 26px}
+.wm{font:700 14px/1 var(--mono);letter-spacing:.38em}
+.bar .d{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
+.bar .hand{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--amber)}
+.bar .right{margin-left:auto;display:flex;align-items:center;gap:9px}
+.pill{font:700 9px/1 var(--mono);letter-spacing:.16em;padding:8px 12px;border-radius:20px;
+  border:1px solid var(--line);color:var(--dim);transition:all .6s}
+.pill.on{color:var(--hot);border-color:rgba(255,59,24,.55);box-shadow:0 0 18px -5px rgba(255,59,24,.65)}
+.btn{background:var(--glass);border:1px solid var(--line);border-radius:3px;color:var(--mid);
+  font:700 9px/1 var(--mono);letter-spacing:.14em;padding:9px 13px;cursor:pointer;backdrop-filter:blur(8px)}
+.btn:hover{color:var(--ink);border-color:rgba(var(--key),.5)}
+.btn:focus-visible{outline:2px solid var(--mid);outline-offset:2px}
 
-  /* the working, unfolded in the margin hand */
-  .lx{background:var(--sunk); border-left:2px solid var(--red); border-radius:var(--r);
-    padding:12px 16px; margin:6px 0 16px; max-width:56ch}
-  .lx .lr{display:flex; justify-content:space-between; gap:16px; padding:3px 0;
-    font:400 13px/1.5 var(--sans); color:var(--dim); border-bottom:1px dotted var(--rule)}
-  .lx .lr:last-of-type{border-bottom:0}
-  .lx .lr b{font:600 13px var(--mono); color:var(--ink); font-variant-numeric:tabular-nums}
-  .lx .lt{display:flex; justify-content:space-between; gap:16px; margin-top:6px;
-    padding-top:7px; border-top:3px double var(--rule); font:600 13px/1.5 var(--sans); color:var(--ink)}
-  .lx .lt b{font:700 13px var(--mono); font-variant-numeric:tabular-nums}
-  .lx .flag{display:inline-block; width:30px; height:10px; align-self:center;
-    background:repeating-linear-gradient(135deg,#6E6E6E 0 5px,#8A8A8A 5px 10px)}
-  .lx .whole,.lx .lnote{font:italic 400 12.5px/1.5 var(--serif); color:var(--dim); padding:2px 0}
-  .lx .prov{font:600 8.5px/1.4 var(--mono); letter-spacing:.1em; color:var(--faint);
-    text-transform:uppercase; margin-top:8px}
+.field{position:relative;flex:0 0 auto;transition:height .75s cubic-bezier(.22,.61,.36,1)}
+.orb{position:absolute;cursor:pointer;transform:translate(-50%,-50%);
+  transition:left .75s cubic-bezier(.22,.61,.36,1), top .75s cubic-bezier(.22,.61,.36,1);
+  display:flex;flex-direction:column;align-items:center;gap:7px}
+.ball{position:relative;border-radius:50%;transition:width .75s cubic-bezier(.22,.61,.36,1),
+  height .75s cubic-bezier(.22,.61,.36,1), box-shadow .4s, filter .3s}
+.ball::after{content:"";position:absolute;left:16%;top:9%;width:44%;height:32%;border-radius:50%;
+  background:linear-gradient(160deg,rgba(255,255,255,.5),transparent 70%);filter:blur(1px)}
+.orb:hover .ball{filter:brightness(1.18)}
+.orb .fig{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none;transition:opacity .4s}
+.orb .fig .n{font:700 20px/1 var(--mono);color:#fff;text-shadow:0 0 16px rgba(0,0,0,.65)}
+.orb .fig .u{display:block;margin-top:3px;font:700 7px/1 var(--mono);letter-spacing:.15em;color:rgba(255,255,255,.75)}
+.orb .name{font:700 10px/1 var(--mono);letter-spacing:.2em;text-shadow:0 2px 10px rgba(0,0,0,.85);
+  transition:font-size .5s,color .3s}
+.orb .sig{font:600 9px/1 var(--mono);letter-spacing:.1em;color:var(--dim);transition:opacity .4s;white-space:nowrap}
+.orb .sig b{color:var(--amber)}
+.orb .sig b.h{color:var(--hot)}
+.stage.entered .orb .sig,.stage.entered .orb .fig{opacity:0;pointer-events:none}
+.stage.entered .orb .name{font-size:8.5px}
+.orb.active .name{color:#fff}
+.orb.active .ball{box-shadow:0 0 34px -4px rgba(var(--key),.95),inset 0 -10px 24px rgba(0,0,0,.5),
+  inset 0 4px 10px rgba(255,255,255,.16),0 0 0 2px rgba(var(--key),.35)}
 
-  /* ── THE WORK: the board printed across the desk ──────────────────────── */
-  .boardgrid{display:grid; grid-template-columns:repeat(4,minmax(230px,1fr)); gap:20px}
-  @media (max-width:1000px){ .boardgrid{grid-template-columns:repeat(2,1fr)} }
-  @media (max-width:620px){ .boardgrid{grid-template-columns:1fr} }
-  .col h3{font:600 10.5px/1 var(--mono); letter-spacing:.22em; text-transform:uppercase;
-    color:var(--dim); margin:0 0 10px; padding-bottom:7px; border-bottom:1px solid var(--rule);
-    display:flex; justify-content:space-between}
-  .col h3 i{font-style:normal; color:var(--faint)}
-  .col.now h3{color:var(--ink); border-bottom-color:var(--red)}
-  .kcard{border:1px solid var(--rule); border-radius:var(--r); background:var(--paper-hi);
-    padding:11px 13px; margin-bottom:10px; cursor:pointer}
-  .kcard:hover{border-color:var(--dim)}
-  .kcard .kt{font:600 14px/1.35 var(--sans); color:var(--ink)}
-  .kcard .kn{font:700 10.5px/1 var(--mono); letter-spacing:.14em; color:var(--faint);
-    display:flex; gap:10px; align-items:center; margin-top:7px}
-  .kcard .kn .bry{color:var(--lamp)}
-  .kcard .kn .hi{color:var(--red)}
-  .kcard .bar{flex:1; height:3px; background:var(--sunk); border-radius:2px; overflow:hidden}
-  .kcard .bar i{display:block; height:100%; background:var(--mid)}
-  .kcard.now{border-left:2px solid var(--red)}
-  .kcard.open{border-color:var(--dim)}
-  .kdetail{margin-top:10px; padding-top:10px; border-top:1px dotted var(--rule);
-    font:400 13.5px/1.65 var(--sans); color:var(--mid); cursor:auto}
-  .kdetail b{color:var(--ink)}
-  .kdetail code{font:600 12px var(--mono); color:var(--ink); background:var(--sunk);
-    padding:1px 4px; border-radius:2px}
-  .kdetail ul{margin:6px 0; padding-left:18px}
-  .kdetail .kimp{font-style:italic; font-family:var(--serif); color:var(--dim)}
-  .donestrip{margin-top:6px}
-  .donestrip .kcard{cursor:pointer; opacity:.62}
-  .donestrip .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px}
+.core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:230px;height:230px;
+  border-radius:50%;display:grid;place-items:center;pointer-events:none;
+  transition:opacity .5s,transform .75s cubic-bezier(.22,.61,.36,1);
+  background:radial-gradient(circle at 38% 32%, rgba(215,228,255,.4), rgba(118,142,205,.24) 42%,
+    rgba(28,36,58,.55) 72%, rgba(10,14,24,.7));
+  box-shadow:0 0 90px -10px rgba(120,150,220,.4), inset 0 0 60px rgba(190,210,255,.14)}
+.core .t{font:700 11px/1 var(--mono);letter-spacing:.3em;color:rgba(232,240,255,.92);text-align:center}
+.core .s{margin-top:8px;font:600 8px/1.5 var(--mono);letter-spacing:.1em;color:rgba(200,215,245,.55);text-align:center}
+.stage.entered .core{opacity:0;transform:translate(-50%,-50%) scale(.5)}
 
-  /* ── FINANCES: the ledger ─────────────────────────────────────────────── */
-  .ledger{max-width:860px}
-  .row{display:grid; grid-template-columns:1fr auto; gap:4px 20px; padding:10px 0;
-    border-bottom:1px dotted var(--rule); align-items:baseline}
-  .row .rt{font:600 14.5px/1.35 var(--sans); color:var(--ink)}
-  .row .rs{grid-column:1; font:400 12.5px/1.5 var(--sans); color:var(--dim)}
-  .row .ra{grid-row:1/span 2; align-self:center; font:600 15px var(--mono);
-    font-variant-numeric:tabular-nums; color:var(--ink); text-align:right}
-  .row.short .rt{color:var(--red)}
-  .row.dimrow{opacity:.55}
-  .row .ra .u{color:var(--unknown); font-weight:400}
-  .fault{font:400 13px/1.6 var(--sans); color:var(--hot); padding:6px 0}
+.consider{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);width:min(620px,86%);
+  background:var(--glass);border:1px solid var(--line);border-radius:9px;padding:15px 19px 14px;
+  backdrop-filter:blur(11px);box-shadow:0 26px 60px -20px rgba(0,0,0,.9);
+  transition:opacity .45s,transform .45s}
+.stage.entered .consider{opacity:0;transform:translateX(-50%) translateY(26px);pointer-events:none}
+.consider .lbl{display:inline-block;font:700 8px/1 var(--mono);letter-spacing:.19em;color:var(--amber);
+  border:1px solid rgba(255,164,25,.35);border-radius:20px;padding:6px 10px}
+.consider .q{margin-top:11px;font:600 17px/1.4 var(--sans);text-wrap:balance}
+.consider .rz{margin-top:7px;font:400 12px/1.5 var(--sans);color:var(--dim)}
+.consider .acts{margin-top:12px;display:flex;gap:8px}
+.consider .btn.go{color:var(--amber);border-color:rgba(255,164,25,.4)}
 
-  /* ── LEARN + SOUL ─────────────────────────────────────────────────────── */
-  .obj{border-left:2px solid var(--rule); padding:2px 0 2px 16px; margin:16px 0}
-  .obj .q{font-family:var(--serif); font-size:17px; line-height:1.6; color:var(--ink)}
-  .obj .om{font:600 10.5px/1.8 var(--mono); letter-spacing:.14em; text-transform:uppercase;
-    color:var(--dim)}
-  .obj .ta{font:italic 400 14px/1.6 var(--serif); color:var(--mid); margin-top:4px}
-  .creed{padding:10px 0; border-bottom:1px dotted var(--rule); cursor:pointer; max-width:74ch}
-  .creed .ct{font:600 15px/1.4 var(--sans); color:var(--ink);
-    display:flex; gap:12px; align-items:baseline}
-  .creed .ct i{font-style:normal; font:600 9.5px var(--mono); letter-spacing:.16em;
-    color:var(--faint); text-transform:uppercase}
-  .creed .ct .cf{margin-left:auto; font:600 9.5px var(--mono); letter-spacing:.14em;
-    color:var(--dim); text-transform:uppercase}
-  .creed .ct .cf.yes{color:var(--ink)}
-  .creed .cb{font-family:var(--serif); font-size:15px; line-height:1.7; color:var(--mid);
-    margin-top:8px; white-space:pre-wrap}
+.room{flex:1 1 auto;min-height:0;padding:0 22px 16px;display:flex;flex-direction:column;gap:10px;
+  opacity:0;transform:translateY(22px);pointer-events:none;transition:opacity .5s .18s, transform .5s .18s}
+.stage.entered .room{opacity:1;transform:none;pointer-events:auto}
+.why{flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:9px 14px;border-radius:4px;
+  background:rgba(var(--key),.09);border-left:3px solid rgba(var(--key),.8);
+  font:400 12px/1.4 var(--sans);color:var(--mid);transition:all .6s}
+body.hot .why{background:rgba(255,59,24,.11);border-left-color:var(--hot)}
+.why b{color:var(--ink)}
+.why .tag{font:700 8px/1 var(--mono);letter-spacing:.16em;color:rgba(var(--key),1);flex:0 0 auto}
+body.hot .why .tag{color:var(--hot)}
 
-  /* ── RADIO: the channel log ───────────────────────────────────────────── */
-  .chlog{max-width:78ch}
-  .tx{display:flex; gap:14px; padding:8px 0; border-bottom:1px dotted var(--rule);
-    font:400 14px/1.6 var(--sans); color:var(--mid); align-items:baseline}
-  .tx .stamp{flex:0 0 auto; font:600 10px/1.6 var(--mono); letter-spacing:.08em;
-    color:var(--faint); width:88px}
-  .tx .voice{flex:0 0 auto; font:700 10px/1.6 var(--mono); letter-spacing:.14em; width:34px}
-  .tx.op .voice{color:var(--red)}
-  .tx.bry{color:var(--ink)}
-  .tx.bry .voice{color:var(--dim)}
-  .tx .squelch{color:var(--red); font-weight:700}
-  .tx.held{opacity:.62; font-style:italic}
-  .tx .txt b{color:var(--ink)}
-  .keyup{display:flex; gap:10px; margin-top:18px; max-width:78ch}
-  .keyup input{flex:1; background:var(--sunk); border:1px solid var(--rule);
-    border-radius:var(--r); color:var(--ink); font:400 14px/1.4 var(--sans); padding:12px}
-  .keyup button{background:var(--red); color:var(--paper); border:0; border-radius:var(--r);
-    font:700 11px/1 var(--mono); letter-spacing:.18em; padding:0 22px; cursor:pointer}
-  .keyup button:disabled{opacity:.5; cursor:default}
+.panel{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:12px 15px;
+  backdrop-filter:blur(10px);min-width:0;display:flex;flex-direction:column;transition:border-color .6s}
+body.hot .panel{border-color:rgba(255,59,24,.22)}
+.cap{font:700 8px/1 var(--mono);letter-spacing:.2em;color:var(--etch);text-transform:uppercase;flex:0 0 auto}
+.big{margin-top:8px;font:700 32px/1 var(--mono);color:rgba(var(--key),1);text-shadow:0 0 28px rgba(var(--key),.45)}
+body.hot .big{color:var(--hot);text-shadow:0 0 30px rgba(255,59,24,.5)}
+.big.unk{color:var(--unknown);font-weight:400;letter-spacing:.1em;text-shadow:none}
+.sm{margin-top:5px;font:400 11px/1.4 var(--sans);color:var(--dim)}
 
-  /* ── folio + states ───────────────────────────────────────────────────── */
-  footer{margin-top:48px; padding-top:10px; border-top:1px solid var(--rule);
-    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
-    font:600 10px/1.6 var(--mono); letter-spacing:.14em; color:var(--faint);
-    text-transform:uppercase}
-  .nodata{font-family:var(--serif); font-size:17px; color:var(--dim); font-style:italic}
-  .hotline{color:var(--hot); font:400 13px/1.6 var(--mono)}
+.rgrid{flex:1 1 auto;min-height:0;display:grid;gap:10px;
+  grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
+.gwrap{flex:1 1 auto;min-height:190px;position:relative;margin-top:4px}
+.gwrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.gread{position:absolute;left:0;right:0;bottom:2px;text-align:center;pointer-events:none}
+.gread .n{font:700 clamp(26px,2.5vw,38px)/1 var(--mono);color:rgba(var(--key),1);
+  text-shadow:0 0 26px rgba(var(--key),.45)}
+body.hot .gread .n{color:var(--hot)}
+.gread .u{margin-top:3px;font:700 8px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
+.figs{display:flex;gap:2px;margin-top:8px;flex:0 0 auto}
+.fg{flex:1;min-width:0;background:rgba(255,255,255,.03);border-radius:3px;padding:7px 8px;cursor:pointer}
+.fg:hover{background:rgba(255,255,255,.06)}
+.fg.on{background:rgba(var(--key),.12);box-shadow:inset 0 -2px 0 rgba(var(--key),1)}
+.fg .k{font:700 7px/1 var(--mono);letter-spacing:.14em;color:var(--etch);text-transform:uppercase}
+.fg .v{margin-top:4px;font:700 12px/1 var(--mono);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fg.short .v{color:var(--hot)}
+.wk{margin-top:8px;padding:9px 11px;background:rgba(0,0,0,.35);border-radius:4px;flex:0 0 auto}
+.wk .wr{display:flex;justify-content:space-between;gap:12px;padding:2px 0;font:400 11.5px/1.5 var(--sans);
+  color:var(--dim);border-bottom:1px dotted rgba(255,255,255,.07)}
+.wk .wr:last-of-type{border-bottom:0}
+.wk .wr b{font:600 11.5px var(--mono);color:var(--ink)}
+.wk .tot{display:flex;justify-content:space-between;gap:12px;margin-top:4px;padding-top:5px;
+  border-top:3px double rgba(255,255,255,.14);font:600 11.5px var(--sans);color:var(--ink)}
+.wk .tot b{font:700 11.5px var(--mono)}
+.wk .prov{margin-top:6px;font:600 7.5px/1.4 var(--mono);letter-spacing:.1em;color:var(--etch);text-transform:uppercase}
+.wk .flag{display:inline-block;width:28px;height:9px;background:repeating-linear-gradient(135deg,#6E6E6E 0 5px,#8A8A8A 5px 10px)}
 
-  /* ── connect ──────────────────────────────────────────────────────────── */
-  .panel{position:fixed; inset:0; background:rgba(13,11,9,.9); z-index:9;
-    display:flex; align-items:center; justify-content:center; padding:24px}
-  .panel .in{background:var(--paper-hi); border:1px solid var(--rule); border-radius:var(--r);
-    padding:24px; width:min(440px,100%); display:flex; flex-direction:column; gap:13px}
-  .panel h2{margin:0; font-family:var(--serif); font-size:20px; font-variant:small-caps}
-  .panel p{margin:0; color:var(--dim); font-size:13.5px}
-  .panel label{display:flex; flex-direction:column; gap:5px; font:700 10.5px/1 var(--mono);
-    letter-spacing:.16em; color:var(--dim); text-transform:uppercase}
-  .panel input{background:var(--sunk); border:1px solid var(--rule); border-radius:var(--r);
-    color:var(--ink); font:400 14px/1.3 var(--mono); padding:11px}
-  .panel button{background:var(--mid); color:var(--sunk); border:0; border-radius:var(--r);
-    font:700 12px/1 var(--mono); letter-spacing:.18em; padding:13px; cursor:pointer}
-  .panel .msg{font:400 11.5px/1.5 var(--mono); color:var(--dim)}
-  .panel .msg.bad{color:var(--hot)}
+.centre{align-items:center;justify-content:center;text-align:center}
+.centre .lab{font:700 9.5px/1 var(--mono);letter-spacing:.26em;color:var(--dim)}
+.centre .n{margin:8px 0 3px;font:700 clamp(56px,7vw,104px)/.9 var(--mono);letter-spacing:-.03em;
+  color:var(--ink);text-shadow:0 0 60px rgba(var(--key),.4)}
+body.hot .centre .n{color:var(--hot);text-shadow:0 0 70px rgba(255,59,24,.55)}
+.centre .u{font:700 10px/1 var(--mono);letter-spacing:.28em;color:var(--dim)}
+.centre .weeks{margin-top:13px;display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.centre .weeks i{width:14px;height:6px;border-radius:1px;background:rgba(255,255,255,.12)}
+.centre .weeks i.gone{background:rgba(255,255,255,.3)}
+.centre .weeks i.now{background:rgba(var(--key),1);box-shadow:0 0 10px -2px rgba(var(--key),1)}
+body.hot .centre .weeks i.now{background:var(--hot);box-shadow:0 0 10px -2px var(--hot)}
+.centre .sub{margin-top:13px;font:400 12.5px/1.5 var(--sans);color:var(--mid);max-width:46ch}
+.rows{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.rw{display:flex;align-items:center;gap:9px;font:400 11px/1.3 var(--sans);color:var(--mid)}
+.rw .b{flex:1;height:4px;background:rgba(255,255,255,.09);border-radius:2px;overflow:hidden;min-width:18px}
+.rw .b i{display:block;height:100%;background:var(--mid)}
+.rw .b i.k{background:rgba(var(--key),1)}
+body.hot .rw .b i.k{background:var(--hot)}
+.rw .v{font:600 10.5px var(--mono);color:var(--ink);flex:0 0 auto}
+.chip{font:700 7px/1 var(--mono);letter-spacing:.11em;padding:4px 7px;border-radius:10px;
+  border:1px solid var(--line);color:var(--dim);flex:0 0 auto}
+.chip.bad{color:var(--hot);border-color:rgba(255,59,24,.5)}
+
+.acts{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.act{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:11px 13px;
+  display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px);transition:border-color .6s}
+body.hot .act{border-color:rgba(255,59,24,.26)}
+.act .h{display:flex;align-items:baseline;gap:9px}
+.act .h .n{font:700 8px/1 var(--mono);letter-spacing:.15em;color:rgba(var(--key),1)}
+body.hot .act .h .n{color:var(--hot)}
+.act .h .imp{margin-left:auto;font:700 12.5px/1 var(--mono)}
+.act .t{font:600 12.5px/1.35 var(--sans)}
+.act .w{font:400 10.5px/1.45 var(--sans);color:var(--dim)}
+.act .go{margin-top:auto;align-self:flex-start;background:none;border:1px solid var(--line);border-radius:3px;
+  color:var(--mid);font:700 8px/1 var(--mono);letter-spacing:.14em;padding:7px 11px;cursor:pointer}
+.act .go:hover{color:rgba(var(--key),1);border-color:rgba(var(--key),.6)}
+
+.board{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.col{display:flex;flex-direction:column;min-height:0}
+.colhead{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:6px;
+  border-bottom:1px solid var(--line);margin-bottom:8px}
+.colhead .t{font:700 8.5px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
+.colhead .n{font:700 8.5px/1 var(--mono);color:var(--etch)}
+.col.qa .colhead{border-bottom-color:rgba(var(--key),.9)}
+.col.qa .colhead .t{color:rgba(var(--key),1)}
+.cards{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-right:2px}
+.cards::-webkit-scrollbar{width:0}
+.kc{flex:0 0 auto;background:var(--glass2);border:1px solid var(--line);border-radius:5px;padding:9px 11px;
+  backdrop-filter:blur(8px);cursor:pointer}
+.kc .t{font:600 12px/1.32 var(--sans)}
+.kc .m{display:flex;align-items:center;gap:7px;margin-top:6px;font:700 8px/1 var(--mono);
+  letter-spacing:.1em;color:var(--etch)}
+/* .pb, not .bar — the top bar owns .bar and its padding would swallow this */
+.kc .m .pb{flex:1;height:2px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;min-width:14px}
+.kc .m .pb i{display:block;height:100%;background:var(--mid)}
+.kc .m .hi{color:var(--hot)}
+.kc .m .bry{color:var(--amber)}
+.kc.nowc{border-left:2px solid rgba(var(--key),.9)}
+.kdetail{margin-top:9px;padding-top:9px;border-top:1px dotted var(--line);font:400 12.5px/1.6 var(--sans);
+  color:var(--mid);cursor:auto;max-height:260px;overflow-y:auto}
+.kdetail b{color:var(--ink)}
+.kdetail code{font:600 11.5px var(--mono);color:var(--ink);background:rgba(0,0,0,.4);padding:1px 4px;border-radius:2px}
+.kdetail ul{margin:6px 0;padding-left:18px}
+.kdetail .kimp{font-style:italic;color:var(--dim)}
+.closer{position:relative;margin-top:8px;height:27px;border-radius:4px;overflow:hidden;cursor:pointer;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);width:100%;display:grid;place-items:center;
+  touch-action:none}
+.closer .r2{position:absolute;inset:0;background:rgba(var(--key),.5);transform:scaleX(0);transform-origin:left center}
+.closer .cc{position:relative;z-index:2;font:700 8.5px/1 var(--mono);letter-spacing:.15em;color:var(--mid)}
+.closer[disabled]{opacity:.45;cursor:default}
+.kc.closed{opacity:.42}
+.kc.closed .t{text-decoration:line-through;text-decoration-color:var(--etch)}
+
+.chan{flex:1 1 auto;min-height:0;display:flex;flex-direction:column-reverse;gap:6px;overflow-y:auto;padding-right:3px}
+.chan::-webkit-scrollbar{width:0}
+.tx{display:flex;gap:12px;padding:8px 0;border-bottom:1px dotted var(--line);align-items:baseline;
+  font:400 13px/1.55 var(--sans);color:var(--mid)}
+.tx .st{flex:0 0 84px;font:600 9px/1.6 var(--mono);letter-spacing:.07em;color:var(--etch)}
+.tx .vo{flex:0 0 30px;font:700 9px/1.6 var(--mono);letter-spacing:.13em}
+.tx.op .vo{color:rgba(var(--key),1)}
+.tx.bry{color:var(--ink)} .tx.bry .vo{color:var(--dim)}
+.tx .mk{color:rgba(var(--key),1);font-weight:700}
+.tx.held{opacity:.55;font-style:italic}
+.sqline{flex:0 0 auto;position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin:12px 0 4px}
+.sqline::after{content:"SQUELCH · " attr(data-held) " HELD BELOW";position:absolute;right:0;top:-13px;
+  font:700 7.5px/1 var(--mono);letter-spacing:.16em;color:var(--etch)}
+.keyup{flex:0 0 auto;display:flex;gap:9px;margin-top:10px}
+.keyup input{flex:1;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:4px;color:var(--ink);
+  font:400 13px/1.3 var(--sans);padding:11px 13px;user-select:text;-webkit-user-select:text}
+.keyup input:focus-visible{outline:2px solid rgba(var(--key),.6);outline-offset:1px}
+.hold{flex:0 0 auto;padding:0 22px;border-radius:4px;border:1px solid rgba(var(--key),.5);
+  background:rgba(var(--key),.14);color:rgba(var(--key),1);font:700 9.5px/1 var(--mono);letter-spacing:.16em;
+  cursor:pointer;position:relative;overflow:hidden;touch-action:none}
+.hold .r3{position:absolute;inset:0;background:rgba(var(--key),.35);transform:scaleX(0);transform-origin:left}
+.hold[disabled]{opacity:.45;cursor:default}
+
+.lrow{padding:11px 0;border-bottom:1px dotted var(--line);display:grid;grid-template-columns:1fr auto;gap:3px 18px}
+.lrow .t{font:600 13.5px/1.35 var(--sans);color:var(--ink)}
+.lrow .s{grid-column:1;font:400 12px/1.5 var(--sans);color:var(--dim)}
+.lrow .a{grid-row:1/span 2;align-self:center;font:600 14px var(--mono);color:var(--ink);text-align:right}
+.lrow.short .t{color:var(--hot)}
+.lrow.dim{opacity:.5}
+.scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
+.scroll::-webkit-scrollbar{width:0}
+.creed{padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer}
+.creed .ct{font:600 14px/1.4 var(--sans);display:flex;gap:12px;align-items:baseline}
+.creed .ct .cf{margin-left:auto;font:700 8px/1 var(--mono);letter-spacing:.13em;color:var(--dim)}
+.creed .ct .cf.yes{color:rgba(var(--key),1)}
+.creed .cb{margin-top:8px;font:400 13.5px/1.7 var(--sans);color:var(--mid);white-space:pre-wrap}
+.gen{flex:1;display:grid;place-items:center;color:var(--dim);font:400 14px/1.6 var(--sans);text-align:center}
+.nodata{color:var(--dim);font-style:italic}
+.hotline{color:var(--hot);font:400 12.5px/1.6 var(--mono)}
+
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:20;
+  background:rgba(16,20,24,.96);border:1px solid var(--line);border-radius:4px;padding:9px 15px;
+  font:600 10px/1 var(--mono);letter-spacing:.12em;color:rgba(var(--key),1);opacity:0;
+  transition:opacity .25s;pointer-events:none;backdrop-filter:blur(8px);max-width:80vw;text-align:center}
+.toast.on{opacity:1}
+.panelbox{position:fixed;inset:0;background:rgba(5,7,10,.9);z-index:30;display:flex;align-items:center;
+  justify-content:center;padding:24px;backdrop-filter:blur(6px)}
+.panelbox .in{background:var(--glass);border:1px solid var(--line);border-radius:8px;padding:24px;
+  width:min(440px,100%);display:flex;flex-direction:column;gap:13px}
+.panelbox h2{font:600 19px/1.2 var(--sans)}
+.panelbox p{color:var(--dim);font-size:13.5px}
+.panelbox label{display:flex;flex-direction:column;gap:5px;font:700 9px/1 var(--mono);letter-spacing:.16em;
+  color:var(--dim);text-transform:uppercase}
+.panelbox input{background:rgba(0,0,0,.5);border:1px solid var(--line);border-radius:4px;color:var(--ink);
+  font:400 14px/1.3 var(--mono);padding:11px;user-select:text;-webkit-user-select:text}
+.panelbox .msg{font:400 11.5px/1.5 var(--mono);color:var(--dim)}
+.panelbox .msg.bad{color:var(--hot)}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
 </style>
 </head>
 <body>
-<header class="wrap">
-  <div class="masthead">
-    <h1>Almanac</h1>
-    <span class="dateline" id="dateline"></span>
-    <span class="hand" id="hand" hidden></span>
-    <button class="xref" id="toInstrument" title="back to the phone instrument">&#8646; the instrument</button>
+<div class="sky"></div>
+<canvas class="stars" id="stars"></canvas>
+<div class="grid"></div>
+
+<div class="stage" id="stage">
+  <div class="bar">
+    <span class="wm">ALMANAC</span>
+    <span class="d" id="dateline"></span>
+    <span class="hand" id="hand"></span>
+    <span class="right">
+      <span class="pill" id="pill">reading the spine</span>
+      <button class="btn" id="home" hidden>&#9666; THE FIELD</button>
+      <button class="btn" id="toPlate" title="the phone instrument">&#8646; THE INSTRUMENT</button>
+    </span>
   </div>
-  <nav id="tabs"></nav>
-</header>
 
-<main class="wrap">
-  <section data-tab="TODAY">
-    <div class="prose">
-      <div class="cap">the standing</div>
-      <div class="headfig unk" id="fig">&#8212;&#8212;</div>
-      <div class="standsub" id="figsub">reading the spine</div>
-      <div id="judge"></div>
+  <div class="field" id="field">
+    <div class="core"><div><div class="t">THE SPINE</div>
+      <div class="s">one service &middot; one database<br>everything above is served</div></div></div>
+    <div id="orbs"></div>
+    <div class="consider" id="consider">
+      <span class="lbl">THE SPINE PUT THIS IN FRONT OF YOU</span>
+      <div class="q" id="cq">reading&#8230;</div>
+      <div class="rz" id="crz"></div>
+      <div class="acts"><button class="btn go" id="cgo">OPEN IT</button></div>
     </div>
-  </section>
+  </div>
 
-  <section data-tab="WORK" hidden>
-    <div class="boardgrid" id="board"></div>
-    <div class="donestrip" id="donestrip" hidden>
-      <div class="dept"><span id="donecap">closed</span></div>
-      <div class="grid" id="donegrid"></div>
-    </div>
-  </section>
+  <div class="room" id="room"></div>
+</div>
+<div class="toast" id="toast"></div>
 
-  <section data-tab="RADIO" hidden>
-    <div class="chlog" id="chlog"></div>
-    <form class="keyup" id="keyup">
-      <input id="keyupText" placeholder="key up — the spine reads this at the next kickoff" autocomplete="off" maxlength="500">
-      <button type="submit" id="keyupGo">KEY UP</button>
-    </form>
-  </section>
-
-  <section data-tab="FINANCES" hidden>
-    <div class="ledger" id="ledger"></div>
-  </section>
-
-  <section data-tab="LEARN" hidden>
-    <div id="learn"></div>
-  </section>
-
-  <section data-tab="SOUL" hidden>
-    <div id="soul"></div>
-  </section>
-
-  <footer>
-    <span id="folio-entry"></span>
-    <span id="folio-read"></span>
-    <span>the page computed nothing</span>
-  </footer>
-</main>
-
-<div class="panel" id="connect" hidden>
+<div class="panelbox" id="connect" hidden>
   <div class="in">
     <h2>Connect</h2>
     <p>Both values stay on this device.</p>
     <label>backend<input id="cfgApi" inputmode="url" placeholder="https://&#8230;"></label>
     <label>token<input id="cfgTok" type="password" placeholder="ALMANAC_TOKEN"></label>
-    <button id="cfgGo">CONNECT</button>
+    <button class="btn" id="cfgGo" style="padding:13px">CONNECT</button>
     <span class="msg" id="cfgMsg">Checked against the spine before it is saved.</span>
   </div>
 </div>
@@ -287,12 +339,12 @@
 <script>
 "use strict";
 (() => {
+const $ = id => document.getElementById(id);
+const stage = $("stage");
 
-/* ── config — same keys as the instrument; same origin, same credentials ── */
+/* ── config: same keys, same origin, same credentials as the plate ── */
 let API = localStorage.getItem("almanac_api") || "";
 let TOK = localStorage.getItem("almanac_token") || "";
-
-/* #cfg / #reset — PWA doctrine, identical to the instrument's bootstrap. */
 (function bootstrap(){
   const h = location.hash || "";
   if(h === "#reset" || h === "#nuke"){
@@ -318,443 +370,650 @@ let TOK = localStorage.getItem("almanac_token") || "";
     }catch(e){}
   }
 })();
-
-const $ = id => document.getElementById(id);
+const configured = () => localStorage.getItem("almanac_token") !== null && TOK !== "";
 const url = p => (API || "") + p;
 const hdr = x => Object.assign({ Authorization: "Bearer " + TOK }, x || {});
-const configured = () => localStorage.getItem("almanac_token") !== null && TOK !== "";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 const money = v => v == null ? null :
-  "$" + Number(v).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
-const esc = s => String(s ?? "").replace(/[&<>"]/g,
-  m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+  "$" + Number(v).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const short = v => v == null ? "——" :
+  "$" + Math.round(Number(v)).toLocaleString("en-US");
 
-const State = { standings:null, board:null, learn:null, soul:null, standing:null,
-                held:null, radio:null, readAt:null };
+const State = { standing:null, standings:null, board:null, radio:null, learn:null,
+                soul:null, held:null, watch:null, at:null, err:null };
+let ACTIVE = null, HOT = false;
 
-/* ── the cross-reference back to the instrument ──────────────────────────── */
-$("toInstrument").addEventListener("click", () => {
+$("toPlate").addEventListener("click", () => {
   localStorage.setItem("almanac_view", "detent");
   location.href = "detent.html";
 });
 
-/* ── thumb-index tabs ────────────────────────────────────────────────────── */
-/* RADIO leads — Bryan's ruling 2026-07-27 ("radio should be first tab"):
-   on the desk, the first read is the conversation with the operation. */
-const TABS = ["RADIO","TODAY","WORK","FINANCES","LEARN","SOUL"];
-const TABLABEL = { TODAY:"today", WORK:"the work", RADIO:"radio", FINANCES:"finances", LEARN:"learn", SOUL:"soul" };
-let TAB = "TODAY";           /* first in front of me is always today */
-TABS.forEach(k => {
-  const b = document.createElement("button");
-  b.dataset.k = k; b.innerHTML = esc(TABLABEL[k]) + '<i data-count></i>';
-  b.addEventListener("click", () => setTab(k));
-  $("tabs").appendChild(b);
-});
-function setTab(k){
-  TAB = k;
-  [...$("tabs").children].forEach(b => b.classList.toggle("on", b.dataset.k === k));
-  document.querySelectorAll("section[data-tab]").forEach(s => s.hidden = s.dataset.tab !== k);
-  // Opening the radio IS reading it — the read mark is his eyes on the log,
-  // never a passive fetch.
-  if(k === "RADIO" && State.radio && State.radio.unread > 0 && configured()){
-    fetch(url("/api/messages/read"), { method:"POST", headers: hdr({"Content-Type":"application/json"}), body:"{}" })
-      .then(() => grab("/api/messages")).then(r => { State.radio = r; renderRadio(); })
-      .catch(()=>{});
+/* dust */
+(function(){
+  const cv = $("stars"); cv.width = innerWidth; cv.height = innerHeight;
+  const g = cv.getContext("2d"); let s = 7;
+  const rnd = () => { s = (s*1664525 + 1013904223) >>> 0; return s/4294967296; };
+  for(let i=0;i<300;i++){
+    g.fillStyle = `rgba(200,218,240,${rnd()*0.45+0.05})`;
+    g.beginPath(); g.arc(rnd()*cv.width, rnd()*cv.height, rnd()*1.2+0.25, 0, 7); g.fill();
   }
-}
-addEventListener("keydown", e => {
-  if(e.target.tagName === "INPUT") return;
-  const i = "123456".indexOf(e.key);
-  if(i >= 0 && i < TABS.length){ setTab(TABS[i]); return; }
-  const at = TABS.indexOf(TAB);
-  if(e.key === "ArrowRight") setTab(TABS[Math.min(TABS.length-1, at+1)]);
-  if(e.key === "ArrowLeft")  setTab(TABS[Math.max(0, at-1)]);
-});
-function tabCount(k, text){
-  const b = [...$("tabs").children].find(x => x.dataset.k === k);
-  if(b) b.querySelector("i").textContent = text ?? "";
-}
-
-/* ── masthead ────────────────────────────────────────────────────────────── */
+})();
 $("dateline").textContent = new Date().toLocaleDateString("en-US",
-  { weekday:"long", month:"long", day:"numeric", year:"numeric" });
+  { weekday:"long", month:"long", day:"numeric", year:"numeric" }).toUpperCase();
 
-/* ── TODAY — the judgement, typeset; workings unfold in the margin ───────── */
-function renderToday(){
+/* ── the domains. hue = identity. ─────────────────────────────────── */
+const D = [
+  {k:"HOTSHOT", hue:"255,110,50",  fx:19, fy:36, r:118, room:"standing"},
+  {k:"THE WORK",hue:"70,190,200",  fx:80, fy:30, r:102, room:"work"},
+  {k:"RADIO",   hue:"255,164,25",  fx:50, fy:16, r:80,  room:"radio"},
+  {k:"MONEY",   hue:"190,160,60",  fx:85, fy:60, r:90,  room:"ledger"},
+  {k:"LEARN",   hue:"150,90,220",  fx:18, fy:68, r:84,  room:"learn"},
+  {k:"SOUL",    hue:"120,200,120", fx:73, fy:80, r:72,  room:"soul"}
+];
+const field = $("field"), host = $("orbs");
+D.forEach((o,i) => {
+  const el = document.createElement("div");
+  el.className = "orb"; el.dataset.i = i;
+  el.innerHTML =
+    `<div class="ball" style="background:radial-gradient(circle at 36% 30%,
+       rgba(${o.hue},.96), rgba(${o.hue},.62) 46%, rgba(${o.hue},.16) 78%, rgba(6,8,12,.98));
+       box-shadow:0 0 40px -8px rgba(${o.hue},.6), inset 0 -14px 26px rgba(0,0,0,.55),
+       inset 0 5px 12px rgba(255,255,255,.12)">
+       <div class="fig"><div><span class="n">—</span><span class="u"></span></div></div>
+     </div><div class="name">${o.k}</div><div class="sig">&#8230;</div>`;
+  el.addEventListener("click", () => enter(i));
+  host.appendChild(el);
+  o.el = el;
+});
+function fieldH(){ return stage.classList.contains("entered") ? 96 : Math.round(innerHeight*0.72); }
+function layout(){
+  const entered = stage.classList.contains("entered");
+  const W = innerWidth, H = fieldH();
+  field.style.height = H + "px";
+  D.forEach((o,i) => {
+    const r = entered ? 44 : o.r;
+    const b = o.el.querySelector(".ball");
+    b.style.width = r + "px"; b.style.height = r + "px";
+    if(entered){
+      const n = D.length, span = Math.min(W*0.62, 660), x0 = W/2 - span/2;
+      o.el.style.left = (x0 + (i+0.5)*(span/n)) + "px";
+      o.el.style.top  = "48px";
+    } else {
+      o.el.style.left = (o.fx/100*W) + "px";
+      o.el.style.top  = (o.fy/100*H) + "px";
+    }
+  });
+}
+layout();
+addEventListener("resize", () => { clearTimeout(window.__l);
+  window.__l = setTimeout(() => { layout(); if(ACTIVE !== null) renderRoom(); }, 160); });
+
+/* ── TEMPERATURE IS DERIVED, never a mood switch ──────────────────── */
+function tempFacts(){
+  const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
+  const f = [];
+  if(p.uncovered != null && p.uncovered > 0)
+    f.push(`uncovered <b>${money(p.uncovered)}</b>`);
+  if(p.booked_ahead_total != null && p.booked_ahead_total <= 0 && p.to_go > 0)
+    f.push(`booked ahead <b>$0.00</b>`);
+  const days = daysLeftInMonth();
+  if(p.to_go > 0 && days <= 7) f.push(`<b>${days} day${days===1?"":"s"}</b> left`);
+  const down = (State.watch && State.watch.down) || [];
+  if(down.length) f.push(`<b>${down.length}</b> down on the watch (${esc(down.join(", "))})`);
+  return f;
+}
+function daysLeftInMonth(){
+  const n = new Date(), end = new Date(n.getFullYear(), n.getMonth()+1, 0);
+  return Math.max(0, end.getDate() - n.getDate());
+}
+function deriveTemp(){
+  HOT = tempFacts().length > 0;
+  document.body.classList.toggle("hot", HOT);
+  const pill = $("pill");
+  if(State.err){ pill.textContent = "SPINE UNREACHABLE"; pill.classList.remove("on"); return; }
+  pill.textContent = HOT ? "HOT · THE NUMBERS TURNED IT" : "COLD · NOTHING IS ASKING";
+  pill.classList.toggle("on", HOT);
+}
+function whyBar(){
+  const f = tempFacts();
+  if(!f.length) return `<div class="why"><span class="tag">WHY THIS ROOM</span>
+    <span>Nothing served is asking for your hand right now — so the room stays quiet.</span></div>`;
+  return `<div class="why"><span class="tag">WHY THIS ROOM IS RED</span>
+    <span>${f.length} served fact${f.length===1?"":"s"} turned it: ${f.join(", ")}.
+    It goes cold when they do.</span></div>`;
+}
+
+/* ── the field's signals — every one of them served ───────────────── */
+function paintField(){
+  const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
+  const b = State.board, s = State.standings, r = State.radio, l = State.learn, d = State.soul;
+  const qa = b ? b.cards.filter(c => c.column_name === "qa").length : null;
+  const open = b ? b.cards.filter(c => c.column_name !== "done").length : null;
+  const needs = s && s.counts ? s.counts.standing : null;
+  const sig = [
+    p.to_go == null ? ["——","",'<span style="color:var(--unknown)">not enough is known</span>']
+      : p.to_go > 0 ? [short(p.to_go),"TO GO",`<b class="h">${money(p.to_go)}</b> TO GO`]
+                    : [short(-p.to_go),"CLEAR",`<b>${money(-p.to_go)}</b> CLEAR`],
+    [qa==null?"—":String(qa),"IN QA", qa==null?"spine unavailable":`<b>${qa}</b> IN QA · ${open} OPEN`],
+    [r==null?"—":String(r.unread),"UNREAD", r==null?"spine unavailable":`<b>${r.unread}</b> UNREAD · CH 19`],
+    [needs==null?"—":String(needs),"STANDING", needs==null?"spine unavailable":`<b>${needs}</b> NEED YOUR HAND`],
+    [l==null?"—":String((l.open||[]).length),"OPEN", l==null?"spine unavailable":`<b>${(l.open||[]).length}</b> OPEN QUESTION`],
+    [d==null?"—":String(d.confirmed),d==null?"":"OF "+d.total, d==null?"spine unavailable":`<b>${d.confirmed}</b>/${d.total} CONFIRMED`]
+  ];
+  D.forEach((o,i) => {
+    o.el.querySelector(".fig .n").textContent = sig[i][0];
+    o.el.querySelector(".fig .u").textContent = sig[i][1];
+    o.el.querySelector(".sig").innerHTML = sig[i][2];
+  });
+  $("hand").textContent = needs != null && needs > 0 ? needs + " NEED YOUR HAND" : "";
+  paintConsider();
+}
+
+/* the ONE thing the spine puts in front of him — chosen by a stated rule,
+   never a guess, and it always says why it beat the others */
+function paintConsider(){
+  const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
+  const b = State.board, s = State.standings, l = State.learn;
+  const qa = b ? b.cards.filter(c => c.column_name === "qa") : [];
+  const days = daysLeftInMonth();
+  let pick;
+  if(p.uncovered != null && p.uncovered > 0){
+    pick = { q: `${money(p.uncovered)} is not covered by anything booked — and there ${days===1?"is":"are"} ${days} day${days===1?"":"s"} left.`,
+      rz: `Booked ahead is ${money(p.booked_ahead_total || 0)}. This is first because it is the only thing on the field with a deadline that cannot move.`,
+      go: "OPEN THE STANDING", i: 0 };
+  } else if(qa.length){
+    pick = { q: `${qa.length} card${qa.length===1?"":"s"} ${qa.length===1?"is":"are"} in QA waiting for your hand.`,
+      rz: `${qa.map(c => "#"+c.id).join(", ")} — shipped and verified. Nothing closes until you approve it, so they wait as long as it takes.`,
+      go: "GO TO QA", i: 1 };
+  } else if(s && s.counts && s.counts.standing > 0){
+    pick = { q: `${s.counts.standing} obligation${s.counts.standing===1?"":"s"} need your hand.`,
+      rz: `Settled one at a time on the plate — a write is held, never tapped.`, go: "OPEN THE LEDGER", i: 3 };
+  } else if(l && (l.open||[]).length){
+    pick = { q: l.open[0].question,
+      rz: `Your open question — ${(l.open[0].options||[]).length} options waiting, none chosen.`,
+      go: "OPEN THE MUSCLE", i: 4 };
+  } else {
+    pick = { q: "Nothing is asking for your hand.", rz: "The board is clear and the month is covered. This is what covered looks like.", go: "OPEN THE WORK", i: 1 };
+  }
+  $("cq").textContent = pick.q;
+  $("crz").textContent = pick.rz;
+  $("cgo").textContent = pick.go;
+  $("cgo").onclick = () => enter(pick.i);
+}
+
+/* ── entering a domain ────────────────────────────────────────────── */
+function enter(i){
+  ACTIVE = i;
+  document.documentElement.style.setProperty("--key", D[i].hue);
+  D.forEach(x => x.el.classList.remove("active"));
+  D[i].el.classList.add("active");
+  stage.classList.add("entered");
+  $("home").hidden = false;
+  layout(); renderRoom();
+}
+$("home").addEventListener("click", () => {
+  stage.classList.remove("entered");
+  $("home").hidden = true;
+  D.forEach(x => x.el.classList.remove("active"));
+  document.documentElement.style.setProperty("--key","255,164,25");
+  ACTIVE = null; layout(); $("room").innerHTML = "";
+  history.replaceState(null, "", location.pathname + location.search);
+});
+
+/* ── THE STANDING (hotshot) ───────────────────────────────────────── */
+const LAUNCH = new Date(2026, 9, 1);          /* 10/1 — the heartbeat */
+function daysToLaunch(){
+  const n = new Date(); n.setHours(0,0,0,0);
+  return Math.max(0, Math.round((LAUNCH - n) / 86400000));
+}
+function standingRoom(){
   const j = State.standing && State.standing.judgement;
   const p = (j && j.parts) || {};
-  const fig = $("fig"), sub = $("figsub");
-  fig.classList.remove("unk","short");
-  if(!j || !j.ok || p.to_go == null){
-    fig.classList.add("unk"); fig.innerHTML = "&#8212;&#8212;";
-    sub.textContent = j && j.ok === false
-      ? "money page unreadable" : "not enough is known to say — nothing is guessed";
-  } else if(p.to_go > 0){
-    fig.classList.add("short"); fig.textContent = money(p.to_go);
-    const needs = State.standings ? State.standings.counts.standing : null;
-    sub.textContent = "to go this month" + (needs != null ? " · " + needs + " need your hand" : "");
-  } else {
-    fig.textContent = money(-p.to_go);
-    sub.textContent = "clear — everything past this is yours";
-  }
-  const box = $("judge"); box.textContent = "";
-  if(!j || !j.ok){
-    const d = document.createElement("p"); d.className = "nodata";
-    d.textContent = (j && j.error) || "the spine has not answered with the money page";
-    box.appendChild(d);
-    return;
-  }
-  const W = j.workings || {};
-  (j.segments || []).forEach(seg => {
-    const el = document.createElement("p");
-    el.className = "seg";
-    let html = "", bold = false;
-    for(const s of seg){
-      if("t" in s){
-        const parts = esc(s.t).split("**");
-        for(let i = 0; i < parts.length; i++){
-          html += parts[i];
-          if(i < parts.length - 1){ html += bold ? "</b>" : "<b>"; bold = !bold; }
-        }
-      }
-      if("f" in s){
-        const traceable = s.w && W[s.w];
-        html += '<span class="jf"' + (traceable ? ' data-w="' + esc(s.w) + '"' : '') + '>' + esc(s.f) + '</span>';
-      }
-    }
-    if(bold) html += "</b>";
-    el.innerHTML = html;
-    box.appendChild(el);
-  });
-  renderHeld();
+  const s = State.standings;
+  const dl = daysToLaunch(), weeks = Math.ceil(dl/7);
+  const figs = [
+    ["earned","earned",p.earned], ["road","road",p.road_mtd],
+    ["contribution","contribution",p.contribution], ["nut","the nut",p.nut],
+    ["uncovered","uncovered",p.uncovered]
+  ];
+  const reading = p.to_go == null ? `<span class="big unk">——</span>`
+    : p.to_go > 0 ? money(p.to_go) : money(-p.to_go);
+  return whyBar() + `<div class="rgrid">
+    <div class="panel" style="grid-column:1;grid-row:1">
+      <div class="cap">the standing · contribution against the nut</div>
+      <div class="gwrap"><canvas id="g"></canvas>
+        <div class="gread"><div class="n">${p.to_go == null ? "——" : reading}</div>
+          <div class="u">${p.to_go == null ? "NOT ENOUGH IS KNOWN"
+            : p.to_go > 0 ? "TO GO THIS MONTH" : "CLEAR — PAST THIS IS YOURS"}</div></div></div>
+      <div class="figs">` + figs.map(([k,lab,v]) =>
+        `<div class="fg${k==="uncovered"&&v>0?" short":""}" data-w="${k}">
+          <div class="k">${lab}</div><div class="v">${v==null?"——":money(v)}</div></div>`).join("") + `</div>
+      <div class="wk" id="wk" hidden></div>
+    </div>
+    <div class="panel centre" style="grid-column:2;grid-row:1">
+      <div class="lab">MILEAGE INSIGHTS · PUBLIC LAUNCH</div>
+      <div class="n">${dl}</div><div class="u">DAYS TO 10 / 1</div>
+      <div class="weeks">${Array.from({length:13},(_,i) =>
+        `<i class="${i < 13-weeks ? "gone" : i === 13-weeks ? "now" : ""}"></i>`).join("")}</div>
+      <div class="sub">${weeks} week${weeks===1?"":"s"} out. The date is the heartbeat — it does not move
+        because the month got hard.</div>
+      <div class="rows" style="width:100%;margin-top:18px">
+        <div class="rw"><span style="width:78px">collected</span><span class="b"><i style="width:${
+          p.earned ? Math.min(100, Math.round(100*(p.collected||0)/p.earned)) : 0}%"></i></span>
+          <span class="v">${p.collected==null?"——":money(p.collected)}</span></div>
+        <div class="rw"><span style="width:78px">covered</span><span class="b"><i class="k" style="width:${
+          p.nut ? Math.min(100, Math.round(100*(p.contribution||0)/p.nut)) : 0}%"></i></span>
+          <span class="v">${p.nut ? Math.round(100*(p.contribution||0)/p.nut)+"%" : "——"}</span></div>
+        <div class="rw"><span style="width:78px">still out</span><span class="b"><i style="width:${
+          p.earned ? Math.min(100, Math.round(100*(p.still_out||0)/p.earned)) : 0}%"></i></span>
+          <span class="v">${p.still_out==null?"——":money(p.still_out)}</span></div>
+      </div>
+    </div>` + actsHTML() + `</div>`;
 }
-function lxHTML(k){
-  const W = (State.standing && State.standing.judgement &&
-             State.standing.judgement.workings) || {};
-  const d = W[k]; if(!d) return "";
-  const rows = (d.rows || []).map(r => r[1] == null
-    ? '<div class="lr"><span>' + esc(r[0]) + '</span><span class="flag" title="UNKNOWN"></span></div>'
-    : '<div class="lr"><span>' + esc(r[0]) + '</span><b>' + money(r[1]) + '</b></div>').join("");
-  const whole = d.whole
-    ? '<div class="whole">this figure arrives whole — the spine serves no further breakdown.</div>' : "";
-  const tot = d.total
-    ? '<div class="lt"><span>' + esc(d.total[0]) + '</span><b>' +
-      (d.total[1] == null ? "&#8212;&#8212;" : money(d.total[1])) + '</b></div>' : "";
-  const note = d.note ? '<div class="lnote">' + esc(d.note) + '</div>' : "";
-  return '<div class="lx" data-lx="' + esc(k) + '">' + rows + whole + tot + note +
-         '<div class="prov">' + esc(d.stamp || "") + '</div></div>';
+/* every action names a SERVED figure and a real destination — the machine
+   proposing, never inventing */
+function actsHTML(){
+  const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
+  const b = State.board, s = State.standings;
+  const qa = b ? b.cards.filter(c => c.column_name === "qa").length : 0;
+  const A = [];
+  if(p.uncovered > 0) A.push({n:"THE GAP",imp:money(p.uncovered),
+    t:"Cover the month.", w:`Nothing is booked ahead. One load at your floor rate closes it.`, go:"THE HUNT", i:0});
+  if(p.still_out > 0) A.push({n:"ALREADY EARNED",imp:money(p.still_out),
+    t:"Chase what is booked and unpaid.", w:`Money you already drove for — served from the same judgement as the standing.`, go:"THE LEDGER", i:3});
+  if(s && s.counts && s.counts.standing > 0) A.push({n:"YOUR HAND",imp:String(s.counts.standing),
+    t:"Obligations waiting to be settled.", w:`Each one settles on the plate under a held lever — never in bulk.`, go:"THE LEDGER", i:3});
+  if(qa) A.push({n:"YOUR APPROVAL",imp:String(qa),
+    t:"Cards in QA waiting to close.", w:`Nothing closes but by your hand. Hold to close on the board.`, go:"THE WORK", i:1});
+  if(p.blind_days) A.push({n:"NOT YET SEEN",imp:p.blind_days+"d",
+    t:"Spend is not fully observed.", w:`Visible through ${esc(p.txn_through||"?")}. Incomplete, not zero — road cost may still move.`, go:"THE LEDGER", i:3});
+  if(!A.length) A.push({n:"CLEAR",imp:"—",t:"Nothing is asking for your hand.",
+    w:"The board is quiet and the month is covered.", go:"THE WORK", i:1});
+  return `<div class="acts">` + A.slice(0,3).map(a =>
+    `<div class="act"><div class="h"><span class="n">${a.n}</span><span class="imp">${a.imp}</span></div>
+     <div class="t">${esc(a.t)}</div><div class="w">${a.w}</div>
+     <button class="go" data-go="${a.i}">${a.go}</button></div>`).join("") + `</div>`;
 }
-/* What the push budget kept quiet today. Suppressed is not lost — it is
-   printed here, which is the bargain that makes one-push-a-day honest. */
-function renderHeld(){
-  const held = (State.held && State.held.held) || [];
-  const box = $("judge");
-  if(!held.length) return;
-  const el = document.createElement("p");
-  el.className = "seg";
-  el.style.fontStyle = "italic";
-  el.innerHTML = "held back today — <b>" + held.length + "</b>: " +
-    held.map(h => esc(h.title) + (h.body ? " — " + esc(h.body) : "")).join(" · ");
-  box.appendChild(el);
+/* the arc — drawn from served figures, synchronously (a hidden document
+   never runs rAF, and a deferred first paint ships a blank instrument) */
+function paintGauge(){
+  const cv = $("g"); if(!cv) return;
+  const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
+  if(p.nut == null || p.contribution == null) return;
+  const r = cv.getBoundingClientRect();
+  const W = Math.max(240, r.width), H = Math.max(190, r.height);
+  cv.width = W*2; cv.height = H*2;
+  const g = cv.getContext("2d"); g.scale(2,2);
+  const NUT = p.nut, C = Math.max(0, p.contribution), MAX = NUT*1.28;
+  const cx = W/2, cy = H*0.88, R = Math.min(W*0.42, H*0.78);
+  const A0 = Math.PI*1.04, A1 = Math.PI*1.96;
+  const ang = v => A0 + (A1-A0)*Math.min(1, Math.max(0,v)/MAX);
+  const key = HOT ? "255,59,24" : (getComputedStyle(document.documentElement)
+                     .getPropertyValue("--key").trim() || "255,164,25");
+  const lw = Math.max(16, R*0.15);
+  g.lineCap = "butt";
+  g.strokeStyle = "rgba(255,255,255,.05)"; g.lineWidth = lw+8;
+  g.beginPath(); g.arc(cx,cy,R,A0,A1); g.stroke();
+  for(let i=0;i<=24;i++){
+    const a = A0+(A1-A0)*(i/24), maj = i%4===0;
+    g.strokeStyle = maj?"rgba(255,255,255,.22)":"rgba(255,255,255,.1)"; g.lineWidth = maj?1.6:1;
+    g.beginPath();
+    g.moveTo(cx+Math.cos(a)*(R-lw/2-2), cy+Math.sin(a)*(R-lw/2-2));
+    g.lineTo(cx+Math.cos(a)*(R+lw/2+(maj?6:3)), cy+Math.sin(a)*(R+lw/2+(maj?6:3))); g.stroke();
+  }
+  const aC = ang(C), aN = ang(NUT);
+  g.strokeStyle = `rgba(${key},.9)`; g.lineWidth = lw;
+  g.shadowColor = `rgba(${key},.5)`; g.shadowBlur = 20;
+  g.beginPath(); g.arc(cx,cy,R,A0,aC); g.stroke(); g.shadowBlur = 0;
+  if(aC < aN){                       /* the shortfall: unlit distance, red-edged */
+    g.strokeStyle = "rgba(255,59,24,.18)"; g.lineWidth = lw;
+    g.beginPath(); g.arc(cx,cy,R,aC,aN); g.stroke();
+    g.strokeStyle = "rgba(255,59,24,.85)"; g.lineWidth = 2;
+    g.beginPath(); g.arc(cx,cy,R+lw/2-1,aC,aN); g.stroke();
+    g.beginPath(); g.arc(cx,cy,R-lw/2+1,aC,aN); g.stroke();
+  }
+  g.strokeStyle = "#EDF0EE"; g.lineWidth = 3;
+  g.beginPath();
+  g.moveTo(cx+Math.cos(aN)*(R-lw/2-4), cy+Math.sin(aN)*(R-lw/2-4));
+  g.lineTo(cx+Math.cos(aN)*(R+lw/2+8), cy+Math.sin(aN)*(R+lw/2+8)); g.stroke();
+  /* the nut's plate, kept inside the glass — a label that runs off the edge
+     reads as a broken instrument */
+  const rawx = cx+Math.cos(aN)*(R+lw/2+26), ly = cy+Math.sin(aN)*(R+lw/2+26);
+  const half = 42, lx = Math.max(half+2, Math.min(W-half-2, rawx));
+  g.textAlign = "center";
+  g.fillStyle = "#EDF0EE"; g.font = "700 10px ui-monospace,Menlo,monospace";
+  g.fillText("THE NUT", lx, ly-3);
+  g.fillStyle = "rgba(255,255,255,.62)"; g.font = "600 10px ui-monospace,Menlo,monospace";
+  g.fillText(money(NUT), lx, ly+11);
+  g.save(); g.translate(cx,cy); g.rotate(aC);
+  const ng = g.createLinearGradient(0,-4,0,4);
+  ng.addColorStop(0,"#F4F7F5"); ng.addColorStop(.5,"#C6CCC8"); ng.addColorStop(1,"#78807A");
+  g.fillStyle = ng;
+  g.beginPath(); g.moveTo(-14,-4.5); g.lineTo(R-lw/2-4,-1.4); g.lineTo(R-lw/2-4,1.4); g.lineTo(-14,4.5);
+  g.closePath(); g.fill(); g.restore();
+  const hub = g.createRadialGradient(cx-4,cy-5,1,cx,cy,18);
+  hub.addColorStop(0,"#949B94"); hub.addColorStop(1,"#1A1E1D");
+  g.fillStyle = hub; g.beginPath(); g.arc(cx,cy,15,0,7); g.fill();
+  /* what the needle IS — set to the left, clear of the reading below the hub */
+  g.textAlign = "left";
+  g.fillStyle = "rgba(255,255,255,.3)"; g.font = "700 8px ui-monospace,Menlo,monospace";
+  g.fillText("NEEDLE = CONTRIBUTION", 10, cy - 6);
+  g.fillText("EARNED MINUS ROAD", 10, cy + 6);
+}
+/* the workings — served whole, typeset here, computed nowhere */
+function wkHTML(k){
+  const W = (State.standing && State.standing.judgement && State.standing.judgement.workings) || {};
+  const d = W[k]; if(!d) return `<div class="nodata">the spine serves no working for this figure</div>`;
+  const rows = (d.rows||[]).map(r => r[1] == null
+    ? `<div class="wr"><span>${esc(r[0])}</span><span class="flag" title="UNKNOWN"></span></div>`
+    : `<div class="wr"><span>${esc(r[0])}</span><b>${money(r[1])}</b></div>`).join("");
+  const whole = d.whole ? `<div class="wr" style="font-style:italic">this figure arrives whole — the spine serves no further breakdown.</div>` : "";
+  const tot = d.total ? `<div class="tot"><span>${esc(d.total[0])}</span><b>${
+    d.total[1]==null?"——":money(d.total[1])}</b></div>` : "";
+  const note = d.note ? `<div class="wr" style="font-style:italic">${esc(d.note)}</div>` : "";
+  return rows + whole + tot + note + `<div class="prov">${esc(d.stamp||"")}</div>`;
 }
 
-/* one working open at a time — ledger discipline */
-$("judge").addEventListener("click", e => {
-  const f = e.target.closest(".jf[data-w]");
-  if(!f) return;
-  const k = f.dataset.w, row = f.closest(".seg");
-  const prior = document.querySelector(".lx");
-  const wasThis = prior && prior.dataset.lx === k;
-  document.querySelectorAll(".lx").forEach(x => x.remove());
-  document.querySelectorAll(".seg.open").forEach(x => x.classList.remove("open"));
-  if(wasThis) return;
-  row.insertAdjacentHTML("afterend", lxHTML(k));
-  row.classList.add("open");
-});
-
-/* ── THE WORK — the board printed across the desk ────────────────────────── */
-const COLS = [["now","in hand"],["next","next"],["qa","in qa"],["later","later"]];
-/* card detail arrives as light markdown; typeset the four things it uses */
+/* ── THE WORK ─────────────────────────────────────────────────────── */
+const COLS = [["qa","QA · YOUR REVIEW"],["now","IN HAND"],["next","NEXT"],["later","LATER"]];
 function md(t){
-  const lines = esc(t).split("\n");
-  let out = "", inUl = false;
+  const lines = esc(t).split("\n"); let out = "", ul = false;
   for(const ln of lines){
-    if(/^\s*-\s+/.test(ln)){
-      if(!inUl){ out += "<ul>"; inUl = true; }
-      out += "<li>" + ln.replace(/^\s*-\s+/,"") + "</li>";
-    } else {
-      if(inUl){ out += "</ul>"; inUl = false; }
-      out += ln.trim() === "" ? "<br>" : ln + "<br>";
-    }
+    if(/^\s*-\s+/.test(ln)){ if(!ul){ out += "<ul>"; ul = true; }
+      out += "<li>" + ln.replace(/^\s*-\s+/,"") + "</li>"; }
+    else { if(ul){ out += "</ul>"; ul = false; }
+      out += ln.trim() === "" ? "<br>" : ln + "<br>"; }
   }
-  if(inUl) out += "</ul>";
-  return out
-    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>");
+  if(ul) out += "</ul>";
+  return out.replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>").replace(/`([^`]+)`/g,"<code>$1</code>");
 }
-function kcardHTML(c){
-  const p = c.progress || {done:0,total:0};
-  const pct = p.total ? Math.round(100*p.done/p.total) : 0;
-  return '<div class="kt">' + esc(c.title) + '</div>' +
-    '<div class="kn"><span>#' + c.id + '</span>' +
-    (c.priority === "high" ? '<span class="hi">HIGH</span>' : '') +
-    (c.needs_bryan ? '<span class="bry">YOUR HAND</span>' : '') +
-    '<span class="bar"><i style="width:' + pct + '%"></i></span>' +
-    '<span>' + (p.total ? p.done + "/" + p.total : "&#8212;") + '</span></div>';
-}
-function renderBoard(){
-  const host = $("board"); host.textContent = "";
+function workRoom(){
   const b = State.board;
-  if(!b){
-    host.innerHTML = '<p class="nodata">the spine has not answered with the board</p>';
-    return;
-  }
-  for(const [key,label] of COLS){
-    const cards = b.cards.filter(c => c.column_name === key).sort((a,z) => a.sort - z.sort);
-    const col = document.createElement("div");
-    col.className = "col " + key;
-    col.innerHTML = '<h3>' + esc(label) + '<i>' + cards.length + '</i></h3>';
-    for(const c of cards) col.appendChild(kcardEl(c, key === "now"));
-    if(!cards.length){
-      const e = document.createElement("p"); e.className = "nodata"; e.textContent = "nothing here";
-      col.appendChild(e);
-    }
-    host.appendChild(col);
-  }
-  const done = b.cards.filter(c => c.column_name === "done")
-    .sort((a,z) => (z.done_at || "").localeCompare(a.done_at || ""));
-  const strip = $("donestrip");
-  strip.hidden = !done.length && !b.done_total;
-  $("donecap").textContent = "closed · " + done.length + " this week · " +
-    (b.done_total ?? "?") + " all time";
-  const grid = $("donegrid"); grid.textContent = "";
-  for(const c of done) grid.appendChild(kcardEl(c, false));
-  tabCount("WORK", String(b.cards.filter(c => c.column_name !== "done").length));
-}
-function kcardEl(c, isNow){
-  const el = document.createElement("div");
-  el.className = "kcard" + (isNow ? " now" : "");
-  el.innerHTML = kcardHTML(c);
-  el.addEventListener("click", e => {
-    if(e.target.closest(".kdetail")) return;
-    const open = el.querySelector(".kdetail");
-    if(open){ open.remove(); el.classList.remove("open"); return; }
-    const d = document.createElement("div");
-    d.className = "kdetail";
-    d.innerHTML = (c.impact ? '<div class="kimp">' + esc(c.impact) + '</div><br>' : '') +
-                  (c.detail ? md(c.detail) : '<span class="nodata">no detail on this card</span>');
-    el.appendChild(d); el.classList.add("open");
-  });
-  return el;
+  if(!b) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
+    <span class="nodata">the spine has not answered with the board</span></div></div>`;
+  return whyBar() + `<div class="board">` + COLS.map(([k,l]) => {
+    const cards = b.cards.filter(c => c.column_name === k).sort((a,z) => a.sort - z.sort);
+    return `<div class="col ${k}"><div class="colhead"><span class="t">${l}</span>
+      <span class="n">${cards.length}</span></div><div class="cards">` +
+      (cards.length ? cards.map(c => {
+        const p = c.progress || {done:0,total:0};
+        const pct = p.total ? Math.round(100*p.done/p.total) : 0;
+        return `<div class="kc ${k==="now"?"nowc":""}" data-id="${c.id}">
+          <div class="t">${esc(c.title)}</div>
+          <div class="m"><span>#${c.id}</span>${c.priority==="high"?'<span class="hi">HIGH</span>':""}
+          ${c.needs_bryan?'<span class="bry">YOUR HAND</span>':""}
+          <span class="pb"><i style="width:${pct}%"></i></span>
+          <span>${p.total ? p.done+"/"+p.total : "—"}</span></div>` +
+          (k==="qa" ? `<button class="closer" data-close="${c.id}">
+            <span class="r2"></span><span class="cc">HOLD TO CLOSE</span></button>` : "") + `</div>`;
+      }).join("") : `<p class="nodata" style="font-size:12px">nothing here</p>`) +
+      `</div></div>`;
+  }).join("") + `</div>`;
 }
 
-/* ── RADIO — the channel log. OP keys up through the budget; BRY keys up
-   here. ▲ broke squelch; dim italic stayed under it. The log only records —
-   squelch is structural and lives on the spine. ───────────────────────────── */
-function renderRadio(){
-  const host = $("chlog"); host.textContent = "";
+/* ── RADIO ────────────────────────────────────────────────────────── */
+const RTF = new Intl.RelativeTimeFormat("en",{numeric:"auto"});
+function rel(at){
+  const d = (Date.now() - new Date(at).getTime())/1000;
+  if(!isFinite(d)) return "";
+  if(d < 90) return "now";
+  if(d < 3600) return RTF.format(-Math.round(d/60),"minute");
+  if(d < 86400) return RTF.format(-Math.round(d/3600),"hour");
+  return RTF.format(-Math.round(d/86400),"day");
+}
+function radioRoom(){
   const r = State.radio;
-  if(!r){
-    host.innerHTML = '<p class="nodata">the spine has not answered with the radio log</p>';
-    return;
-  }
-  if(!(r.messages || []).length){
-    host.innerHTML = '<p class="nodata">a quiet channel — nothing said yet. ' +
-      'the operation keys up through the budget; you key up below.</p>';
-  }
-  for(const m of (r.messages || [])){
-    const el = document.createElement("div");
+  if(!r) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
+    <span class="nodata">the spine has not answered with the channel</span></div></div>`;
+  const msgs = r.messages || [];
+  const spoken = msgs.filter(m => m.kind !== "held");
+  const held = msgs.filter(m => m.kind === "held");
+  const line = m => {
     const op = m.sender === "operation";
-    el.className = "tx " + (op ? "op" : "bry") + (m.kind === "held" ? " held" : "");
-    const mark = m.kind === "pushed" ? '<span class="squelch" title="broke squelch">&#9650; </span>'
-               : m.kind === "undelivered" ? '<span class="squelch" title="said, not heard">&#9651; </span>' : "";
-    el.innerHTML = '<span class="stamp">' + esc((m.at || "").slice(5,16).replace("T"," ")) + '</span>' +
-      '<span class="voice">' + (op ? "OP" : "BRY") + '</span>' +
-      '<span class="txt">' + mark +
-      (op && m.title && m.title !== m.body ? "<b>" + esc(m.title) + "</b> — " : "") +
-      esc(m.body) + '</span>';
-    host.appendChild(el);
-  }
-  tabCount("RADIO", r.unread ? String(r.unread) : "");
-  host.scrollTop = host.scrollHeight;
+    const mark = op ? (m.kind === "undelivered" ? '<span class="mk">△</span> '
+                    : m.kind === "held" ? "" : '<span class="mk">▲</span> ') : "";
+    const title = op && m.title && m.title !== m.body ? `<b>${esc(m.title)}</b> — ` : "";
+    return `<div class="tx ${op?"op":"bry"}${m.kind==="held"?" held":""}">
+      <span class="st">${esc(rel(m.at))}</span><span class="vo">${op?"OP":"BRY"}</span>
+      <span>${mark}${title}${esc(m.body)}</span></div>`;
+  };
+  return whyBar() + `<div class="panel" style="flex:1;min-height:0">
+    <div class="cap">ch 19 · one channel · the operation may key up once a day</div>
+    <div class="chan">` +
+      (spoken.length ? spoken.slice().reverse().map(line).join("")
+        : `<p class="nodata">a quiet channel — nothing said yet.</p>`) +
+      `<div class="sqline" data-held="${held.length}"></div>` +
+      held.slice(-4).map(line).join("") + `</div>
+    <div class="keyup">
+      <input id="mic" maxlength="500" placeholder="key up — the spine reads this at the next kickoff">
+      <button class="hold" id="hold"><span class="r3"></span>
+        <span style="position:relative;z-index:2" id="holdcap">HOLD TO KEY UP</span></button>
+    </div></div>`;
 }
-$("keyup").addEventListener("submit", async e => {
-  e.preventDefault();
-  const inp = $("keyupText"), btn = $("keyupGo");
-  const body = inp.value.trim();
-  if(!body || !configured()) return;
-  btn.disabled = true; btn.textContent = "KEYING";
-  try{
-    const res = await fetch(url("/api/messages"), { method:"POST",
-      headers: hdr({"Content-Type":"application/json"}), body: JSON.stringify({ body }) });
-    if(!res.ok) throw new Error("the spine refused: " + res.status);
-    inp.value = "";
-    State.radio = await grab("/api/messages");
-    renderRadio();
-  }catch(err){
-    const el = document.createElement("p"); el.className = "hotline";
-    el.textContent = "not transmitted — " + (err.message || err);
-    $("chlog").appendChild(el);
-  }finally{ btn.disabled = false; btn.textContent = "KEY UP"; }
-});
 
-/* ── FINANCES — the ledger ───────────────────────────────────────────────── */
-function rowHTML(s, dim){
-  const short = s.severity === "short";
-  return '<div class="row' + (short ? " short" : "") + (dim ? " dimrow" : "") + '">' +
-    '<div class="rt">' + esc(s.title) + '</div>' +
-    '<div class="ra">' + (s.amount == null ? '<span class="u">&#8212;&#8212;</span>' : money(s.amount)) + '</div>' +
-    '<div class="rs">' + esc(s.sub || s.kicker || "") + '</div></div>';
-}
-function renderLedger(){
-  const host = $("ledger"); host.textContent = "";
+/* ── LEDGER · LEARN · SOUL ────────────────────────────────────────── */
+function ledgerRoom(){
   const d = State.standings;
-  if(!d){
-    host.innerHTML = '<p class="nodata">the spine has not answered with the standings</p>';
-    return;
-  }
-  let html = "";
-  const st = d.standings || [];
-  html += '<div class="dept"><span>standing — ' + st.length + ' need your hand</span></div>';
-  html += st.length ? st.map(s => rowHTML(s, false)).join("")
-                    : '<p class="nodata">nothing standing — no obligation needs your hand</p>';
-  html += '<p class="standsub" style="margin-top:10px">settling is done on the instrument — '
-        + 'the lever is the only control that writes money</p>';
-  const tape = d.tape || [];
-  if(tape.length){
-    html += '<div class="dept"><span>the tape — settled this month</span></div>';
-    html += tape.map(s => rowHTML(s, true)).join("");
-  }
-  const faults = d.faults || [];
-  if(faults.length){
-    html += '<div class="dept"><span>faults</span></div>';
-    html += faults.map(f => '<div class="fault">' + esc(f.name || f.bill_id || "?") +
-      (f.amount != null ? " · " + money(f.amount) : "") + " — " + esc(f.why || f.kind || "") +
-      '</div>').join("");
-  }
-  host.innerHTML = html;
-  tabCount("FINANCES", String(d.counts ? d.counts.standing : st.length));
+  if(!d) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
+    <span class="nodata">the spine has not answered with the standings</span></div></div>`;
+  const row = (s,dim) => `<div class="lrow${s.severity==="short"?" short":""}${dim?" dim":""}">
+    <div class="t">${esc(s.title)}</div>
+    <div class="a">${s.amount==null?'<span style="color:var(--unknown)">——</span>':money(s.amount)}</div>
+    <div class="s">${esc(s.sub || s.kicker || "")}</div></div>`;
+  const st = d.standings || [], tape = d.tape || [], faults = d.faults || [];
+  return whyBar() + `<div class="panel" style="flex:1;min-height:0">
+    <div class="cap">standing — ${st.length} need your hand · settled on the plate, one at a time</div>
+    <div class="scroll">` +
+      (st.length ? st.map(s => row(s,false)).join("") : `<p class="nodata">nothing standing</p>`) +
+      (tape.length ? `<div class="cap" style="margin:18px 0 6px">the tape — settled this month</div>`
+        + tape.map(s => row(s,true)).join("") : "") +
+      (faults.length ? `<div class="cap" style="margin:18px 0 6px">faults</div>` +
+        faults.map(f => `<div class="hotline">${esc(f.name||f.bill_id||"?")}${
+          f.amount!=null?" · "+money(f.amount):""} — ${esc(f.why||f.kind||"")}</div>`).join("") : "") +
+    `</div></div>`;
 }
-
-/* ── LEARN — the muscle ──────────────────────────────────────────────────── */
-function renderLearn(){
-  const host = $("learn"); host.textContent = "";
+function learnRoom(){
   const l = State.learn;
-  if(!l){
-    host.innerHTML = '<p class="nodata">the spine has not answered with the muscle</p>';
-    return;
-  }
-  let html = "";
-  const open = l.open || [];
-  html += '<div class="dept"><span>open — ' + open.length + '</span></div>';
-  html += open.length ? open.map(o =>
-      '<div class="obj"><div class="q">' + esc(o.question) + '</div>' +
-      '<div class="om">' + esc(o.status || "open") +
-      (o.track ? " · " + esc(o.track) : "") +
-      ((o.options || []).length ? " · " + o.options.length + " options waiting" : "") +
-      '</div></div>').join("")
-    : '<p class="nodata">nothing open</p>';
-  const rec = l.recent || [];
-  if(rec.length){
-    html += '<div class="dept"><span>recently closed</span></div>';
-    html += rec.map(r =>
-      '<div class="obj"><div class="q">' + esc(r.question) + '</div>' +
-      (r.took_away ? '<div class="ta">' + esc(r.took_away) + '</div>' : '') +
-      '<div class="om">' + esc((r.done_at || "").slice(0,10)) + '</div></div>').join("");
-  }
-  host.innerHTML = html;
-  tabCount("LEARN", String(open.length));
+  if(!l) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
+    <span class="nodata">the spine has not answered with the muscle</span></div></div>`;
+  const open = l.open || [], recent = l.recent || [];
+  return whyBar() + `<div class="panel" style="flex:1;min-height:0">
+    <div class="cap">open — ${open.length}</div>
+    <div class="scroll">` +
+      (open.length ? open.map(o => `<div class="lrow"><div class="t">${esc(o.question)}</div>
+        <div class="s">${esc(o.status||"open")}${o.track?" · "+esc(o.track):""}${
+        (o.options||[]).length?" · "+o.options.length+" options waiting":""}</div></div>`).join("")
+        : `<p class="nodata">nothing open</p>`) +
+      (recent.length ? `<div class="cap" style="margin:18px 0 6px">recently closed</div>` +
+        recent.map(r => `<div class="lrow dim"><div class="t">${esc(r.question)}</div>
+          <div class="s">${esc(r.took_away||"")}</div></div>`).join("") : "") +
+    `</div></div>`;
 }
-
-/* ── SOUL — the creeds, in his words ─────────────────────────────────────── */
-function renderSoul(){
-  const host = $("soul"); host.textContent = "";
+function soulRoom(){
   const d = State.soul;
-  if(!d){
-    host.innerHTML = '<p class="nodata">the spine has not answered with the doctrine</p>';
-    return;
-  }
+  if(!d) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
+    <span class="nodata">the spine has not answered with the doctrine</span></div></div>`;
   const tiers = [["bedrock","bedrock"],["working","working"]];
   let html = "";
-  for(const [key,label] of tiers){
-    const rows = (d.rows || []).filter(r => r.tier === key);
+  for(const [k,l] of tiers){
+    const rows = (d.rows||[]).filter(r => r.tier === k);
     if(!rows.length) continue;
-    html += '<div class="dept"><span>' + label + " — " + rows.length + '</span></div>';
-    html += rows.map(r =>
-      '<div class="creed" data-id="' + r.id + '"><div class="ct">' +
-      '<span>' + esc(r.title) + '</span>' +
-      (r.version ? '<i>v' + esc(r.version) + '</i>' : '') +
-      '<span class="cf' + (r.confirmed ? " yes" : "") + '">' +
-      (r.confirmed ? "confirmed" : "unconfirmed") + '</span></div>' +
-      '<div class="cb" hidden>' + esc(r.body || "") + '</div></div>').join("");
+    html += `<div class="cap" style="margin:14px 0 4px">${l} — ${rows.length}</div>` +
+      rows.map(r => `<div class="creed"><div class="ct"><span>${esc(r.title)}</span>
+        <span class="cf${r.confirmed?" yes":""}">${r.confirmed?"confirmed":"unconfirmed"}</span></div>
+        <div class="cb" hidden>${esc(r.body||"")}</div></div>`).join("");
   }
-  const rest = (d.rows || []).filter(r => r.tier !== "bedrock" && r.tier !== "working");
-  if(rest.length){
-    html += '<div class="dept"><span>other — ' + rest.length + '</span></div>';
-    html += rest.map(r =>
-      '<div class="creed" data-id="' + r.id + '"><div class="ct"><span>' + esc(r.title) +
-      '</span><span class="cf' + (r.confirmed ? " yes" : "") + '">' +
-      (r.confirmed ? "confirmed" : "unconfirmed") + '</span></div>' +
-      '<div class="cb" hidden>' + esc(r.body || "") + '</div></div>').join("");
+  return whyBar() + `<div class="panel" style="flex:1;min-height:0">
+    <div class="cap">${d.confirmed} of ${d.total} confirmed, in your words</div>
+    <div class="scroll">${html}</div></div>`;
+}
+
+/* ── render + wire ────────────────────────────────────────────────── */
+function renderRoom(){
+  if(ACTIVE === null) return;
+  const o = D[ACTIVE], R = $("room");
+  if(State.err && !State.standing){
+    R.innerHTML = `<div class="panel" style="flex:1"><div class="gen">
+      <div><div class="hotline">${esc(State.err)}</div>
+      <div class="nodata" style="margin-top:10px">the spine did not answer</div></div></div></div>`;
+    return;
   }
-  host.innerHTML = html || '<p class="nodata">no doctrine rows served</p>';
-  tabCount("SOUL", d.confirmed + "/" + d.total);
-  host.querySelectorAll(".creed").forEach(el =>
-    el.addEventListener("click", () => {
-      const b = el.querySelector(".cb"); b.hidden = !b.hidden;
+  R.innerHTML = o.room === "standing" ? standingRoom()
+    : o.room === "work" ? workRoom()
+    : o.room === "radio" ? radioRoom()
+    : o.room === "ledger" ? ledgerRoom()
+    : o.room === "learn" ? learnRoom() : soulRoom();
+  if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); }
+  if(o.room === "work"){ wireCards(); }
+  if(o.room === "radio"){ wireKeyup(); markRead(); }
+  if(o.room === "soul"){ R.querySelectorAll(".creed").forEach(el =>
+    el.addEventListener("click", () => { const b = el.querySelector(".cb"); b.hidden = !b.hidden; })); }
+}
+let openW = null;
+function wireFigs(){
+  document.querySelectorAll(".fg").forEach(el => el.addEventListener("click", () => {
+    const k = el.dataset.w, wk = $("wk");
+    document.querySelectorAll(".fg").forEach(f => f.classList.remove("on"));
+    if(openW === k){ wk.hidden = true; openW = null; return; }
+    wk.innerHTML = wkHTML(k); wk.hidden = false; openW = k; el.classList.add("on");
+  }));
+}
+function wireActs(){
+  document.querySelectorAll(".act .go").forEach(b =>
+    b.addEventListener("click", () => enter(+b.dataset.go)));
+}
+function wireCards(){
+  document.querySelectorAll(".kc").forEach(el => {
+    el.addEventListener("click", e => {
+      if(e.target.closest(".closer") || e.target.closest(".kdetail")) return;
+      const open = el.querySelector(".kdetail");
+      if(open){ open.remove(); return; }
+      const c = (State.board.cards || []).find(x => String(x.id) === el.dataset.id);
+      if(!c) return;
+      const d = document.createElement("div"); d.className = "kdetail";
+      d.innerHTML = (c.impact ? `<div class="kimp">${esc(c.impact)}</div><br>` : "") +
+        (c.detail ? md(c.detail) : `<span class="nodata">no detail on this card</span>`);
+      el.appendChild(d);
+    });
+  });
+  /* A CLOSE IS A WRITE — held, never tapped, and only his hand (qa-gate) */
+  document.querySelectorAll(".closer").forEach(btn => {
+    const kc = btn.closest(".kc"); let t = 0, anim = null;
+    btn.addEventListener("pointerdown", e => {
+      e.preventDefault(); e.stopPropagation();
+      if(btn.disabled || document.visibilityState !== "visible") return;
+      const r2 = btn.querySelector(".r2"), cc = btn.querySelector(".cc");
+      cc.textContent = "HOLDING";
+      anim = r2.animate({transform:["scaleX(0)","scaleX(1)"]},
+        {duration:640, easing:"cubic-bezier(.22,.61,.36,1)", fill:"forwards"});
+      const t0 = performance.now();
+      t = setTimeout(async () => {
+        if(performance.now() - t0 < 620) return;
+        if(document.visibilityState !== "visible") return;
+        btn.disabled = true; cc.textContent = "CLOSING";
+        try{
+          const res = await fetch(url(`/api/cards/${btn.dataset.close}/move`), {
+            method:"POST", headers: hdr({"Content-Type":"application/json"}),
+            body: JSON.stringify({ to:"done" })
+          });
+          const out = await res.json().catch(() => ({}));
+          if(!res.ok) throw new Error(out.error || ("the spine answered " + res.status));
+          cc.textContent = "CLOSED"; kc.classList.add("closed");
+          toast("#" + btn.dataset.close + " CLOSED BY YOUR HAND");
+          setTimeout(() => { btn.remove(); load(true); }, 700);
+        }catch(err){
+          btn.disabled = false;
+          cc.textContent = "HOLD TO CLOSE";
+          r2.getAnimations().forEach(a => a.cancel()); r2.style.transform = "scaleX(0)";
+          toast("NOT CLOSED — " + (err.message || err));
+        }
+      }, 640);
+    });
+    ["pointerup","pointerleave","pointercancel"].forEach(ev => btn.addEventListener(ev, () => {
+      clearTimeout(t); if(anim) anim.cancel();
+      const cc = btn.querySelector(".cc"), r2 = btn.querySelector(".r2");
+      if(cc.textContent === "HOLDING"){
+        cc.textContent = "HOLD TO CLOSE"; r2.style.transform = "scaleX(0)";
+        toast("released before it closed — nothing was approved");
+      }
     }));
+  });
+}
+function wireKeyup(){
+  const btn = $("hold"), mic = $("mic"); if(!btn) return;
+  let t = 0, anim = null;
+  btn.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if(!mic.value.trim()){ toast("nothing to send — the mic is empty"); return; }
+    if(document.visibilityState !== "visible") return;
+    const r3 = btn.querySelector(".r3");
+    anim = r3.animate({transform:["scaleX(0)","scaleX(1)"]},
+      {duration:620, easing:"cubic-bezier(.22,.61,.36,1)", fill:"forwards"});
+    const t0 = performance.now();
+    t = setTimeout(async () => {
+      if(performance.now() - t0 < 600) return;
+      const body = mic.value.trim();
+      $("holdcap").textContent = "SENDING";
+      try{
+        const res = await fetch(url("/api/messages"), { method:"POST",
+          headers: hdr({"Content-Type":"application/json"}), body: JSON.stringify({ body }) });
+        if(!res.ok) throw new Error("the spine answered " + res.status);
+        mic.value = "";
+        State.radio = await grab("/api/messages");
+        renderRoom();
+        toast("SENT — the spine has it");
+      }catch(err){ toast("NOT SENT — " + (err.message || err)); }
+      finally{
+        $("holdcap") && ($("holdcap").textContent = "HOLD TO KEY UP");
+        r3.getAnimations().forEach(a => a.cancel()); r3.style.transform = "scaleX(0)";
+      }
+    }, 620);
+  });
+  ["pointerup","pointerleave","pointercancel"].forEach(ev => btn.addEventListener(ev, () => {
+    clearTimeout(t); if(anim) anim.cancel();
+    const r3 = btn.querySelector(".r3"); r3.style.transform = "scaleX(0)";
+  }));
+}
+/* opening the radio IS reading it — the mark is his eyes, not a fetch */
+function markRead(){
+  if(!(State.radio && State.radio.unread > 0)) return;
+  fetch(url("/api/messages/read"), { method:"POST",
+    headers: hdr({"Content-Type":"application/json"}), body:"{}" })
+    .then(() => grab("/api/messages")).then(r => { State.radio = r; paintField(); }).catch(()=>{});
 }
 
-/* ── folio + lamp ────────────────────────────────────────────────────────── */
-function renderChrome(){
-  const d = State.standings;
-  const needs = d && d.counts ? d.counts.standing : null;
-  const hand = $("hand");
-  if(needs != null && needs > 0){ hand.hidden = false; hand.textContent = needs + " need your hand"; }
-  else hand.hidden = true;
-  const c = d && d.close;
-  $("folio-entry").textContent = c
-    ? (c.title || "the book") + " · " + (c.sub || "")
-    : "no entry is open — the book is closed";
-  $("folio-read").textContent = State.readAt
-    ? "read from the spine at " + State.readAt.toLocaleTimeString("en-US",
-        {hour:"numeric", minute:"2-digit"})
-    : "";
-}
-
-/* ── load ────────────────────────────────────────────────────────────────── */
+/* ── load ─────────────────────────────────────────────────────────── */
 async function grab(path){
   const r = await fetch(url(path), { headers: hdr(), cache:"no-store" });
   if(!r.ok) throw new Error(r.status + " " + (await r.text()).slice(0,120));
   return r.json();
 }
-async function load(){
+async function load(keep){
   try{
-    const [st, bd] = await Promise.all([grab("/api/standings"), grab("/api/board")]);
-    State.standings = st; State.board = bd; State.readAt = new Date();
-    grab("/api/standing").then(s => { State.standing = s; renderToday(); }).catch(()=>{});
-    grab("/api/learning").then(l => { State.learn = l; renderLearn(); }).catch(()=>{});
-    grab("/api/doctrine").then(d => { State.soul = d; renderSoul(); }).catch(()=>{});
-    grab("/api/push/held").then(h => { State.held = h; renderToday(); }).catch(()=>{});
-    grab("/api/messages").then(r => { State.radio = r; renderRadio();
-      // Landing ON the radio counts as reading it — boot's setTab ran before
-      // the thread arrived, so the read mark fires here for that case.
-      if(TAB === "RADIO" && r.unread > 0)
-        fetch(url("/api/messages/read"), { method:"POST",
-          headers: hdr({"Content-Type":"application/json"}), body:"{}" })
-          .then(() => grab("/api/messages"))
-          .then(r2 => { State.radio = r2; renderRadio(); }).catch(()=>{});
-    }).catch(()=>{});
-    renderToday(); renderBoard(); renderLedger(); renderLearn(); renderSoul(); renderChrome();
+    const [st, sd, bd] = await Promise.all([
+      grab("/api/standing"), grab("/api/standings"), grab("/api/board")]);
+    State.standing = st; State.standings = sd; State.board = bd; State.err = null;
+    State.at = new Date();
+    /* the rest are not worth failing the desk over */
+    const rest = [
+      ["radio","/api/messages"], ["learn","/api/learning"], ["soul","/api/doctrine"],
+      ["held","/api/push/held"], ["watch","/api/watch"]
+    ];
+    await Promise.all(rest.map(([k,p]) =>
+      grab(p).then(v => { State[k] = v; }).catch(() => {})));
+    deriveTemp(); paintField();
+    if(ACTIVE !== null) renderRoom();
   }catch(e){
-    $("fig").classList.add("unk"); $("fig").innerHTML = "&#8212;&#8212;";
-    $("figsub").textContent = "the spine did not answer";
-    $("judge").innerHTML = '<p class="hotline">' + esc(String(e.message || e)) + '</p>';
-    showConnect("could not reach the spine — if you are away from home, check Tailscale first");
+    State.err = String(e.message || e);
+    deriveTemp();
+    $("cq").textContent = "The spine did not answer.";
+    $("crz").textContent = State.err;
+    if(!configured()) showConnect();
+    else showConnect("could not reach the spine — if you are away from home, check Tailscale first");
   }
 }
-/* a page left open on a desk goes honest again when you come back to it */
 document.addEventListener("visibilitychange", () => {
-  if(!document.hidden && configured()) load();
+  if(!document.hidden && configured()) load(true);
 });
 
 function showConnect(msg){
@@ -774,22 +1033,22 @@ $("cfgGo").addEventListener("click", async () => {
   }catch(e){ m.classList.add("bad"); m.textContent = "could not reach the spine: " + (e.message||e); }
 });
 
-if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+let tT = 0;
+function toast(m){ const el = $("toast"); el.textContent = m; el.classList.add("on");
+  clearTimeout(tT); tT = setTimeout(() => el.classList.remove("on"), 2400); }
 
-/* Today first is the machine's property — except answering the radio: a
-   notification tap deep-links to the thing that spoke. The hashchange
-   listener matters: when a desk window already exists, the service worker's
-   navigate() is a hash-only change and boot never re-runs. */
-function answerRadioHash(){
+/* a notification tap answers the radio; hash-only changes count too */
+function answerHash(){
   if(location.hash !== "#radio") return false;
-  setTab("RADIO");
   history.replaceState(null, "", location.pathname + location.search);
+  enter(2);
   return true;
 }
-addEventListener("hashchange", answerRadioHash);
-if(!answerRadioHash()) setTab("RADIO");
-if(!configured()){ $("figsub").textContent = "not connected"; showConnect(); }
-else load();
+addEventListener("hashchange", answerHash);
+
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+if(!configured()) showConnect();
+else load().then(() => { answerHash(); });
 })();
 </script>
 </body>
