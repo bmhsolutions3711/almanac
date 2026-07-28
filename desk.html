@@ -182,6 +182,161 @@ body.hot .rw .b i.k{background:var(--hot)}
   border:1px solid var(--line);color:var(--dim);flex:0 0 auto}
 .chip.bad{color:var(--hot);border-color:rgba(255,59,24,.5)}
 
+/* ══ THE MONEY ROOM ════════════════════════════════════════════════════
+   The strip on top is FLIGHT STATUS, unchanged in meaning from the cockpit
+   that earned its trust: one dominant break-even gauge, the clock beside it,
+   the month's projection under it. Below the strip the room changes with the
+   period toggle; the strip never does, because the nut is monthly and a
+   quarterly nut is a number that does not exist.
+
+   A CARD IS A COST THAT HAS NOT BEEN ATTRIBUTED YET. Dragging one onto a load
+   is a WRITE — the same latch doctrine as every other write on this surface:
+   the card stays standing until a parsed 2xx comes back, and a refusal says
+   in words what was not written. Cards that cannot be dragged still SHOW,
+   greyed, carrying the reason — an invisible cost is how $300 of cash went
+   missing from a break-even line for a month. */
+.fin{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:9px}
+.finbar{flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.finbar .sp{flex:1}
+.seg{display:flex;gap:2px;background:rgba(0,0,0,.3);border-radius:4px;padding:2px}
+.seg button{background:none;border:0;color:var(--dim);cursor:pointer;padding:6px 12px;border-radius:3px;
+  font:700 8px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;transition:all .2s}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:rgba(var(--key),.16);color:rgba(var(--key),1);
+  box-shadow:inset 0 -2px 0 rgba(var(--key),1)}
+body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shadow:inset 0 -2px 0 var(--hot)}
+
+.strip{flex:0 0 auto;display:grid;gap:9px;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr)}
+@media(max-width:980px){.strip{grid-template-columns:1fr 1fr}.strip .clk{grid-column:1/-1}}
+.strip .gw{position:relative;min-height:168px;margin-top:2px}
+.strip .gw canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.strip .gr{position:absolute;left:0;right:0;bottom:0;text-align:center;pointer-events:none}
+.strip .gr .n{font:700 clamp(24px,2.3vw,34px)/1 var(--mono);color:rgba(var(--key),1);
+  text-shadow:0 0 26px rgba(var(--key),.45)}
+body.hot .strip .gr .n{color:var(--hot)}
+.strip .gr .u{margin-top:3px;font:700 8px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
+.tmin{font:700 clamp(30px,4vw,52px)/.95 var(--mono);letter-spacing:-.02em;color:var(--ink)}
+body.hot .tmin{color:var(--hot)}
+.strip .ln{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
+  font:400 11.5px/1.5 var(--sans);color:var(--dim);border-bottom:1px dotted rgba(255,255,255,.07)}
+.strip .ln:last-of-type{border-bottom:0}
+.strip .ln b{font:600 11.5px var(--mono);color:var(--ink)}
+.strip .ln b.up{color:rgba(var(--key),1)}
+.strip .ln b.dn{color:var(--hot)}
+.band{margin-top:7px;height:5px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden}
+.band i{display:block;height:100%;background:rgba(var(--key),1)}
+.band i.red{background:var(--hot)}
+
+/* The floor scrolls as one surface: the pool and the loads hold a real height
+   so both lists are usable at once (the whole point of the drag), and the
+   charts sit under them rather than squeezing them to a caption. */
+.finscroll{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:3px;
+  display:flex;flex-direction:column;gap:9px}
+.finscroll::-webkit-scrollbar{width:0}
+.finmain{flex:0 0 auto;display:grid;gap:9px;
+  grid-template-columns:minmax(0,340px) minmax(0,1fr);
+  grid-template-rows:minmax(300px,52vh)}
+.finmain>.panel{min-height:0;overflow:hidden}
+@media(max-width:900px){.finmain{grid-template-columns:1fr;grid-template-rows:minmax(260px,42vh) minmax(260px,42vh)}}
+.drop{flex:0 0 auto;border:1px dashed rgba(150,170,190,.3);border-radius:5px;padding:10px 12px;
+  text-align:center;cursor:pointer;transition:all .2s;margin-bottom:8px}
+.drop:hover,.drop.over{border-color:rgba(var(--key),.7);background:rgba(var(--key),.07)}
+.drop.busy{opacity:.6;border-style:solid}
+.drop.ok{border-color:rgba(120,200,120,.7);background:rgba(120,200,120,.08)}
+.drop.bad{border-color:var(--hot);background:rgba(255,59,24,.08)}
+.drop .dl{font:700 8px/1 var(--mono);letter-spacing:.16em;color:var(--mid);text-transform:uppercase}
+.drop .ds{margin-top:5px;font:400 11px/1.4 var(--sans);color:var(--dim)}
+
+.card{border:1px solid var(--line);border-radius:4px;padding:8px 10px;margin-bottom:5px;
+  background:rgba(255,255,255,.03);cursor:grab;transition:all .18s;position:relative}
+.card:hover{border-color:rgba(var(--key),.5);background:rgba(var(--key),.06)}
+.card.dragging{opacity:.35;cursor:grabbing}
+.card.locked{cursor:not-allowed;opacity:.42;background:rgba(255,255,255,.015)}
+.card.locked:hover{border-color:var(--line);background:rgba(255,255,255,.015)}
+.card.writing{border-color:rgba(var(--key),1);background:rgba(var(--key),.14)}
+.card.refused{border-color:var(--hot);background:rgba(255,59,24,.1);animation:refuse .4s}
+@keyframes refuse{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.card .ct{display:flex;justify-content:space-between;gap:9px;align-items:baseline}
+.card .cm{font:600 12px/1.3 var(--sans);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .ca{font:700 12px var(--mono);color:var(--ink);flex:0 0 auto}
+.card .cs{margin-top:3px;font:400 10px/1.4 var(--mono);letter-spacing:.06em;color:var(--etch);
+  text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .why{display:none;position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:2px;
+  padding:6px 9px;border-radius:3px;background:#12161c;border:1px solid var(--line);
+  font:400 10.5px/1.4 var(--sans);color:var(--dim);box-shadow:0 10px 24px rgba(0,0,0,.7)}
+.card.locked:hover .why{display:block}
+
+.lbox{border:1px solid var(--line);border-radius:5px;padding:9px 11px;margin-bottom:6px;
+  background:rgba(255,255,255,.022);transition:all .18s}
+.lbox.over{border-color:rgba(var(--key),1);background:rgba(var(--key),.11);
+  box-shadow:0 0 0 1px rgba(var(--key),.5)}
+.lbox.deny{border-color:var(--hot);background:rgba(255,59,24,.08)}
+.lbox .lt{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.lbox .lb{font:600 12.5px/1.3 var(--sans);color:var(--ink)}
+.lbox .lr{font:700 12.5px var(--mono);color:var(--ink)}
+.lbox .lm{margin-top:2px;font:400 10.5px/1.4 var(--mono);letter-spacing:.05em;color:var(--etch);
+  text-transform:uppercase}
+.lbox .lnet{margin-top:6px;display:flex;justify-content:space-between;gap:9px;
+  padding-top:5px;border-top:1px dotted rgba(255,255,255,.09);
+  font:400 11px/1.4 var(--sans);color:var(--dim)}
+.lbox .lnet b{font:700 11.5px var(--mono);color:rgba(var(--key),1)}
+.lbox .pin{display:inline-flex;align-items:center;gap:5px;margin:4px 4px 0 0;padding:3px 7px;
+  border-radius:10px;background:rgba(var(--key),.12);border:1px solid rgba(var(--key),.3);
+  font:600 9.5px var(--mono);color:var(--ink);cursor:pointer}
+.lbox .pin:hover{background:rgba(255,59,24,.16);border-color:rgba(255,59,24,.5)}
+.lbox .pin i{font-style:normal;color:var(--etch)}
+.lbox .pin:hover i{color:var(--hot)}
+
+.chart{width:100%;display:block;overflow:visible}
+.ltab{width:100%;border-collapse:collapse;font:400 11.5px/1.4 var(--sans)}
+.ltab th{font:700 7.5px var(--mono);letter-spacing:.15em;color:var(--etch);text-transform:uppercase;
+  text-align:right;padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ltab th:first-child,.ltab td:first-child{text-align:left}
+.ltab td{padding:6px 7px;border-bottom:1px dotted rgba(255,255,255,.07);text-align:right;
+  color:var(--mid);white-space:nowrap;font-variant-numeric:tabular-nums}
+.ltab td.m{font-family:var(--mono);color:var(--ink)}
+.ltab td.net{font-family:var(--mono);font-weight:700;color:rgba(var(--key),1)}
+.ltab td.unk{color:var(--unknown)}
+.ltab tr:hover td{background:rgba(255,255,255,.03)}
+
+/* THE HOLD — his month as stones lying in the bottom of the phone, each body
+   sized to its amount. He settles it the way you unload a trailer: one piece
+   at a time, by hand, until the floor is bare. */
+.hold{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.holdw{flex:1 1 auto;min-height:0;position:relative;overflow:hidden;border-radius:5px;
+  background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.18))}
+.holdw canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+.waterline{position:absolute;left:0;right:0;pointer-events:none;
+  border-top:1px solid rgba(255,255,255,.22)}
+.waterline .wn{position:absolute;right:9px;bottom:5px;text-align:right}
+.waterline .wn b{font:700 clamp(20px,2.2vw,30px)/1 var(--mono);color:var(--ink)}
+.waterline .wn span{display:block;margin-top:2px;font:700 7.5px var(--mono);letter-spacing:.17em;
+  color:var(--dim);text-transform:uppercase}
+.holdw .clear{position:absolute;left:9px;bottom:5px;font:600 9.5px var(--mono);
+  letter-spacing:.1em;color:var(--etch);text-transform:uppercase}
+.stone{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none}
+.hcard{position:absolute;z-index:6;left:50%;transform:translateX(-50%);bottom:12px;
+  width:min(420px,92%);background:#12161c;border:1px solid var(--line);border-radius:6px;
+  padding:12px 14px;box-shadow:0 20px 50px rgba(0,0,0,.8)}
+.hcard .hn{font:600 14px/1.3 var(--sans);color:var(--ink)}
+.hcard .ha{margin-top:4px;font:700 24px/1 var(--mono);color:rgba(var(--key),1)}
+.hcard .hs{margin-top:6px;font:400 11.5px/1.5 var(--sans);color:var(--dim)}
+.hcard .hb{margin-top:11px;display:flex;gap:7px;align-items:center}
+.latch{position:relative;flex:1;overflow:hidden;background:rgba(var(--key),.1);
+  border:1px solid rgba(var(--key),.4);border-radius:4px;color:var(--ink);cursor:pointer;
+  padding:10px 12px;font:700 9px/1 var(--mono);letter-spacing:.17em;text-transform:uppercase;
+  touch-action:none;-webkit-user-select:none;user-select:none}
+.latch i{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(var(--key),.34);
+  pointer-events:none}
+.latch span{position:relative}
+.latch.done{background:rgba(120,200,120,.16);border-color:rgba(120,200,120,.6)}
+.latch.bad{background:rgba(255,59,24,.14);border-color:var(--hot)}
+.hgrp{display:flex;gap:2px;background:rgba(0,0,0,.3);border-radius:4px;padding:2px;flex-wrap:wrap}
+.hgrp button{background:none;border:0;color:var(--dim);cursor:pointer;padding:5px 9px;border-radius:3px;
+  font:700 7.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.hgrp button.on{background:rgba(var(--key),.16);color:rgba(var(--key),1)}
+.hgrp button:hover{color:var(--ink)}
+
 .acts{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .act{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:11px 13px;
   display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px);transition:border-color .6s}
@@ -380,7 +535,9 @@ const short = v => v == null ? "——" :
   "$" + Math.round(Number(v)).toLocaleString("en-US");
 
 const State = { standing:null, standings:null, board:null, radio:null, learn:null,
-                soul:null, held:null, watch:null, at:null, err:null };
+                soul:null, held:null, watch:null, at:null, err:null,
+                fin:{ summary:null, loads:null, expenses:null, rollup:null,
+                      summaryErr:null, err:null, stones:[], placed:[] } };
 let ACTIVE = null, HOT = false;
 
 $("toPlate").addEventListener("click", () => {
@@ -792,16 +949,371 @@ function radioRoom(){
 }
 
 /* ── LEDGER · LEARN · SOUL ────────────────────────────────────────── */
+/* ══ THE MONEY ROOM ════════════════════════════════════════════════════
+   Three views on one set of served facts. FLOOR is where cost meets the load
+   that caused it; HOLD is the month's obligations as stones; LEDGER is what
+   is standing, unchanged from the room this replaced. The strip sits above
+   all three and never changes with the period toggle — the nut is monthly. */
+const FIN = { period:"month", view:"floor", group:"all", pick:null, drag:null };
+
 function ledgerRoom(){
+  return whyBar() + `<div class="fin">
+    <div class="finbar">
+      <div class="seg" id="finView">${
+        [["floor","the floor"],["hold","the hold"],["ledger","standing"]].map(([k,l]) =>
+          `<button data-v="${k}" class="${FIN.view===k?"on":""}">${l}</button>`).join("")}</div>
+      <div class="sp"></div>
+      ${FIN.view === "floor" ? `<div class="seg" id="finPeriod">${
+        [["week","wk"],["month","mo"],["quarter","qtr"],["year","yr"]].map(([k,l]) =>
+          `<button data-p="${k}" class="${FIN.period===k?"on":""}">${l}</button>`).join("")}</div>` : ""}
+    </div>
+    ${finStrip()}
+    <div id="finBody" class="fin" style="gap:9px">${
+      FIN.view === "floor" ? finFloor() : FIN.view === "hold" ? finHold() : finStanding()}</div>
+  </div>`;
+}
+
+/* ── the strip: FLIGHT STATUS, monthly, always ─────────────────────── */
+function finStrip(){
+  const s = State.fin.summary;
+  if(!s) return `<div class="panel" style="flex:0 0 auto;min-height:96px">
+    <div class="cap">flight status</div><div class="gen" style="min-height:60px">
+    <span class="nodata">${esc(State.fin.summaryErr ||
+      "the spine has not answered with the cockpit")}</span></div></div>`;
+  const m = s.the_month || {}, cl = s.survival || {};
+  /* runway names its own fields; the clock's cash is the SAME cash the runway
+     divides by burn. Reading it from two places is how a payload once said
+     'good' and 'CRITICAL' in the same breath. */
+  const rw = s.runway || {};
+  const r = { cash: rw.total_cash != null ? rw.total_cash : cl.cash,
+              weeks: cl.weeks_fuel,          /* SERVED, not derived from months */
+              verdict: rw.verdict };
+  const rev = m.mtd_revenue != null ? m.mtd_revenue : m.revenue;
+  const be = m.breakeven, proj = m.projected_eom != null ? m.projected_eom : m.proj_eom;
+  const delta = (proj != null && be != null) ? proj - be : null;
+  const days = cl.days_left != null ? cl.days_left : cl.days;
+  const pace = (be && rev != null) ? Math.min(100, Math.round(100*rev/be)) : 0;
+  return `<div class="strip">
+    <div class="panel">
+      <div class="cap">the month · earned against break-even</div>
+      <div class="gw"><canvas id="fg"></canvas>
+        <div class="gr"><div class="n">${rev == null ? "——" : money(rev)}</div>
+          <div class="u">EARNED · BREAK-EVEN ${be == null ? "——" : money(be)}</div></div></div>
+    </div>
+    <div class="panel clk">
+      <div class="cap">projected month-end</div>
+      <div class="tmin" style="font-size:clamp(22px,2.4vw,34px);margin-top:7px">${
+        proj == null ? "——" : money(proj)}</div>
+      <div class="ln" style="margin-top:8px"><span>against break-even</span><b class="${
+        delta == null ? "" : delta >= 0 ? "up" : "dn"}">${
+        delta == null ? "——" : (delta >= 0 ? "+" : "−") + money(Math.abs(delta))}</b></div>
+      <div class="ln"><span>the nut · bills</span><b>${m.monthly_nut == null ? "——" : money(m.monthly_nut)}</b></div>
+      <div class="ln"><span>the road, so far</span><b>${
+        m.road_mtd_actual == null ? "——" : money(m.road_mtd_actual)}</b></div>
+      <div class="band"><i class="${pace < 100 ? "red" : ""}" style="width:${pace}%"></i></div>
+      <div class="cap" style="margin-top:6px">${pace}% of break-even · day ${
+        m.day_of_month || new Date().getDate()} of ${m.days_in_month || 31}</div>
+    </div>
+    <div class="panel clk">
+      <div class="cap">the clock</div>
+      <div class="tmin" style="margin-top:7px">${days == null ? "——" : "T−" + days}</div>
+      <div class="cap" style="margin-top:2px">days to the line</div>
+      <div class="ln" style="margin-top:9px"><span>cash</span><b>${
+        r.cash == null ? "——" : money(r.cash)}</b></div>
+      <div class="ln"><span>runway</span><b class="${
+        r.verdict === "CRITICAL" ? "dn" : ""}">${r.weeks == null ? "——" :
+        r.weeks + " wk"}${r.verdict ? " · " + esc(r.verdict) : ""}</b></div>
+      <div class="ln"><span>still out</span><b>${
+        (s.collections && s.collections.outstanding) == null ? "——"
+          : money(s.collections.outstanding)}</b></div>
+      <div class="cap" style="margin-top:7px">three lines that never sum</div>
+    </div>
+  </div>`;
+}
+
+function paintFinGauge(){
+  const cv = $("fg"); if(!cv) return;
+  const m = (State.fin.summary || {}).the_month || {};
+  const be = m.breakeven, rev = m.mtd_revenue != null ? m.mtd_revenue : m.revenue;
+  if(be == null || rev == null) return;
+  const r = cv.getBoundingClientRect();
+  const W = Math.max(220, r.width), H = Math.max(150, r.height);
+  cv.width = W*2; cv.height = H*2;
+  const g = cv.getContext("2d"); g.scale(2,2);
+  /* headroom so BREAK-EVEN sits ~2/3 across rather than crammed at the edge —
+     the cockpit's own scale rule, kept */
+  const MAX = Math.max(be*1.4, rev*1.12), cx = W/2, cy = H*0.9;
+  const R = Math.min(W*0.42, H*0.82), A0 = Math.PI*1.04, A1 = Math.PI*1.96;
+  const ang = v => A0 + (A1-A0)*Math.min(1, Math.max(0,v)/MAX);
+  const key = HOT ? "255,59,24" : (getComputedStyle(document.documentElement)
+                     .getPropertyValue("--key").trim() || "255,164,25");
+  const lw = Math.max(14, R*0.15);
+  g.lineCap = "butt";
+  g.strokeStyle = "rgba(255,255,255,.05)"; g.lineWidth = lw+8;
+  g.beginPath(); g.arc(cx,cy,R,A0,A1); g.stroke();
+  for(let i=0;i<=24;i++){
+    const a = A0+(A1-A0)*(i/24), maj = i%4===0;
+    g.strokeStyle = maj?"rgba(255,255,255,.22)":"rgba(255,255,255,.1)"; g.lineWidth = maj?1.6:1;
+    g.beginPath();
+    g.moveTo(cx+Math.cos(a)*(R-lw/2-2), cy+Math.sin(a)*(R-lw/2-2));
+    g.lineTo(cx+Math.cos(a)*(R+lw/2+(maj?6:3)), cy+Math.sin(a)*(R+lw/2+(maj?6:3))); g.stroke();
+  }
+  const aR = ang(rev), aB = ang(be);
+  g.strokeStyle = `rgba(${key},.9)`; g.lineWidth = lw;
+  g.shadowColor = `rgba(${key},.5)`; g.shadowBlur = 18;
+  g.beginPath(); g.arc(cx,cy,R,A0,aR); g.stroke(); g.shadowBlur = 0;
+  if(aR < aB){
+    g.strokeStyle = "rgba(255,59,24,.18)"; g.lineWidth = lw;
+    g.beginPath(); g.arc(cx,cy,R,aR,aB); g.stroke();
+    g.strokeStyle = "rgba(255,59,24,.85)"; g.lineWidth = 2;
+    g.beginPath(); g.arc(cx,cy,R+lw/2-1,aR,aB); g.stroke();
+    g.beginPath(); g.arc(cx,cy,R-lw/2+1,aR,aB); g.stroke();
+  }
+  g.strokeStyle = "#EDF0EE"; g.lineWidth = 3;
+  g.beginPath();
+  g.moveTo(cx+Math.cos(aB)*(R-lw/2-4), cy+Math.sin(aB)*(R-lw/2-4));
+  g.lineTo(cx+Math.cos(aB)*(R+lw/2+8), cy+Math.sin(aB)*(R+lw/2+8)); g.stroke();
+}
+
+/* ── THE FLOOR: cards, loads, and the drag between them ────────────── */
+function finFloor(){
+  const e = State.fin.expenses, l = State.fin.loads, ro = State.fin.rollup;
+  if(!e || !l) return `<div class="panel" style="flex:1"><div class="gen">
+    <span class="nodata">${esc(State.fin.err || "the spine has not answered with the floor")}</span></div></div>`;
+  const pool = (e.transactions || []).filter(t => t.sheet_row == null);
+  const stale = l.mirror_stale_hours;
+  return `<div class="finscroll"><div class="finmain">
+    <div class="panel" style="min-height:0">
+      <div class="cap">the pool — ${e.pool_count} draggable · ${money(e.pool_total || 0)}</div>
+      <div class="scroll" style="margin-top:7px">
+        <div class="drop" id="dropCsv">
+          <div class="dl">drop a transactions csv</div>
+          <div class="ds">LoadPay or PNC · deduped by the importer, never twice</div></div>
+        <div class="drop" id="dropShot" tabindex="0">
+          <div class="dl">balances &amp; statements</div>
+          <div class="ds">click then ⌘V, or drop an image — balance or transactions</div></div>
+        ${pool.length ? pool.map(finCard).join("")
+          : `<p class="nodata">nothing in the window</p>`}
+        ${e.blind_days ? `<div class="cap" style="margin-top:10px">spend known through ${
+          esc(e.txn_through || "?")} · ${e.blind_days} day${e.blind_days===1?"":"s"} not yet visible —
+          incomplete, not zero</div>` : ""}
+      </div>
+    </div>
+    <div class="panel" style="min-height:0">
+      <div class="cap">the loads — ${(l.loads||[]).length} in ${esc(FIN.period)} · ${
+        money(l.revenue || 0)} earned${stale != null && stale > 6
+          ? ` · <span style="color:var(--hot)">mirror ${stale}h old</span>` : ""}</div>
+      <div class="scroll" style="margin-top:7px" id="loadZone">
+        ${(l.loads||[]).length ? (l.loads||[]).map(ld => finLoadBox(ld, ro)).join("")
+          : `<p class="nodata">no loads delivered in this window</p>`}
+      </div>
+    </div>
+  </div>${finCharts()}</div>`;
+}
+
+function finCard(t){
+  const lock = !!t.undraggable_because;
+  return `<div class="card${lock?" locked":""}" data-txn="${t.id}" ${lock?"":'draggable="true"'}>
+    <div class="ct"><div class="cm">${esc(t.merchant || t.description || "—")}</div>
+      <div class="ca">${money(t.amount)}</div></div>
+    <div class="cs">${esc(t.date)} · ${esc(t.category || "uncategorized")}${
+      t.status === "pending" ? " · pending" : ""}</div>
+    ${lock ? `<div class="why" style="border-left:0;background:#12161c">${
+      esc(t.undraggable_because)}</div>` : ""}</div>`;
+}
+
+function finLoadBox(ld, ro){
+  const row = ro && (ro.loads||[]).find(x => x.sheet_row === ld.sheet_row);
+  const cost = row ? row.assigned_cost : 0, net = row ? row.net : null;
+  const pins = row ? (row.assigned_txn_ids || []) : [];
+  const cats = row ? row.cost_by_category || {} : {};
+  return `<div class="lbox" data-row="${ld.sheet_row}">
+    <div class="lt"><div class="lb">${esc(ld.broker || "—")}</div>
+      <div class="lr">${money(ld.rate || 0)}</div></div>
+    <div class="lm">${esc(ld.pickup_city||"?")} → ${esc(ld.delivery_city||"?")}${
+      ld.delivery_state ? ", " + esc(ld.delivery_state) : ""} · ${esc(ld.delivery_date||"")}</div>
+    ${pins.length ? `<div>${Object.entries(cats).map(([c,v]) =>
+      `<span class="pin" data-row="${ld.sheet_row}" data-cat="${esc(c)}">${esc(c)} ${
+        money(v)}</span>`).join("")}</div>` : ""}
+    <div class="lnet"><span>${cost ? money(cost) + " dragged on" : "nothing attributed yet"}${
+      row && row.fee != null ? " · fee " + money(row.fee) : ""}${
+      row && row.trip_accrual ? " · accrual " + money(row.trip_accrual) : ""}</span>
+      <b>${net == null ? "——" : money(net)}</b></div>
+  </div>`;
+}
+
+function finCharts(){
+  const ro = State.fin.rollup;
+  if(!ro) return "";
+  const S = ro.series || [], cats = ro.road_by_category || {};
+  const mx = Math.max(1, ...S.map(s => Math.max(s.revenue||0, s.road||0)));
+  const W = 640, H = 132, pad = 22, bw = S.length ? (W-2*pad)/S.length : 0;
+  const bars = S.map((s,i) => {
+    const x = pad + i*bw, w = Math.max(3, bw*0.34);
+    const hr = ((s.revenue||0)/mx)*(H-40), hc = ((s.road||0)/mx)*(H-40);
+    return `<rect x="${x.toFixed(1)}" y="${(H-22-hr).toFixed(1)}" width="${w.toFixed(1)}"
+        height="${Math.max(1,hr).toFixed(1)}" rx="1.5" fill="rgba(var(--key),${s.partial?".45":".85"})"/>
+      <rect x="${(x+w+2).toFixed(1)}" y="${(H-22-hc).toFixed(1)}" width="${w.toFixed(1)}"
+        height="${Math.max(1,hc).toFixed(1)}" rx="1.5" fill="rgba(255,59,24,${s.partial?".3":".55"})"/>
+      <text x="${(x+w+1).toFixed(1)}" y="${H-8}" fill="var(--etch)" font-size="8"
+        font-family="ui-monospace,Menlo,monospace" text-anchor="middle">${esc(s.label)}</text>`;
+  }).join("");
+  const ct = Object.values(cats).reduce((a,b)=>a+b,0) || 1;
+  return `<div class="panel" style="flex:0 0 auto">
+    <div class="cap">earned vs the road it took · last ${S.length} ${esc(FIN.period)}${
+      S.length===1?"":"s"} · faded = still running</div>
+    <svg class="chart" viewBox="0 0 ${W} ${H}" style="max-height:132px;margin-top:6px">${bars}</svg>
+    <div class="cap" style="margin-top:6px">the road, this ${esc(FIN.period)} — ${
+      money(ro.road_total || 0)}</div>
+    <div class="rows" style="margin-top:5px">${Object.entries(cats).sort((a,b)=>b[1]-a[1])
+      .map(([c,v]) => `<div class="rw"><span style="width:74px">${esc(c)}</span>
+        <span class="b"><i class="k" style="width:${Math.round(100*v/ct)}%"></i></span>
+        <span class="v">${money(v)}</span></div>`).join("")
+      || `<p class="nodata">no road cost in the window</p>`}</div>
+    ${finTable(ro)}
+  </div>`;
+}
+
+function finTable(ro){
+  const rows = (ro.loads || []).filter(l => l.rate);
+  if(!rows.length) return "";
+  return `<div class="cap" style="margin:12px 0 4px">every load in the window · net = rate minus
+    what the run cost. fixed cost is fought above, never here</div>
+  <div style="overflow-x:auto"><table class="ltab"><thead><tr>
+    <th>load</th><th>delivered</th><th>rate</th><th>road</th><th>fee</th><th>accrual</th><th>net</th>
+  </tr></thead><tbody>${rows.map(l => `<tr>
+    <td>${esc(l.broker||"—")}<span style="color:var(--etch)"> · ${esc(l.delivery_city||"")}</span></td>
+    <td>${esc(l.delivery_date||"")}</td>
+    <td class="m">${money(l.rate)}</td>
+    <td class="${l.assigned_cost?"m":"unk"}">${l.assigned_cost ? money(l.assigned_cost) : "——"}</td>
+    <td class="${l.fee!=null?"m":"unk"}" title="${esc(l.fee_basis||"")}">${
+      l.fee!=null ? money(l.fee) : "——"}</td>
+    <td class="${l.trip_accrual?"m":"unk"}">${l.trip_accrual ? money(l.trip_accrual) : "——"}</td>
+    <td class="net">${l.net==null?"——":money(l.net)}</td></tr>`).join("")}
+  </tbody></table></div>`;
+}
+
+/* ── THE HOLD: the month as stones on a floor ──────────────────────── */
+const HOLD_GROUPS = [["all","all"],["monthly","monthly"],["annual","annual"],
+                     ["loans","loans"],["etc","etc"]];
+
+function holdBucket(s){
+  const t = (s.bill_type || "").toLowerCase();
+  if(t === "loan") return "loans";
+  if(t === "credit_card") return "etc";
+  if(t === "fixed_monthly") return "monthly";
+  return "etc";
+}
+
+function finHold(){
   const d = State.standings;
-  if(!d) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
+  if(!d) return `<div class="panel" style="flex:1"><div class="gen">
+    <span class="nodata">the spine has not answered with the standings</span></div></div>`;
+  const all = [...(d.standings||[]), ...(d.tape||[])].filter(s => s.kind === "pay");
+  const shown = FIN.group === "all" ? all : all.filter(s => holdBucket(s) === FIN.group);
+  const standing = shown.filter(s => s.state !== "settled");
+  const settled  = shown.filter(s => s.state === "settled");
+  const left  = standing.reduce((a,s) => a + (s.amount||0), 0);
+  const clear = settled.reduce((a,s) => a + (s.amount||0), 0);
+  State.fin.stones = shown;
+  return `<div class="hold">
+    <div class="finbar" style="margin-bottom:7px">
+      <div class="hgrp" id="holdGrp">${HOLD_GROUPS.map(([k,l]) =>
+        `<button data-g="${k}" class="${FIN.group===k?"on":""}">${l}</button>`).join("")}</div>
+      <div class="sp"></div>
+      <span class="cap">${standing.length} standing${
+        standing.length ? " · drag to read · hold to settle" : ""}</span>
+    </div>
+    <div class="panel" style="flex:1;min-height:0;padding:0;overflow:hidden">
+      <div class="holdw" id="holdW">
+        <canvas id="holdC"></canvas>
+        ${standing.length ? "" : `<div class="gen" style="position:absolute;inset:0;padding:0 24px">
+          <div><div style="font:600 15px/1.5 var(--sans);color:var(--ink)">The floor is bare.</div>
+          <div class="nodata" style="margin-top:6px">${settled.length} settled this month —
+            ${money(clear)} of it. Nothing in this hold is waiting on your hand.</div></div></div>`}
+        <div class="waterline" id="holdLine">
+          <div class="wn"><b>${money(left)}</b><span>left this ${
+            FIN.group==="all"?"month":esc(FIN.group)}</span></div></div>
+        <div class="clear">${money(clear)} clear${
+          settled.length ? ` · ${settled.length} settled` : ""}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* Stones are laid on the floor by size, largest first, packed in rows from the
+   bottom — a load of stone, not a chart. Positions are DERIVED FROM SERVED
+   AMOUNTS; nothing here invents a figure. */
+function paintHold(){
+  const cv = $("holdC"), w = $("holdW"); if(!cv || !w) return;
+  const st = (State.fin.stones || []).filter(s => s.state !== "settled" && s.amount);
+  const r = w.getBoundingClientRect();
+  const W = Math.max(200, r.width), H = Math.max(160, r.height);
+  cv.width = W*2; cv.height = H*2;
+  const g = cv.getContext("2d"); g.scale(2,2);
+  g.clearRect(0,0,W,H);
+  const key = HOT ? "255,59,24" : (getComputedStyle(document.documentElement)
+                     .getPropertyValue("--key").trim() || "255,164,25");
+  const mx = Math.max(1, ...st.map(s => s.amount));
+  /* SIZE IS RANK, NOT RATIO — and the code says so rather than pretending.
+     Radius grows with √amount so weight reads by AREA rather than width, but
+     rMin is a hard floor: a $1 subscription beside a $1,500 truck payment
+     would be a 1px target, and an obligation he cannot tap is an obligation
+     he cannot settle. So a small stone is BIGGER than its share. The number
+     on the stone is the truth; the size is only the ordering. */
+  const rMin = 13, rMax = Math.min(52, H*0.2);
+  const rad = a => rMin + (rMax-rMin)*Math.sqrt(a/mx);
+  const sorted = [...st].sort((a,b) => b.amount - a.amount);
+  const placed = [];
+  let x = 14, y = H - 16, rowH = 0;
+  for(const s of sorted){
+    const R = rad(s.amount);
+    if(x + R*2 > W - 10){ x = 14; y -= rowH + 8; rowH = 0; }
+    const cx = x + R, cy = y - R;
+    placed.push({s, cx, cy, R});
+    x += R*2 + 7; rowH = Math.max(rowH, R*2);
+  }
+  State.fin.placed = placed;
+  const top = placed.length ? Math.min(...placed.map(p => p.cy - p.R)) : H - 20;
+  const line = $("holdLine");
+  if(line) line.style.bottom = Math.max(28, H - top + 8) + "px";
+  for(const p of placed){
+    const hot = p.s.severity === "short", sel = FIN.pick === p.s.id;
+    const grd = g.createRadialGradient(p.cx - p.R*0.34, p.cy - p.R*0.36, p.R*0.1,
+                                       p.cx, p.cy, p.R);
+    if(hot){ grd.addColorStop(0,"rgba(255,120,90,.98)"); grd.addColorStop(.55,"rgba(196,39,26,.8)");
+             grd.addColorStop(1,"rgba(60,12,8,.95)"); }
+    else   { grd.addColorStop(0,"rgba(214,222,232,.95)"); grd.addColorStop(.55,"rgba(140,152,166,.72)");
+             grd.addColorStop(1,"rgba(22,28,36,.96)"); }
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(p.cx, p.cy, p.R, 0, 7); g.fill();
+    if(sel){ g.strokeStyle = `rgba(${key},1)`; g.lineWidth = 2;
+             g.beginPath(); g.arc(p.cx, p.cy, p.R+2, 0, 7); g.stroke(); }
+    /* The number is the truth the size cannot carry, so it goes on every stone
+       that can hold legible type — short form under 18px, and the drill-in
+       card carries the rest. */
+    g.fillStyle = "rgba(10,12,16,.84)";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    if(p.R >= 22){
+      g.font = "700 10px ui-monospace,Menlo,monospace";
+      g.fillText(money(p.s.amount), p.cx, p.cy);
+    }else if(p.R >= 16){
+      g.font = "700 9px ui-monospace,Menlo,monospace";
+      g.fillText(short(p.s.amount), p.cx, p.cy);
+    }
+  }
+}
+
+function finStanding(){
+  const d = State.standings;
+  if(!d) return `<div class="panel" style="flex:1"><div class="gen">
     <span class="nodata">the spine has not answered with the standings</span></div></div>`;
   const row = (s,dim) => `<div class="lrow${s.severity==="short"?" short":""}${dim?" dim":""}">
     <div class="t">${esc(s.title)}</div>
     <div class="a">${s.amount==null?'<span style="color:var(--unknown)">——</span>':money(s.amount)}</div>
     <div class="s">${esc(s.sub || s.kicker || "")}</div></div>`;
   const st = d.standings || [], tape = d.tape || [], faults = d.faults || [];
-  return whyBar() + `<div class="panel" style="flex:1;min-height:0">
+  return `<div class="panel" style="flex:1;min-height:0">
     <div class="cap">standing — ${st.length} need your hand · settled on the plate, one at a time</div>
     <div class="scroll">` +
       (st.length ? st.map(s => row(s,false)).join("") : `<p class="nodata">nothing standing</p>`) +
@@ -865,6 +1377,7 @@ function renderRoom(){
     : o.room === "learn" ? learnRoom() : soulRoom();
   if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); }
   if(o.room === "work"){ wireCards(); }
+  if(o.room === "ledger"){ wireFin(); }
   if(o.room === "radio"){ wireKeyup(); markRead(); }
   if(o.room === "soul"){ R.querySelectorAll(".creed").forEach(el =>
     el.addEventListener("click", () => { const b = el.querySelector(".cb"); b.hidden = !b.hidden; })); }
@@ -982,6 +1495,333 @@ function markRead(){
     .then(() => grab("/api/messages")).then(r => { State.radio = r; paintField(); }).catch(()=>{});
 }
 
+/* ══ THE MONEY ROOM — wiring ═══════════════════════════════════════════
+   Every gesture here is a WRITE or a fetch; nothing is optimistic. A drag
+   that cannot be written leaves the card exactly where it was and says why
+   in the spine's own words. */
+function wireFin(){
+  paintFinGauge();
+  const R = $("room");
+
+  R.querySelectorAll("#finView button").forEach(b => b.addEventListener("click", () => {
+    FIN.view = b.dataset.v; FIN.pick = null; renderRoom();
+  }));
+  R.querySelectorAll("#finPeriod button").forEach(b => b.addEventListener("click", () => {
+    FIN.period = b.dataset.p; loadFin(); renderRoom();
+  }));
+  R.querySelectorAll("#holdGrp button").forEach(b => b.addEventListener("click", () => {
+    FIN.group = b.dataset.g; FIN.pick = null; renderRoom();
+  }));
+
+  if(FIN.view === "hold"){ paintHold(); wireHold(); return; }
+  if(FIN.view !== "floor") return;
+
+  /* the drag: one card, one load, one write */
+  R.querySelectorAll(".card[draggable]").forEach(c => {
+    c.addEventListener("dragstart", e => {
+      FIN.drag = c.dataset.txn; c.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", c.dataset.txn);
+    });
+    c.addEventListener("dragend", () => { c.classList.remove("dragging"); FIN.drag = null; });
+  });
+  R.querySelectorAll(".lbox").forEach(z => {
+    z.addEventListener("dragover", e => { e.preventDefault(); z.classList.add("over"); });
+    z.addEventListener("dragleave", () => z.classList.remove("over"));
+    z.addEventListener("drop", async e => {
+      e.preventDefault(); z.classList.remove("over");
+      const txn = e.dataTransfer.getData("text/plain") || FIN.drag;
+      if(txn) await assignTxn(Number(txn), Number(z.dataset.row), z);
+    });
+  });
+  /* a pin is a write in reverse — tap it to take the cost back off the load */
+  R.querySelectorAll(".lbox .pin").forEach(p => p.addEventListener("click", async () => {
+    const row = Number(p.dataset.row), cat = p.dataset.cat;
+    const ro = State.fin.rollup, L = ro && (ro.loads||[]).find(x => x.sheet_row === row);
+    if(!L) return;
+    const ids = (L.assigned_txn_ids||[]).filter(id => {
+      const t = (State.fin.expenses.transactions||[]).find(x => x.id === id);
+      return t && t.category === cat;
+    });
+    for(const id of ids) await assignTxn(id, null, p.closest(".lbox"));
+  }));
+
+  wireIntake();
+}
+
+async function assignTxn(txn_id, sheet_row, box){
+  const card = $("room").querySelector(`.card[data-txn="${txn_id}"]`);
+  card && card.classList.add("writing");
+  try{
+    const r = await fetch(url("/api/fin/assign"), {
+      method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({txn_id, sheet_row})});
+    const out = await r.json().catch(() => ({}));
+    if(!r.ok){
+      /* REFUSED — nothing was written. Say so in the spine's words and leave
+         the card standing exactly where it was. */
+      card && (card.classList.remove("writing"), card.classList.add("refused"));
+      box && (box.classList.add("deny"), setTimeout(() => box.classList.remove("deny"), 1400));
+      finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true);
+      setTimeout(() => card && card.classList.remove("refused"), 1400);
+      return false;
+    }
+    /* say it AFTER the re-render, or the confirmation is wiped by the very
+       repaint that proves it — a write nobody saw reads as a write that did
+       not happen */
+    await loadFin(); renderRoom();
+    finSay(sheet_row == null
+      ? `${out.category} ${money(out.amount)} taken back off the load`
+      : `${out.category} ${money(out.amount)} attributed to load ${out.sheet_row}`, false);
+    return true;
+  }catch(e){
+    card && (card.classList.remove("writing"), card.classList.add("refused"));
+    finSay("the spine did not answer — nothing was written: " + (e.message||e), true);
+    setTimeout(() => card && card.classList.remove("refused"), 1400);
+    return false;
+  }
+}
+
+function finSay(msg, bad){
+  const w = $("room").querySelector(".why");
+  if(!w) return;
+  w.innerHTML = `<span class="tag">${bad ? "REFUSED" : "WRITTEN"}</span><span>${esc(msg)}</span>`;
+}
+
+/* ── the intake: same doors bik has, new mouth ─────────────────────── */
+function wireIntake(){
+  const csv = $("dropCsv"), shot = $("dropShot");
+  if(csv){
+    const pick = () => {
+      const i = document.createElement("input");
+      i.type = "file"; i.accept = ".csv,text/csv";
+      i.onchange = () => i.files[0] && sendCsv(i.files[0]);
+      i.click();
+    };
+    csv.addEventListener("click", pick);
+    csv.addEventListener("dragover", e => { e.preventDefault(); csv.classList.add("over"); });
+    csv.addEventListener("dragleave", () => csv.classList.remove("over"));
+    csv.addEventListener("drop", e => {
+      e.preventDefault(); csv.classList.remove("over");
+      const f = e.dataTransfer.files[0]; if(f) sendCsv(f);
+    });
+  }
+  if(shot){
+    shot.addEventListener("click", () => shot.classList.add("listening"));
+    shot.addEventListener("dragover", e => { e.preventDefault(); shot.classList.add("over"); });
+    shot.addEventListener("dragleave", () => shot.classList.remove("over"));
+    shot.addEventListener("drop", e => {
+      e.preventDefault(); shot.classList.remove("over");
+      const f = e.dataTransfer.files[0];
+      if(f && f.type.startsWith("image/")) fileToDataUrl(f).then(sendShot);
+    });
+    document.addEventListener("paste", finPaste);
+  }
+}
+function finPaste(e){
+  const shot = $("dropShot"); if(!shot || FIN.view !== "floor") return;
+  for(const it of (e.clipboardData || {}).items || []){
+    if(it.type.startsWith("image/")){
+      const f = it.getAsFile();
+      if(f){ e.preventDefault(); fileToDataUrl(f).then(sendShot); }
+      return;
+    }
+  }
+}
+const fileToDataUrl = f => new Promise((res,rej) => {
+  const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej;
+  r.readAsDataURL(f);
+});
+function dropState(el, cls, msg, sub){
+  el.className = "drop " + cls;
+  el.querySelector(".dl").textContent = msg;
+  if(sub != null) el.querySelector(".ds").textContent = sub;
+}
+async function sendCsv(file){
+  const el = $("dropCsv");
+  /* The source decides which parser runs. Guessing it would silently mangle a
+     LoadPay export through the PNC reader, so it is READ from the file's own
+     header rather than assumed. */
+  const text = await file.text();
+  const head = (text.split("\n")[0] || "").toLowerCase();
+  const source = head.includes("transaction id") || /loadpay/i.test(file.name) ? "loadpay"
+               : /pnc|account\s*activity/i.test(file.name) || head.includes("balance") ? "pnc" : null;
+  if(!source){
+    dropState(el, "bad", "cannot tell which bank this is",
+      "name it LoadPay… or PNC… — the parsers are not interchangeable");
+    return;
+  }
+  dropState(el, "busy", `importing ${source}…`, file.name);
+  try{
+    const r = await fetch(url("/api/fin/intake/csv"), {
+      method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({source, csv:text, account:source})});
+    const o = await r.json().catch(() => ({}));
+    if(!r.ok){ dropState(el,"bad","not imported", o.error || `the writer said ${r.status}`); return; }
+    dropState(el, "ok", `${o.imported||0} in · ${o.skipped||0} already had`,
+      `${o.reconciled||0} settled from pending · ${o.uncategorized||0} uncategorized`);
+    await loadFin(); renderRoom();
+  }catch(e){ dropState(el,"bad","nothing was imported", String(e.message||e)); }
+}
+async function sendShot(dataUrl){
+  const el = $("dropShot");
+  dropState(el, "busy", "reading the image…", "balance first, then transactions");
+  try{
+    /* Try it as a BALANCE first — that is the common case and it updates the
+       cash line the clock reads. If the image has none, fall through to the
+       transaction reader rather than telling him it failed. */
+    let r = await fetch(url("/api/fin/intake/balance"), {
+      method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({image:dataUrl, account:"loadpay"})});
+    let o = await r.json().catch(() => ({}));
+    if(r.ok && (o.balance != null || o.available != null || o.updated)){
+      dropState(el, "ok", "balance read", JSON.stringify(o).slice(0,90));
+      await loadFin(); renderRoom(); return;
+    }
+    r = await fetch(url("/api/fin/intake/screenshot"), {
+      method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({image:dataUrl})});
+    o = await r.json().catch(() => ({}));
+    const txns = o.transactions || [];
+    if(!r.ok || !txns.length){
+      dropState(el,"bad","nothing was read", o.error || "no transactions found in that image");
+      return;
+    }
+    const s = await fetch(url("/api/fin/intake/save-screenshot"), {
+      method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({transactions:txns, account:"pnc"})});
+    const so = await s.json().catch(() => ({}));
+    if(!s.ok){ dropState(el,"bad","read but not saved", so.error || `the writer said ${s.status}`); return; }
+    dropState(el, "ok", `${so.saved||0} saved · ${so.skipped||0} already had`,
+      `${txns.length} rows read from the image`);
+    await loadFin(); renderRoom();
+  }catch(e){ dropState(el,"bad","nothing was saved", String(e.message||e)); }
+}
+
+/* ── THE HOLD: drag to read, hold to settle ────────────────────────── */
+function wireHold(){
+  const cv = $("holdC"); if(!cv) return;
+  const hit = ev => {
+    const r = cv.getBoundingClientRect();
+    const x = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+    const y = (ev.touches ? ev.touches[0].clientY : ev.clientY) - r.top;
+    return (State.fin.placed||[]).find(p =>
+      Math.hypot(p.cx - x, p.cy - y) <= p.R + 3);
+  };
+  const read = ev => {
+    const p = hit(ev);
+    if(p && FIN.pick !== p.s.id){ FIN.pick = p.s.id; paintHold(); showStone(p.s); }
+  };
+  cv.addEventListener("pointerdown", read);
+  cv.addEventListener("pointermove", e => { if(e.buttons) read(e); });
+}
+
+function showStone(s){
+  const w = $("holdW"); if(!w) return;
+  w.querySelector(".hcard")?.remove();
+  const el = document.createElement("div");
+  el.className = "hcard";
+  const settleable = s.settleable !== false && s.bill_type && s.state !== "settled";
+  el.innerHTML = `<div class="hn">${esc(s.title)}</div>
+    <div class="ha">${s.amount == null ? "——" : money(s.amount)}</div>
+    <div class="hs">${esc(s.sub || "")}${s.next_due ? " · next " + esc(s.next_due) : ""}</div>
+    <div class="hb">${settleable
+      ? `<button class="latch" id="stoneLatch"><i></i><span>hold to record paid</span></button>`
+      : `<span class="cap">this one is not settled here</span>`}
+      <button class="btn" id="stoneClose">close</button></div>`;
+  w.appendChild(el);
+  $("stoneClose").addEventListener("click", () => { el.remove(); FIN.pick = null; paintHold(); });
+  const L = $("stoneLatch");
+  if(L) wireLatch(L, () => settleStone(s, el));
+}
+
+/* The lever holds under real tension for as long as the network takes, and the
+   WALL CLOCK decides — never animation.finished, which a hidden document
+   freezes and resumes later. That defect once fired a $1,500 write nobody
+   asked for. Releasing early answers OUT LOUD that nothing was written. */
+function wireLatch(btn, commit){
+  const HOLD = 900;
+  let t0 = 0, raf = 0, fired = false;
+  const bar = btn.querySelector("i"), lab = btn.querySelector("span");
+  const tick = () => {
+    const p = Math.min(1, (Date.now() - t0)/HOLD);
+    bar.style.width = (p*100) + "%";
+    if(p >= 1 && !fired){ fired = true; lab.textContent = "writing…"; commit(); return; }
+    if(!fired) raf = requestAnimationFrame(tick);
+  };
+  const down = e => {
+    e.preventDefault();
+    if(fired) return;
+    t0 = Date.now(); btn.setPointerCapture?.(e.pointerId);
+    lab.textContent = "keep holding";
+    raf = requestAnimationFrame(tick);
+  };
+  const up = () => {
+    cancelAnimationFrame(raf);
+    if(fired) return;
+    bar.style.width = "0%";
+    lab.textContent = "released early — nothing was written. hold it.";
+    setTimeout(() => { if(!fired) lab.textContent = "hold to record paid"; }, 1800);
+  };
+  btn.addEventListener("pointerdown", down);
+  btn.addEventListener("pointerup", up);
+  btn.addEventListener("pointercancel", up);
+  btn.addEventListener("pointerleave", up);
+}
+
+async function settleStone(s, card){
+  const L = $("stoneLatch"), lab = L && L.querySelector("span");
+  try{
+    const r = await fetch(url(`/api/standings/${s.bill_type}/${s.bill_id}/settle`), {
+      method:"POST", headers:{...hdr(), "Content-Type":"application/json",
+        "Idempotency-Key": s.idem_key || `${s.bill_type}:${s.bill_id}:${s.cycle_key||""}`},
+      body: JSON.stringify({cycle_key: s.cycle_key})});
+    const o = await r.json().catch(() => ({}));
+    /* written:false + already:true is a SUCCESS, not a refusal — the write is
+       idempotent by construction (UNIQUE on bill+cycle), so a second hold on
+       a bill already recorded must say "already recorded", never "refused".
+       Calling that a failure would teach him to distrust a correct answer. */
+    if(!r.ok || (o.written === false && !o.already)){
+      L && L.classList.add("bad");
+      lab && (lab.textContent = (o.error || "refused — nothing was written").slice(0,80));
+      return;
+    }
+    L && L.classList.add("done");
+    lab && (lab.textContent = o.already ? "already recorded" : "recorded");
+    await load(true);
+    setTimeout(() => { card.remove(); FIN.pick = null; renderRoom(); }, 700);
+  }catch(e){
+    L && L.classList.add("bad");
+    lab && (lab.textContent = "the spine did not answer — nothing was written");
+  }
+}
+
+/* ── the room's own fetches ────────────────────────────────────────── */
+async function loadFin(){
+  const q = `?period=${FIN.period}`;
+  const [sum, ld, ex, ro] = await Promise.allSettled([
+    grab("/api/fin/summary"), grab("/api/fin/loads"+q),
+    grab("/api/fin/expenses"+q), grab("/api/fin/rollup"+q)]);
+  State.fin.summary = sum.status === "fulfilled" ? sum.value : null;
+  State.fin.summaryErr = sum.status === "rejected" ? String(sum.reason.message||sum.reason) : null;
+  State.fin.loads = ld.status === "fulfilled" ? ld.value : null;
+  State.fin.expenses = ex.status === "fulfilled" ? ex.value : null;
+  State.fin.rollup = ro.status === "fulfilled" ? ro.value : null;
+  State.fin.err = [ld,ex,ro].filter(x => x.status === "rejected")
+    .map(x => String(x.reason.message||x.reason))[0] || null;
+  /* A mirror nobody refreshed reads as "booked ahead $0.00" on a day three
+     loads were booked (2026-07-28). Ask MI to refresh, then re-read. */
+  const st = State.fin.loads && State.fin.loads.mirror_stale_hours;
+  if(st != null && st > 6 && !State.fin._refreshed){
+    State.fin._refreshed = true;
+    try{
+      await fetch(url("/api/fin/loads/refresh"), {method:"POST", headers:hdr()});
+      const again = await grab("/api/fin/loads"+q); State.fin.loads = again;
+      const ro2 = await grab("/api/fin/rollup"+q); State.fin.rollup = ro2;
+    }catch(e){}
+  }
+}
+
 /* ── load ─────────────────────────────────────────────────────────── */
 async function grab(path){
   const r = await fetch(url(path), { headers: hdr(), cache:"no-store" });
@@ -1001,6 +1841,8 @@ async function load(keep){
     ];
     await Promise.all(rest.map(([k,p]) =>
       grab(p).then(v => { State[k] = v; }).catch(() => {})));
+    /* the money room's own reads — never allowed to fail the desk */
+    await loadFin().catch(() => {});
     deriveTemp(); paintField();
     if(ACTIVE !== null) renderRoom();
   }catch(e){
