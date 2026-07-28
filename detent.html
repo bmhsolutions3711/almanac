@@ -38,7 +38,7 @@
   in words, that nothing was written and that the lever is held, not tapped.
 -->
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#2A2F2D">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="detent.webmanifest">
@@ -238,9 +238,70 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
 .panel .msg{font:400 11.5px/1.5 var(--mono);color:var(--dim)}
 .panel .msg.bad{color:var(--hot)}
 
+/* ── RADIO — a receiver with a discipline ─────────────────────────────────
+   The operation may key up once a day; everything quieter prints under a
+   machined squelch line that is content, not chrome — suppressed is not
+   lost, it is HERE, in dim type, which is the whole bargain. Squelch is
+   structural and lives on the spine; this page only records. KEY UP is the
+   latch wearing its most natural costume — press-to-talk IS press-and-hold —
+   so it inherits the wall clock, the idempotent key, and the $1,500 scar
+   without a line of new law. The tail crackles only after a parsed 2xx.
+   Everything that wants his hand stands PROUD of the plate (embossed);
+   everything at rest is CUT into it (engraved). And when nothing is
+   happening, NOTHING HAPPENS. */
+.work.radio{flex-direction:column-reverse;
+  -webkit-mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 26px),transparent 100%);
+          mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 26px),transparent 100%)}
+.work.radio .card{display:block}
+@starting-style{ .work.radio .card{opacity:0; translate:0 6px} }
+.work.radio .card{transition:opacity .28s ease-out, translate .28s ease-out}
+.card .rt{font:600 14px/1.35 var(--sans); color:var(--ink); display:flex; gap:8px;
+  align-items:baseline; text-shadow:var(--emboss); transition:text-shadow .4s}
+.card .rt .mk{color:var(--lamp); font-weight:700}
+.card .rt .rstamp{margin-left:auto; font:600 10px/1 var(--mono); letter-spacing:.1em;
+  color:var(--etch); font-variant-numeric:tabular-nums; text-shadow:none}
+.card .rb{margin-top:4px; font:400 13px/1.55 var(--sans); color:var(--mid)}
+.card.rx{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+  inset 2px 0 0 var(--lamp); transition:box-shadow .4s}
+.card.rx.readset{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+  inset 2px 0 0 var(--etch)}
+.card.rx.readset .rt{text-shadow:var(--engrave)}
+.card.tx{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+  inset -2px 0 0 var(--mid)}
+.card.tx .rb{color:var(--ink); text-shadow:var(--engrave)}
+.card.heldx{opacity:.62}
+.card.heldx .rt{color:var(--dim); font-style:italic; text-shadow:var(--engrave)}
+.card.heldx .rb{font-style:italic; color:var(--dim)}
+.sqline{position:relative; flex:0 0 auto; height:4px; margin:14px 0 5px; border-radius:2px;
+  background:linear-gradient(180deg,#171A19,#232827);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.07)}
+.sqline::after{content:"SQUELCH · " attr(data-held) " HELD BELOW"; position:absolute;
+  right:0; top:-13px; font:700 8.5px/1 var(--mono); letter-spacing:.18em; color:var(--etch)}
+.micwell{flex:0 0 auto; z-index:1; margin:10px 78px 12px 0}
+.miccap{font:700 8.5px/1 var(--mono); letter-spacing:.18em; color:var(--etch);
+  margin-bottom:6px; text-shadow:var(--engrave)}
+/* LIVE's carrier strip — the one place on the plate that breathes with input,
+   and it only breathes when input exists. His draft renders as knurl ticks;
+   delete a word and the ticks retract; transmit and it drains. Event-driven
+   one-shot repaints on a small canvas — never a loop. */
+.strip{height:14px; margin-bottom:7px; border-radius:2px; background:#171A19;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.65), 0 1px 0 rgba(255,255,255,.06); overflow:hidden}
+.strip canvas{width:100%; height:14px; display:block}
+/* LIVE's signature stamp — a mark, not a reading: cut once from the message's
+   own words, cached, never animated. */
+.card .sig{float:right; margin:3px 0 0 8px; opacity:.85}
+.micin{width:100%; background:#0E1110; border:1px solid #3A403D; border-radius:2px;
+  corner-shape:bevel; color:var(--ink); font:400 14px/1.3 var(--mono); padding:11px;
+  user-select:text; -webkit-user-select:text}
+.micin:focus-visible{outline:2px solid var(--mid); outline-offset:2px}
+.fig.quiet{font-size:.55em; font-weight:400; letter-spacing:.12em; color:var(--dim);
+  text-shadow:var(--engrave); text-box:trim-both cap alphabetic}
+
 @media (prefers-reduced-motion:reduce){
   .lever[data-state="seating"] .rail{animation:none}
   .rung i{transition:none}
+  .work.radio .card{transition:none}
+  .card .rt, .card.rx{transition:none}
 }
 </style>
 
@@ -261,6 +322,12 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
     <div class="sub" id="sub"></div>
     <div class="why" id="whyLine" hidden></div>
     <div class="work" id="work" hidden></div>
+    <div class="micwell" id="micwell" hidden>
+      <div class="miccap">THE OPERATION KEYS UP THROUGH THE BUDGET · YOU KEY UP HERE</div>
+      <div class="strip"><canvas id="stripcv" width="640" height="14"></canvas></div>
+      <input id="mic" class="micin" enterkeyhint="done" autocomplete="off" maxlength="500"
+             aria-label="key up a message to the operation">
+    </div>
   </div>
 
   <div class="ladder" id="ladder"></div>
@@ -374,6 +441,10 @@ if(!location.hash && localStorage.getItem("almanac_view") === "desk" &&
   location.replace("desk.html");
 }
 
+/* A push tap arrives as #radio — remember it, scrub it, answer after boot. */
+let WANT_RADIO = location.hash === "#radio";
+if(WANT_RADIO) history.replaceState(null, "", location.pathname + location.search);
+
 const configured = () => localStorage.getItem("almanac_token") !== null && TOK !== "";
 const $ = id => document.getElementById(id);
 const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -384,13 +455,14 @@ const money = v => v == null ? null :
 
 const State = { source:"none", standings:null, board:null, learn:null, soul:null,
                 standing:null,     /* the money page: the spine's ONE judgement */
-                held:null };       /* pushes the budget kept quiet today */
+                held:null,         /* pushes the budget kept quiet today */
+                radio:null };      /* the channel: messages + unread, served whole */
 const esc = s => String(s ?? "").replace(/[&<>"]/g,
   m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 
 /* ── feel ─────────────────────────────────────────────────────────────── */
 const HAPTIC = { light:[7], heavy:[16,42,16], wall:[26], arm:[8], detent:[14],
-                 seat:[14,26,14], refuse:[12,70,12] };
+                 seat:[14,26,14], refuse:[12,70,12], rx:[12,30,12] };
 const buzz = p => { try{ navigator.vibrate?.(p); }catch(e){} };
 let AC = null;
 function ctx(){
@@ -415,6 +487,18 @@ const tickHeavy = () => tone(300, 95, .13, "triangle", .55);   // a section boun
 const tickWall  = () => tone(150, 60, .10, "sawtooth", .7);    // the hard stop
 const tine      = () => tone(880, 55, .07, "sine");            // a latch seating
 const thud      = () => tone(150, 90, .10, "triangle");        // refused
+/* The radio's three phrases — the house instrument, no new voice. The tail is
+   grains of the existing tone() jittered in the tinny CB band: no two tails
+   identical, like the real thing. Fires ONLY after a parsed 2xx. */
+const keyThump  = () => tone(95, 45, .08, "sine");             // mic keyed — felt
+const rogerBeep = () => tone(2000, 70, .045, "sine");          // end of transmission
+const T = [];                                                  // grain timers, cleared on pagehide
+function squelchTail(){
+  for(let i = 0; i < 6; i++)
+    T.push(setTimeout(() => tone(1400 + Math.random()*1600, 14 + Math.random()*10,
+                                 .05 * (1 - i/6), "sawtooth", .6),
+                      i*18 + Math.random()*8));
+}
 addEventListener("pagehide", () => { try{ AC && AC.close(); }catch(e){} AC = null; });
 document.addEventListener("visibilitychange", () => {
   if(document.hidden && AC && AC.state === "running") AC.suspend().catch(()=>{});
@@ -438,6 +522,10 @@ const spin = { cont:0, pos:0 };
 function buildNodes(){
   const N = [];
   N.push({ sec:"TODAY", kind:"today", first:true });
+  // RADIO at index 1 — directly after TODAY's hard stop, honoring the desk's
+  // ruling ("radio first") inside this plate's law ("today is position zero").
+  // Crossing to it earns the heavy detent: the channel costs a boundary.
+  N.push({ sec:"RADIO", kind:"radio", first:true });
   N.push({ sec:"WORK",  kind:"work",  first:true });
   const st = (State.standings && State.standings.standings) || [];
   st.forEach((s, i) => N.push({ sec:"FINANCES", kind:"standing", s, first: i === 0 }));
@@ -499,7 +587,7 @@ function drawWheel(){
 }
 
 /* ── render ───────────────────────────────────────────────────────────── */
-const SECS = ["TODAY","WORK","FINANCES","LEARN","SOUL","CLOSE"];
+const SECS = ["TODAY","RADIO","WORK","FINANCES","LEARN","SOUL","CLOSE"];
 SECS.forEach(k => { const d = document.createElement("button");
   d.type = "button"; d.className = "rung"; d.dataset.k = k;
   d.setAttribute("aria-label", "go to " + k.toLowerCase());
@@ -518,6 +606,7 @@ $("ladder").addEventListener("click", e => {
 
 function setFig(v, unit, unknown){
   const f = $("fig");
+  f.classList.remove("quiet");
   f.classList.toggle("unk", !!unknown);
   f.innerHTML = unknown ? "——" : (v + (unit ? `<span class="u">${unit}</span>` : ""));
 }
@@ -575,16 +664,9 @@ function renderJudge(){
     el.innerHTML = html;
     w.appendChild(el);
   });
-  // What the budget kept quiet. Suppressed is not lost — it is HERE, in dim
-  // type, which is the whole bargain that makes one-push-a-day honest.
-  const held = (State.held && State.held.held) || [];
-  if(held.length){
-    const el = document.createElement("div");
-    el.className = "card judge";
-    el.innerHTML = `held back today — <b>${held.length}</b>: ` +
-      held.map(h => esc(h.title)).join(" · ");
-    w.appendChild(el);
-  }
+  // The held-back block lived here for one day (2026-07-27) and migrated to
+  // the RADIO's squelch line — suppressed traffic prints under the threshold,
+  // where a radio would put it.
 }
 
 function ledgerXHTML(k){
@@ -620,8 +702,176 @@ $("work").addEventListener("click", e => {
   row.classList.add("open");
 });
 
+/* ── THE RADIO — ARC's bones wearing LIVE's signature (card #35) ────────────
+   Ruled by Bryan 2026-07-27 off the rendered blend. Everything below obeys
+   the three-reels law: Arrival (static resolves into engraving, light follows
+   voice), Answer (the held transmission), Quiet (zero paint at rest). */
+const GLY = "▓▒░#&%$@";
+let rxCancel = null, readT = 0;
+const revealed = new Set();
+const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+function rel(at){
+  const d = (Date.now() - new Date(at).getTime()) / 1000;
+  if(!isFinite(d) || d < 90) return "now";
+  if(d < 3600)  return RTF.format(-Math.round(d/60), "minute");
+  if(d < 86400) return RTF.format(-Math.round(d/3600), "hour");
+  return RTF.format(-Math.round(d/86400), "day");
+}
+/* LIVE's layer: words → knurl. Deterministic, event-driven, never a loop. */
+function wave(str){
+  const a = [];
+  for(let i = 0; i < str.length; i++){
+    const h = (str.charCodeAt(i) * 2654435761) >>> 0;
+    a.push((h % 97) / 96);
+  }
+  for(let i = 1; i < a.length - 1; i++) a[i] = (a[i-1] + a[i]*2 + a[i+1]) / 4;
+  return a;
+}
+function drawStrip(str){
+  const cv = $("stripcv"), g = cv.getContext("2d");
+  g.clearRect(0, 0, 640, 14);
+  const a = wave(str);
+  if(!a.length) return;
+  const w = Math.min(6, 624 / a.length);
+  g.fillStyle = "#6B726E";
+  for(let i = 0; i < a.length; i++){
+    const h = 2 + a[i]*9;
+    g.fillRect(8 + i*w, (14 - h)/2, Math.max(1.5, w*.55), h);
+  }
+}
+function drainStrip(){
+  const cv = $("stripcv"), g = cv.getContext("2d");
+  if(reduce()){ g.clearRect(0, 0, 640, 14); return; }
+  const t0 = performance.now();
+  (function step(){
+    const p = (performance.now() - t0) / 180;
+    if(p >= 1){ g.clearRect(0, 0, 640, 14); return; }
+    g.clearRect(0, 0, 640*p, 14);
+    requestAnimationFrame(step);
+  })();
+}
+const STAMPS = new Map();          // message id → canvas, painted once ever
+function stamp(m){
+  if(STAMPS.has(m.id)) return STAMPS.get(m.id);
+  const cv = document.createElement("canvas");
+  cv.width = 64; cv.height = 10; cv.className = "sig";
+  cv.style.width = "32px"; cv.style.height = "5px";
+  const g = cv.getContext("2d");
+  g.fillStyle = "#6B726E";
+  const a = wave(m.body || "").slice(0, 21);
+  for(let i = 0; i < a.length; i++){
+    const h = 1 + a[i]*8;
+    g.fillRect(i*3, (10 - h)/2, 1.6, h);
+  }
+  STAMPS.set(m.id, cv);
+  return cv;
+}
+/* Arrival: static resolves left→right into the final engraving. One rAF,
+   canceller stored; hidden defers — the reveal is the reward for looking. */
+function breakSquelch(el, final){
+  if(reduce()){ el.textContent = final; return; }
+  const t0 = performance.now(), DUR = 420 + Math.min(500, final.length*10);
+  let raf = 0;
+  rxCancel = () => { cancelAnimationFrame(raf); el.textContent = final; rxCancel = null; };
+  (function step(){
+    const p = (performance.now() - t0) / DUR;
+    if(p >= 1){ el.textContent = final; rxCancel = null; return; }
+    const cut = Math.floor(final.length * p);
+    let s = final.slice(0, cut);
+    for(let i = cut; i < final.length; i++)
+      s += final[i] === " " ? " " : GLY[(Math.random()*GLY.length)|0];
+    el.textContent = s;
+    raf = requestAnimationFrame(step);
+  })();
+}
+function radioCard(m){
+  const el = document.createElement("div");
+  const op = m.sender === "operation", held = m.kind === "held";
+  el.className = "card " + (held ? "heldx" : op ? ("rx" + (m.read_at ? " readset" : "")) : "tx");
+  const hasTitle = op && m.title && m.title !== m.body;
+  const mark = (op && !held) ? `<span class="mk">${m.kind === "undelivered" ? "△" : "▲"}</span>` : "";
+  el.innerHTML = `<div class="rt">${mark}<span class="rtx"></span>` +
+    `<span class="rstamp">${esc(rel(m.at))}</span></div>` +
+    ((hasTitle || !op) ? `<div class="rb"></div>` : "");
+  el.querySelector(".rtx").textContent = op ? (hasTitle ? m.title : m.body) : "BRY";
+  const rb = el.querySelector(".rb");
+  if(rb) rb.textContent = m.body;
+  if(!op && rb) rb.appendChild(stamp(m));
+  return el;
+}
+function renderRadio(){
+  const w = $("work"); w.textContent = ""; w.hidden = false; w.classList.add("radio");
+  const r = State.radio;
+  if(!r){
+    const el = document.createElement("div");
+    el.className = "card judge";
+    el.textContent = "the spine has not answered with the channel";
+    w.appendChild(el);
+    return;
+  }
+  const msgs = r.messages || [];
+  const spoken = msgs.filter(m => m.kind !== "held");
+  const held = msgs.filter(m => m.kind === "held");
+  // column-reverse: first DOM child = bottom of the glass. Bottom-up: the
+  // held block (under squelch), the line itself, then spoken traffic newest
+  // nearest the line. Sends break squelch by definition — always above it.
+  for(const m of held.slice(-3)) w.appendChild(radioCard(m));
+  const sq = document.createElement("div");
+  sq.className = "sqline";
+  sq.dataset.held = String(held.length);
+  w.appendChild(sq);
+  let reveal = null;
+  for(const m of spoken.slice().reverse()){
+    const el = radioCard(m);
+    w.appendChild(el);
+    if(!reveal && m.sender === "operation" && !m.read_at && !revealed.has(m.id))
+      reveal = { el, m };
+  }
+  if(!spoken.length && !held.length){
+    const el = document.createElement("div");
+    el.className = "card judge";
+    el.textContent = "a quiet channel — nothing said yet. the operation keys up through the budget; you key up below.";
+    w.appendChild(el);
+  }
+  if(reveal && document.visibilityState === "visible"){
+    revealed.add(reveal.m.id);
+    const span = reveal.el.querySelector(".rtx");
+    breakSquelch(span, span.textContent);
+  }
+  w.scrollTop = 0;
+}
+/* Read receipts obey the latch doctrine: rendered is not read — his eyes are.
+   900ms on the node, visible, then the settle: emboss relaxes to engraving,
+   the amber edge cools. The plate's first inbound truth. */
+function armRead(){
+  clearTimeout(readT);
+  readT = setTimeout(() => {
+    if(document.visibilityState !== "visible") return;
+    if(!NODES[spin.pos] || NODES[spin.pos].kind !== "radio") return;
+    if(!(State.radio && State.radio.unread > 0)) return;
+    fetch(url("/api/messages/read"), { method: "POST",
+      headers: hdr({ "Content-Type": "application/json" }), body: "{}" })
+      .then(res => { if(!res.ok) return;
+        State.radio.unread = 0;
+        (State.radio.messages || []).forEach(m => { if(!m.read_at) m.read_at = "now"; });
+        document.querySelectorAll("#work .card.rx:not(.readset)")
+          .forEach(el => el.classList.add("readset"));
+        const f = $("fig"); f.className = "fig quiet"; f.textContent = "QUIET";
+      }).catch(() => {});
+  }, 900);
+}
+addEventListener("pagehide", () => { rxCancel && rxCancel(); clearTimeout(readT);
+  T.forEach(clearTimeout); T.length = 0; });
+document.addEventListener("visibilitychange", () => {
+  if(!document.hidden && NODES[spin.pos] && NODES[spin.pos].kind === "radio") paint();
+});
+
 function paint(){
   const n = NODES[spin.pos]; if(!n) return;
+  rxCancel && rxCancel();
+  clearTimeout(readT);
+  $("micwell").hidden = true;
+  $("work").classList.remove("radio");
   $("kick").innerHTML = `<b>${n.sec}</b> &nbsp;·&nbsp; ${spin.pos+1} / ${NODES.length}`;
   [...$("ladder").children].forEach(el => el.classList.toggle("on", el.dataset.k === n.sec));
   $("whyLine").hidden = true;
@@ -674,6 +924,26 @@ function paint(){
     const settleable = s.kind === "pay" && s.bill_type && s.bill_id;
     lever.disabled = !(settleable && State.source === "live");
     $("leverCap").textContent = settleable ? "RECORD PAID" : "NOT SETTLEABLE HERE";
+  }
+  else if(n.kind === "radio"){
+    const r = State.radio;
+    $("kick").innerHTML = `<b>CH 19</b> &nbsp;·&nbsp; ONE CHANNEL`;
+    $("head").textContent = "The channel";
+    if(!r){ setFig(null, null, true); }
+    else if(r.unread > 0){ setFig(String(r.unread), " UNREAD"); }
+    else {
+      // Never a 0 — a radio doesn't count silence. QUIET, engraved.
+      const f = $("fig"); f.className = "fig quiet"; f.textContent = "QUIET";
+    }
+    $("sub").textContent = r
+      ? "the operation may key up once a day · everything quieter prints below"
+      : "spine unavailable";
+    renderRadio();
+    $("micwell").hidden = false;
+    drawStrip($("mic").value);
+    lever.disabled = !($("mic").value.trim() && State.source === "live");
+    $("leverCap").textContent = "KEY UP";
+    armRead();
   }
   else if(n.kind === "empty"){
     $("head").textContent = "Nothing standing";
@@ -786,6 +1056,30 @@ function goHome(){
 }
 $("plate").addEventListener("dblclick", goHome);
 
+/* The strip breathes with the draft; the lever arms only when words exist. */
+$("mic").addEventListener("input", () => {
+  if(!NODES[spin.pos] || NODES[spin.pos].kind !== "radio") return;
+  drawStrip($("mic").value);
+  $("lever").disabled = !($("mic").value.trim() && State.source === "live");
+});
+
+/* THE COLD OPEN: a notification tap answers the radio. The spindle SWINGS —
+   heavy tick, real travel — then the waiting message plays its resolve.
+   hashchange matters: a live window gets hash-only changes from the service
+   worker's navigate(); boot never re-runs. */
+function swingToRadio(){
+  const i = NODES.findIndex(x => x.kind === "radio");
+  if(i < 0) return;
+  if(i !== spin.pos) landOn(i);
+  glideTo(TRAVEL[i]);
+}
+addEventListener("hashchange", () => {
+  if(location.hash === "#radio"){
+    history.replaceState(null, "", location.pathname + location.search);
+    swingToRadio();
+  }
+});
+
 /* The instrument switch. Flips to the desk — the almanac laid open flat
    (desk.html), the laptop's traditional tabbed page. The choice persists per
    device; the throw is shown before the page turns so the switch reads as a
@@ -867,8 +1161,9 @@ let hintT = 0;
 
 function leverDown(e){
   const n = NODES[spin.pos];
-  if(!n || (n.kind !== "standing" && n.kind !== "close")) return;
+  if(!n || (n.kind !== "standing" && n.kind !== "close" && n.kind !== "radio")) return;
   if(n.kind === "close" && !n.c) return;
+  if(n.kind === "radio" && !$("mic").value.trim()) return;   // a mic with nothing to say
   if(lever.disabled || lever.dataset.state === "seating") return;
   if(State.source !== "live") return;
   if(document.visibilityState !== "visible") return;      // a hold he cannot see is not a hold
@@ -877,6 +1172,7 @@ function leverDown(e){
   clearTimeout(hintT); $("whyLine").hidden = true;
   lever.dataset.state = "arming"; rail.style.willChange = "transform";
   buzz(HAPTIC.arm); ctx();
+  if(n.kind === "radio"){ keyThump(); $("kick").innerHTML = `<b>KEYED</b>`; }
   const r = reduce(), DUR = r ? 260 : 460;
   L.held = true; L.t0 = performance.now();
   if(!L.key) L.key = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
@@ -907,18 +1203,26 @@ function leverUp(){
   rail.style.willChange = ""; lever.dataset.state = "";
   /* A silent reset here is indistinguishable from a broken button. Say it. */
   const w = $("whyLine"); w.hidden = false;
-  w.textContent = "released before it seated — nothing was written. the lever is held, not tapped";
+  if(NODES[spin.pos] && NODES[spin.pos].kind === "radio"){
+    $("kick").innerHTML = `<b>CH 19</b> &nbsp;·&nbsp; ONE CHANNEL`;
+    w.textContent = "released before it keyed — nothing was sent. the mic is held, not tapped";
+  } else {
+    w.textContent = "released before it seated — nothing was written. the lever is held, not tapped";
+  }
   clearTimeout(hintT); hintT = setTimeout(() => { w.hidden = true; }, 2600);
 }
 async function seat(){
   clearTimeout(L.detent); L.detent = null;
   clearTimeout(L.boundary); L.boundary = null;
   lever.dataset.state = "seating";
-  $("leverCap").textContent = "WRITING";
   const node = NODES[spin.pos];
+  $("leverCap").textContent = node.kind === "radio" ? "TRANSMITTING" : "WRITING";
   const path = node.kind === "close" ? "/api/entry/close"
+             : node.kind === "radio" ? "/api/messages"
              : `/api/standings/${node.s.bill_type}/${node.s.bill_id}/settle`;
-  const body = node.kind === "close" ? {} : { cycle_key: node.s.cycle_key };
+  const body = node.kind === "close" ? {}
+             : node.kind === "radio" ? { body: $("mic").value.trim() }
+             : { cycle_key: node.s.cycle_key };
   const net = new AbortController();
   const kill = setTimeout(() => net.abort("timeout"), 9000);
   try{
@@ -935,9 +1239,41 @@ async function seat(){
   finally{ rail.style.willChange = ""; }
 }
 function caught(){
-  buzz(HAPTIC.seat); tine();
   L.key = null;
-  const wasClose = NODES[spin.pos] && NODES[spin.pos].kind === "close";
+  const node = NODES[spin.pos];
+  if(node && node.kind === "radio"){
+    /* The release payoff, strict order: roger beep → 60ms of nothing → the
+       squelch tail + the seat haptic → the strip drains → his words land
+       ABOVE the squelch line, already engraved, stamped with their own
+       signature. Fires only here — after a parsed 2xx. */
+    lever.dataset.state = "";
+    $("whyLine").hidden = true;          // a landed send clears any old refusal
+    const words = $("mic").value.trim();
+    rogerBeep();
+    setTimeout(() => {
+      squelchTail(); buzz(HAPTIC.seat);
+      drainStrip();
+      const sq = document.querySelector("#work .sqline");
+      const el = radioCard({ id: "tx-" + Date.now(), at: new Date().toISOString(),
+                             sender: "bryan", kind: "reply", body: words });
+      if(sq && sq.nextSibling) sq.parentElement.insertBefore(el, sq.nextSibling);
+      else if(sq) sq.parentElement.appendChild(el);
+      else $("work").appendChild(el);
+      if(State.radio && State.radio.messages) State.radio.messages.push(
+        { id: el.dataset.mid, at: new Date().toISOString(), sender: "bryan", kind: "reply", body: words });
+      $("mic").value = ""; drawStrip("");
+      $("work").scrollTop = 0;
+      $("leverCap").textContent = "SENT";
+      $("kick").innerHTML = `<b>CH 19</b> &nbsp;·&nbsp; ONE CHANNEL`;
+      setTimeout(() => {
+        $("leverCap").textContent = "KEY UP";
+        $("lever").disabled = true;
+      }, 900);
+    }, 60);
+    return;
+  }
+  buzz(HAPTIC.seat); tine();
+  const wasClose = node && node.kind === "close";
   lever.dataset.state = "";
   $("leverCap").textContent = wasClose ? "CLOSED" : "RECORDED";
   load(true);                                   // the figure moves because HE moved it
@@ -949,9 +1285,13 @@ function refuse(err){
   rail.animate({transform:["scaleX(1)","scaleX(0)"]},
     {duration:520, easing:EASE.refuse, fill:"forwards"});
   const w = $("whyLine"); w.hidden = false;
+  const isRadio = NODES[spin.pos] && NODES[spin.pos].kind === "radio";
+  if(isRadio) $("kick").innerHTML = `<b>CH 19</b> &nbsp;·&nbsp; ONE CHANNEL`;
   w.textContent = (err && (err.name === "AbortError" || String(err.message) === "timeout"))
-    ? "no answer from the spine in 9s — nothing was written"
-    : `the spine refused: ${err && err.message ? err.message : err} — nothing was written`;
+    ? (isRadio ? "no answer from the spine in 9s — nothing was sent"
+               : "no answer from the spine in 9s — nothing was written")
+    : (isRadio ? `the channel didn't take it: ${err && err.message ? err.message : err} — nothing was sent`
+               : `the spine refused: ${err && err.message ? err.message : err} — nothing was written`);
   /* The lamp does not change. Nothing in the world changed, so nothing in the light does. */
 }
 lever.addEventListener("pointerdown", leverDown);
@@ -982,10 +1322,12 @@ async function load(keepPos){
     grab("/api/learning").then(l => { State.learn = l; paint(); }).catch(()=>{});
     grab("/api/doctrine").then(d => { State.soul = d; paint(); }).catch(()=>{});
     grab("/api/push/held").then(h => { State.held = h; paint(); }).catch(()=>{});
+    grab("/api/messages").then(m => { State.radio = m; paint(); }).catch(()=>{});
     buildNodes();
     spin.pos = keepPos ? Math.min(at, NODES.length-1) : 0;
     spin.cont = TRAVEL[spin.pos];
     paint();
+    if(WANT_RADIO){ WANT_RADIO = false; swingToRadio(); }
   }catch(e){
     State.source = "stale";
     $("kick").textContent = "NO DATA";
