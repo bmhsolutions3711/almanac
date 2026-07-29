@@ -244,13 +244,62 @@ body.hot .tmin{color:var(--hot)}
    so both lists are usable at once (the whole point of the drag), and the
    charts sit under them rather than squeezing them to a caption. */
 .finscroll{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:3px;
-  display:flex;flex-direction:column;gap:9px}
+  display:flex;flex-direction:column;gap:10px}
 .finscroll::-webkit-scrollbar{width:0}
-.finmain{flex:0 0 auto;display:grid;gap:9px;
-  grid-template-columns:minmax(0,340px) minmax(0,1fr);
-  grid-template-rows:minmax(300px,52vh)}
-.finmain>.panel{min-height:0;overflow:hidden}
-@media(max-width:900px){.finmain{grid-template-columns:1fr;grid-template-rows:minmax(260px,42vh) minmax(260px,42vh)}}
+
+/* THE FLOOR, as Bryan drew it: expenses stand in a column on the left, the
+   loads are big open boxes across the top, and you drag a line into the box
+   that caused it. Summary underneath. */
+.floor{flex:0 0 auto;display:grid;gap:10px;grid-template-columns:minmax(0,300px) minmax(0,1fr)}
+@media(max-width:900px){.floor{grid-template-columns:1fr}}
+.floor>.panel{min-height:0}
+.exp{max-height:46vh;overflow-y:auto;padding-right:3px}
+.exp::-webkit-scrollbar{width:0}
+.eline{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline;
+  padding:8px 9px;border-bottom:1px dotted rgba(255,255,255,.09);cursor:grab;
+  border-radius:3px;transition:background .15s,opacity .15s}
+.eline:hover{background:rgba(var(--key),.08)}
+.eline.dragging{opacity:.3}
+.eline.locked{cursor:not-allowed;opacity:.4}
+.eline.locked:hover{background:transparent}
+.eline .em{font:600 12.5px/1.3 var(--sans);color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eline .ea{font:700 12.5px var(--mono);color:var(--ink)}
+.eline .ed{grid-column:1;font:400 10px/1.3 var(--mono);letter-spacing:.06em;
+  color:var(--etch);text-transform:uppercase}
+.eline.refused{border-color:var(--hot);background:rgba(255,59,24,.12)}
+
+.lanes{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;min-height:290px}
+.lanes::-webkit-scrollbar{height:5px}
+.lanes::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:3px}
+.lane{flex:0 0 254px;display:flex;flex-direction:column;border:1px solid var(--line);
+  border-radius:7px;background:rgba(255,255,255,.022);transition:all .18s}
+.lane.over{border-color:rgba(var(--key),1);background:rgba(var(--key),.11);
+  box-shadow:0 0 0 1px rgba(var(--key),.5) inset}
+.lane.deny{border-color:var(--hot);background:rgba(255,59,24,.09)}
+.lane .lh{padding:10px 11px 8px;border-bottom:1px solid var(--line)}
+.lane .lb{font:600 13px/1.25 var(--sans);color:var(--ink)}
+.lane .lr{float:right;font:700 13px var(--mono);color:var(--ink)}
+.lane .lm{margin-top:3px;font:400 10px/1.4 var(--mono);letter-spacing:.05em;
+  color:var(--etch);text-transform:uppercase;clear:both}
+.lane .lin{flex:1 1 auto;min-height:96px;padding:7px 9px;overflow-y:auto}
+.lane .lin::-webkit-scrollbar{width:0}
+.lane .empty{height:100%;display:grid;place-items:center;text-align:center;
+  font:400 11px/1.5 var(--sans);color:var(--etch);font-style:italic}
+.lane .drop-in{display:flex;justify-content:space-between;gap:8px;padding:5px 6px;
+  margin-bottom:4px;border-radius:3px;background:rgba(var(--key),.1);
+  border:1px solid rgba(var(--key),.26);cursor:pointer}
+.lane .drop-in:hover{background:rgba(255,59,24,.14);border-color:rgba(255,59,24,.5)}
+.lane .drop-in span{font:400 11px/1.3 var(--sans);color:var(--mid);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lane .drop-in b{font:700 11px var(--mono);color:var(--ink);flex:0 0 auto}
+.lane .lf{padding:8px 11px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lane .lf span{font:400 10px/1.3 var(--mono);letter-spacing:.06em;color:var(--etch);
+  text-transform:uppercase}
+.lane .lf b{font:700 15px var(--mono);color:rgba(var(--key),1)}
+.lane .lf b.dn{color:var(--hot)}
+
 .drop{flex:0 0 auto;border:1px dashed rgba(150,170,190,.3);border-radius:5px;padding:10px 12px;
   text-align:center;cursor:pointer;transition:all .2s;margin-bottom:8px}
 .drop:hover,.drop.over{border-color:rgba(var(--key),.7);background:rgba(var(--key),.07)}
@@ -278,27 +327,6 @@ body.hot .tmin{color:var(--hot)}
   padding:6px 9px;border-radius:3px;background:#12161c;border:1px solid var(--line);
   font:400 10.5px/1.4 var(--sans);color:var(--dim);box-shadow:0 10px 24px rgba(0,0,0,.7)}
 .card.locked:hover .why{display:block}
-
-.lbox{border:1px solid var(--line);border-radius:5px;padding:9px 11px;margin-bottom:6px;
-  background:rgba(255,255,255,.022);transition:all .18s}
-.lbox.over{border-color:rgba(var(--key),1);background:rgba(var(--key),.11);
-  box-shadow:0 0 0 1px rgba(var(--key),.5)}
-.lbox.deny{border-color:var(--hot);background:rgba(255,59,24,.08)}
-.lbox .lt{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
-.lbox .lb{font:600 12.5px/1.3 var(--sans);color:var(--ink)}
-.lbox .lr{font:700 12.5px var(--mono);color:var(--ink)}
-.lbox .lm{margin-top:2px;font:400 10.5px/1.4 var(--mono);letter-spacing:.05em;color:var(--etch);
-  text-transform:uppercase}
-.lbox .lnet{margin-top:6px;display:flex;justify-content:space-between;gap:9px;
-  padding-top:5px;border-top:1px dotted rgba(255,255,255,.09);
-  font:400 11px/1.4 var(--sans);color:var(--dim)}
-.lbox .lnet b{font:700 11.5px var(--mono);color:rgba(var(--key),1)}
-.lbox .pin{display:inline-flex;align-items:center;gap:5px;margin:4px 4px 0 0;padding:3px 7px;
-  border-radius:10px;background:rgba(var(--key),.12);border:1px solid rgba(var(--key),.3);
-  font:600 9.5px var(--mono);color:var(--ink);cursor:pointer}
-.lbox .pin:hover{background:rgba(255,59,24,.16);border-color:rgba(255,59,24,.5)}
-.lbox .pin i{font-style:normal;color:var(--etch)}
-.lbox .pin:hover i{color:var(--hot)}
 
 .chart{width:100%;display:block;overflow:visible}
 .ltab{width:100%;border-collapse:collapse;font:400 11.5px/1.4 var(--sans)}
@@ -349,6 +377,24 @@ body.hot .tmin{color:var(--hot)}
   font:700 7.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
 .hgrp button.on{background:rgba(var(--key),.16);color:rgba(var(--key),1)}
 .hgrp button:hover{color:var(--ink)}
+
+.recbar{margin-top:7px;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden}
+.recbar i{display:block;height:100%;background:rgba(var(--key),1);transition:width .8s cubic-bezier(.16,1,.3,1)}
+.recline{margin-top:7px;display:flex;gap:18px;flex-wrap:wrap;font:400 12px/1.5 var(--sans);color:var(--dim)}
+.recline b{font:700 13px var(--mono);color:var(--ink)}
+.recline b.hot{color:var(--hot)}
+.held{margin-top:9px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.hchip{font:600 10px/1 var(--mono);padding:5px 8px;border-radius:10px;cursor:help;
+  border:1px solid rgba(255,59,24,.35);background:rgba(255,59,24,.08);color:var(--mid)}
+.hchip b{color:var(--ink);font-weight:700}
+.basis{margin-top:11px;padding-top:9px;border-top:1px dotted rgba(255,255,255,.1)}
+.brow{display:grid;grid-template-columns:1fr auto minmax(0,190px);gap:12px;align-items:baseline;
+  padding:3px 0;font:400 12px/1.5 var(--sans);color:var(--dim)}
+.brow b{font:700 14px var(--mono);color:var(--ink);text-align:right}
+.brow b.key{color:rgba(var(--key),1)}
+.brow b.up{color:#00E676}.brow b.dn{color:var(--hot)}
+.brow i{font:400 10.5px/1.4 var(--mono);color:var(--etch);font-style:normal}
+.brow.tot{margin-top:5px;padding-top:6px;border-top:3px double rgba(255,255,255,.14);color:var(--ink)}
 
 .acts{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .act{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:11px 13px;
@@ -1242,63 +1288,115 @@ function finFloor(){
     <span class="nodata">${esc(State.fin.err || "the spine has not answered with the floor")}</span></div></div>`;
   const pool = (e.transactions || []).filter(t => t.sheet_row == null);
   const stale = l.mirror_stale_hours;
-  return `<div class="finscroll"><div class="finmain">
-    <div class="panel" style="min-height:0">
-      <div class="cap">the pool — ${e.pool_count} draggable · ${money(e.pool_total || 0)}</div>
-      <div class="scroll" style="margin-top:7px">
+  return `<div class="finscroll">
+    <div class="floor">
+      <div class="panel">
+        <div class="cap">expenses — ${e.pool_count} to place · ${money(e.pool_total || 0)}</div>
         <div class="drop" id="dropCsv">
           <div class="dl">drop a transactions csv</div>
-          <div class="ds">LoadPay or PNC · deduped by the importer, never twice</div></div>
+          <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
         <div class="drop" id="dropShot" tabindex="0">
           <div class="dl">balances &amp; statements</div>
-          <div class="ds">click then ⌘V, or drop an image — balance or transactions</div></div>
-        ${pool.length ? pool.map(finCard).join("")
-          : `<p class="nodata">nothing in the window</p>`}
-        ${e.blind_days ? `<div class="cap" style="margin-top:10px">spend known through ${
-          esc(e.txn_through || "?")} · ${e.blind_days} day${e.blind_days===1?"":"s"} not yet visible —
-          incomplete, not zero</div>` : ""}
+          <div class="ds">click then &#8984;V, or drop an image</div></div>
+        <div class="exp" style="margin-top:7px">${
+          pool.length ? pool.map(finLine).join("")
+            : `<p class="nodata">nothing in the window</p>`}</div>
+        ${e.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
+          known through ${esc(e.txn_through||"?")} · ${e.blind_days} day${
+          e.blind_days===1?"":"s"} not imported</div>` : ""}
+      </div>
+      <div class="panel">
+        <div class="cap">the loads — ${(l.loads||[]).length} in ${esc(FIN.period)} · ${
+          money(l.revenue || 0)} earned${stale != null && stale > 6
+            ? ` · <span style="color:var(--hot)">mirror ${stale}h old</span>` : ""}</div>
+        <div class="lanes" id="loadZone" style="margin-top:7px">${
+          (l.loads||[]).length ? (l.loads||[]).map(ld => finLane(ld, ro)).join("")
+            : `<p class="nodata">no loads delivered in this window</p>`}</div>
       </div>
     </div>
-    <div class="panel" style="min-height:0">
-      <div class="cap">the loads — ${(l.loads||[]).length} in ${esc(FIN.period)} · ${
-        money(l.revenue || 0)} earned${stale != null && stale > 6
-          ? ` · <span style="color:var(--hot)">mirror ${stale}h old</span>` : ""}</div>
-      <div class="scroll" style="margin-top:7px" id="loadZone">
-        ${(l.loads||[]).length ? (l.loads||[]).map(ld => finLoadBox(ld, ro)).join("")
-          : `<p class="nodata">no loads delivered in this window</p>`}
-      </div>
-    </div>
-  </div>${finCharts()}</div>`;
+    ${finReconcile()}${finCharts()}</div>`;
 }
 
-function finCard(t){
+/* one expense, as a line you drag */
+function finLine(t){
   const lock = !!t.undraggable_because;
-  return `<div class="card${lock?" locked":""}" data-txn="${t.id}" ${lock?"":'draggable="true"'}>
-    <div class="ct"><div class="cm">${esc(t.merchant || t.description || "—")}</div>
-      <div class="ca">${money(t.amount)}</div></div>
-    <div class="cs">${esc(t.date)} · ${esc(t.category || "uncategorized")}${
-      t.status === "pending" ? " · pending" : ""}</div>
-    ${lock ? `<div class="why" style="border-left:0;background:#12161c">${
-      esc(t.undraggable_because)}</div>` : ""}</div>`;
+  return `<div class="eline${lock?" locked":""}" data-txn="${t.id}" ${lock?`title="${
+    esc(t.undraggable_because)}"`:'draggable="true"'}>
+    <div class="em">${esc(t.merchant || t.description || "—")}</div>
+    <div class="ea">${money(t.amount)}</div>
+    <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}</div></div>`;
 }
 
-function finLoadBox(ld, ro){
+/* one load, as an open box you drop into */
+function finLane(ld, ro){
   const row = ro && (ro.loads||[]).find(x => x.sheet_row === ld.sheet_row);
-  const cost = row ? row.assigned_cost : 0, net = row ? row.net : null;
-  const pins = row ? (row.assigned_txn_ids || []) : [];
-  const cats = row ? row.cost_by_category || {} : {};
-  return `<div class="lbox" data-row="${ld.sheet_row}">
-    <div class="lt"><div class="lb">${esc(ld.broker || "—")}</div>
-      <div class="lr">${money(ld.rate || 0)}</div></div>
-    <div class="lm">${esc(ld.pickup_city||"?")} → ${esc(ld.delivery_city||"?")}${
-      ld.delivery_state ? ", " + esc(ld.delivery_state) : ""} · ${esc(ld.delivery_date||"")}</div>
-    ${pins.length ? `<div>${Object.entries(cats).map(([c,v]) =>
-      `<span class="pin" data-row="${ld.sheet_row}" data-cat="${esc(c)}">${esc(c)} ${
-        money(v)}</span>`).join("")}</div>` : ""}
-    <div class="lnet"><span>${cost ? money(cost) + " dragged on" : "nothing attributed yet"}${
-      row && row.fee != null ? " · fee " + money(row.fee) : ""}${
-      row && row.trip_accrual ? " · accrual " + money(row.trip_accrual) : ""}</span>
-      <b>${net == null ? "——" : money(net)}</b></div>
+  const net = row ? row.net : null;
+  const ids = row ? (row.assigned_txn_ids || []) : [];
+  const txns = State.fin.expenses ? (State.fin.expenses.transactions||[]) : [];
+  const inside = ids.map(id => txns.find(t => t.id === id)).filter(Boolean);
+  return `<div class="lane" data-row="${ld.sheet_row}">
+    <div class="lh"><span class="lr">${money(ld.rate || 0)}</span>
+      <div class="lb">${esc(ld.broker || "—")}</div>
+      <div class="lm">${esc(ld.pickup_city||"?")} &rarr; ${esc(ld.delivery_city||"?")}${
+        ld.delivery_state ? ", " + esc(ld.delivery_state) : ""}<br>${esc(ld.delivery_date||"")}</div></div>
+    <div class="lin">${inside.length ? inside.map(t =>
+      `<div class="drop-in" data-txn="${t.id}" title="click to take it back off">
+        <span>${esc(t.merchant || t.category || "—")}</span><b>${money(t.amount)}</b></div>`).join("")
+      : `<div class="empty">drag an expense here</div>`}
+      ${row && row.fee != null ? `<div class="drop-in" style="opacity:.6;cursor:default">
+        <span>factoring fee</span><b>${money(row.fee)}</b></div>` : ""}
+      ${row && row.trip_accrual ? `<div class="drop-in" style="opacity:.6;cursor:default">
+        <span>trip accrual</span><b>${money(row.trip_accrual)}</b></div>` : ""}</div>
+    <div class="lf"><span>net</span><b class="${net != null && net < 0 ? "dn" : ""}">${
+      net == null ? "——" : money(net)}</b></div>
+  </div>`;
+}
+
+/* SUMMARY — the month reconciled on real data. Every figure comes from
+   finroom's reconciliation block; the page adds nothing. It also names the
+   basis problem out loud: the gauge above measures ACTUAL revenue against a
+   line built from a road PROJECTION. For a month you are standing in, that
+   mixes bases — so the line on actually-spent road is shown BESIDE the served
+   one, never in place of it. Changing the producer is Bryan's ruling. */
+function finReconcile(){
+  const ro = State.fin.rollup, ex = State.fin.expenses, sm = State.fin.summary;
+  const R = ro && ro.reconciliation;
+  if(!R) return "";
+  const m = (sm && sm.the_month) || {};
+  const served = m.breakeven;
+  const onActual = R.break_even_actual, over = R.over_under_actual, rev = R.revenue;
+  const pct = R.road_actual ? Math.round(100 * (R.attributed||0) / R.road_actual) : 0;
+  const H = R.held_out || {};
+  const chip = (k, v, why) => !v ? "" :
+    `<span class="hchip" title="${esc(why)}">${esc(k)} <b>${money(v)}</b></span>`;
+  return `<div class="panel" style="flex:0 0 auto">
+    <div class="cap">summary — ${esc(FIN.period)} on real data</div>
+    <div class="recbar"><i style="width:${pct}%"></i></div>
+    <div class="recline">
+      <span><b>${money(R.attributed||0)}</b> placed on loads</span>
+      <span><b class="${R.unattributed > 0 ? "hot" : ""}">${money(R.unattributed||0)}</b> still to place</span>
+      <span>of <b>${money(R.road_actual||0)}</b> road, actual</span>
+    </div>
+    ${(H.cash || H.personal_road || H.uncategorized) ? `<div class="held">
+      <span class="cap">held out of every load — rule on these and the month closes honestly</span>
+      ${chip("cash", H.cash, "what it bought on the road is unknown until you itemize it")}
+      ${chip("tagged personal", H.personal_road, "road categories MI auto-tagged personal — flip its pin if that is wrong")}
+      ${chip("uncategorized", H.uncategorized, "no category yet, so no lane")}
+    </div>` : ""}
+    ${ex && ex.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
+      spend known only through ${esc(ex.txn_through)} — ${ex.blind_days} day${
+      ex.blind_days===1?"":"s"} not yet imported. incomplete, not zero.</div>` : ""}
+    <div class="basis">
+      <div class="brow"><span>break-even as served</span><b>${served == null ? "——" : money(served)}</b>
+        <i>nut + road PROJECTION</i></div>
+      <div class="brow"><span>break-even on this month's actual road</span>
+        <b class="key">${onActual == null ? "——" : money(onActual)}</b>
+        <i>nut + ${money(R.road_actual||0)} actually spent</i></div>
+      ${over != null ? `<div class="brow tot">
+        <span>${esc((m.month_name||"month"))} earned ${money(rev)} — against the actual line</span>
+        <b class="${over >= 0 ? "up" : "dn"}">${over >= 0 ? "+" : "−"}${
+          money(Math.abs(over))}</b><i></i></div>` : ""}
+    </div>
   </div>`;
 }
 
@@ -1676,41 +1774,33 @@ function wireFin(){
   if(FIN.view === "hold"){ paintHold(); wireHold(); return; }
   if(FIN.view !== "floor") return;
 
-  /* the drag: one card, one load, one write */
-  R.querySelectorAll(".card[draggable]").forEach(c => {
-    c.addEventListener("dragstart", e => {
+  /* the drag: one expense line, one load box, one write */
+  R.querySelectorAll(".eline[draggable]").forEach(c => {
+    c.addEventListener("dragstart", ev => {
       FIN.drag = c.dataset.txn; c.classList.add("dragging");
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", c.dataset.txn);
+      ev.dataTransfer.effectAllowed = "move";
+      ev.dataTransfer.setData("text/plain", c.dataset.txn);
     });
     c.addEventListener("dragend", () => { c.classList.remove("dragging"); FIN.drag = null; });
   });
-  R.querySelectorAll(".lbox").forEach(z => {
-    z.addEventListener("dragover", e => { e.preventDefault(); z.classList.add("over"); });
+  R.querySelectorAll(".lane").forEach(z => {
+    z.addEventListener("dragover", ev => { ev.preventDefault(); z.classList.add("over"); });
     z.addEventListener("dragleave", () => z.classList.remove("over"));
-    z.addEventListener("drop", async e => {
-      e.preventDefault(); z.classList.remove("over");
-      const txn = e.dataTransfer.getData("text/plain") || FIN.drag;
+    z.addEventListener("drop", async ev => {
+      ev.preventDefault(); z.classList.remove("over");
+      const txn = ev.dataTransfer.getData("text/plain") || FIN.drag;
       if(txn) await assignTxn(Number(txn), Number(z.dataset.row), z);
     });
   });
-  /* a pin is a write in reverse — tap it to take the cost back off the load */
-  R.querySelectorAll(".lbox .pin").forEach(p => p.addEventListener("click", async () => {
-    const row = Number(p.dataset.row), cat = p.dataset.cat;
-    const ro = State.fin.rollup, L = ro && (ro.loads||[]).find(x => x.sheet_row === row);
-    if(!L) return;
-    const ids = (L.assigned_txn_ids||[]).filter(id => {
-      const t = (State.fin.expenses.transactions||[]).find(x => x.id === id);
-      return t && t.category === cat;
-    });
-    for(const id of ids) await assignTxn(id, null, p.closest(".lbox"));
-  }));
+  /* click something already in a box to take it back out */
+  R.querySelectorAll(".lane .drop-in[data-txn]").forEach(p =>
+    p.addEventListener("click", () => assignTxn(Number(p.dataset.txn), null, p.closest(".lane"))));
 
   wireIntake();
 }
 
 async function assignTxn(txn_id, sheet_row, box){
-  const card = $("room").querySelector(`.card[data-txn="${txn_id}"]`);
+  const card = $("room").querySelector(`.eline[data-txn="${txn_id}"]`);
   card && card.classList.add("writing");
   try{
     const r = await fetch(url("/api/fin/assign"), {
