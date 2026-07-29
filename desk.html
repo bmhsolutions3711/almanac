@@ -614,6 +614,92 @@ function layout(){
       o.el.style.top  = (o.fy/100*H) + "px";
     }
   });
+  if(!entered) separate();
+}
+
+/* NOTHING MAY COVER ANYTHING (2026-07-28, Bryan: "should be able to read all
+   orbs"). The composition in D is hand-placed and stays hand-placed — this
+   only ENFORCES what that composition assumes.
+
+   Why it drifted: the seed positions are percentages of the viewport, the
+   balls are fixed pixels, and the label under each is white-space:nowrap and
+   changes LENGTH WITH THE DATA. "$199.53 TO GO" is far wider than "——", and
+   "4 IN QA · 22 OPEN" grows as the board does. So a field that reads perfectly
+   at one viewport with one set of numbers collides at another — the layout had
+   no idea how big anything actually was.
+
+   So: measure the real rendered box of each orb (ball + name + signal line),
+   then push overlapping pairs apart along their axis of least penetration and
+   clamp everyone inside the field. Deterministic, no randomness, and it settles
+   in a few passes. If the field is genuinely too small to hold them all, the
+   balls shrink rather than the labels colliding — unreadable is a failure,
+   smaller is not. */
+function separate(){
+  const W = innerWidth, H = fieldH(), GAP = 14, EDGE = 6;
+  const box = D.map(o => ({ w: o.el.offsetWidth, h: o.el.offsetHeight }));
+  if(box.some(b => !b.w || !b.h)) return;   // not laid out yet; paintField re-runs this
+
+  // If the footprints cannot fit the field, shrink the BALLS until they can.
+  // Labels never shrink — a number you cannot read is the whole defect.
+  const need = box.reduce((a,b) => a + (b.w+GAP)*(b.h+GAP), 0);
+  const room = Math.max(1, W*H) * 0.62;          // packing is never perfect
+  if(need > room){
+    const k = Math.max(0.45, Math.sqrt(room/need));
+    D.forEach(o => { const b = o.el.querySelector(".ball");
+      b.style.width = b.style.height = Math.round(o.r*k) + "px"; });
+    D.forEach((o,i) => { box[i] = { w: o.el.offsetWidth, h: o.el.offsetHeight }; });
+  }
+
+  /* ORBS ARE NOT THE ONLY THING ON THE FIELD. The consider card — the one
+     thing the spine puts in front of him — is opaque and sits over the same
+     space, and the core carries the spine's own line. Both were covering orb
+     labels in the field Bryan photographed. They are obstacles here, not
+     afterthoughts: an orb pushed off a label is fixed, an orb buried under a
+     panel is still unreadable. */
+  const fr = field.getBoundingClientRect();
+  const obstacles = [];
+  for(const sel of [".consider", ".core"]){
+    const el = document.querySelector(sel);
+    if(!el || el.hidden) continue;
+    const r = el.getBoundingClientRect();
+    if(!r.width || !r.height) continue;
+    obstacles.push({ x: r.left - fr.left + r.width/2, y: r.top - fr.top + r.height/2,
+                     w: r.width, h: r.height });
+  }
+
+  const pos = D.map(o => ({ x: parseFloat(o.el.style.left) || 0,
+                            y: parseFloat(o.el.style.top)  || 0 }));
+  const clamp = i => {
+    pos[i].x = Math.min(W - box[i].w/2 - EDGE, Math.max(box[i].w/2 + EDGE, pos[i].x));
+    pos[i].y = Math.min(H - box[i].h/2 - EDGE, Math.max(box[i].h/2 + EDGE, pos[i].y));
+  };
+  for(let pass = 0; pass < 200; pass++){
+    let moved = false;
+    for(let i = 0; i < D.length; i++){
+      for(let j = i+1; j < D.length; j++){
+        const dx = pos[j].x - pos[i].x, dy = pos[j].y - pos[i].y;
+        const mw = (box[i].w + box[j].w)/2 + GAP, mh = (box[i].h + box[j].h)/2 + GAP;
+        const ox = mw - Math.abs(dx), oy = mh - Math.abs(dy);
+        if(ox <= 0 || oy <= 0) continue;          // already clear on one axis
+        moved = true;
+        if(ox < oy){ const s = (dx < 0 ? -1 : 1) * ox/2; pos[i].x -= s; pos[j].x += s; }
+        else       { const s = (dy < 0 ? -1 : 1) * oy/2; pos[i].y -= s; pos[j].y += s; }
+      }
+      // obstacles do not move; the orb yields entirely
+      for(const ob of obstacles){
+        const dx = pos[i].x - ob.x, dy = pos[i].y - ob.y;
+        const mw = (box[i].w + ob.w)/2 + GAP, mh = (box[i].h + ob.h)/2 + GAP;
+        const ox = mw - Math.abs(dx), oy = mh - Math.abs(dy);
+        if(ox <= 0 || oy <= 0) continue;
+        moved = true;
+        if(ox < oy) pos[i].x += (dx < 0 ? -1 : 1) * ox;
+        else        pos[i].y += (dy < 0 ? -1 : 1) * oy;
+      }
+    }
+    for(let i = 0; i < D.length; i++) clamp(i);
+    if(!moved) break;
+  }
+  D.forEach((o,i) => { o.el.style.left = pos[i].x + "px"; o.el.style.top = pos[i].y + "px"; });
 }
 layout();
 addEventListener("resize", () => { clearTimeout(window.__l);
@@ -682,7 +768,15 @@ function paintField(){
     o.el.querySelector(".sig").innerHTML = sig[i][2];
   });
   $("hand").textContent = needs != null && needs > 0 ? needs + " NEED YOUR HAND" : "";
+  /* Consider FIRST, then settle. The signal lines just changed WIDTH
+     ("$199.53 TO GO" is wider than the "…" they were seeded with, and wider
+     again than "——") and the consider card just changed HEIGHT — a two-line
+     question is taller than a one-line one. Settling before either is drawn
+     measures the wrong field, which is exactly how the overlap Bryan caught
+     got in: it read clean on first paint and collided once real numbers and a
+     real question arrived. */
   paintConsider();
+  if(!stage.classList.contains("entered")) separate();
 }
 
 /* the ONE thing the spine puts in front of him — chosen by a stated rule,
