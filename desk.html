@@ -318,6 +318,25 @@ body.hot .tmin{color:var(--hot)}
 .lane .lf b{font:700 15px var(--mono);color:rgba(var(--key),1)}
 .lane .lf b.dn{color:var(--hot)}
 
+/* MONTHLY stands apart from the loads — it is the other half of the month,
+   not another load. Same box, different metal. */
+.lane.monthly{flex:0 0 262px;border-color:rgba(var(--key),.4);
+  background:linear-gradient(180deg,rgba(var(--key),.07),rgba(255,255,255,.02))}
+.lane.monthly .lb{color:rgba(var(--key),1);letter-spacing:.16em;font-weight:700;font-size:12px}
+.lane.monthly.over{border-color:rgba(var(--key),1);background:rgba(var(--key),.15)}
+.ask{display:flex;flex-direction:column;gap:5px}
+.ask .at{font:600 11.5px/1.4 var(--sans);color:var(--ink);margin-bottom:2px}
+.acand{display:grid;grid-template-columns:1fr auto;gap:1px 8px;text-align:left;
+  padding:6px 8px;border-radius:4px;cursor:pointer;font:inherit;
+  border:1px solid rgba(var(--key),.3);background:rgba(var(--key),.08);color:var(--ink)}
+.acand:hover{background:rgba(var(--key),.2);border-color:rgba(var(--key),.8)}
+.acand span{font:600 11.5px/1.3 var(--sans);color:var(--ink)}
+.acand b{font:700 11.5px var(--mono);color:var(--ink)}
+.acand i{grid-column:1/-1;font:400 9.5px/1.3 var(--mono);color:var(--etch);font-style:normal}
+.acand.cancel{grid-template-columns:1fr;border-color:var(--line);background:transparent;
+  color:var(--dim);font:400 10.5px/1.3 var(--sans)}
+.eline.writing{opacity:.5}
+
 .drop{flex:0 0 auto;border:1px dashed rgba(150,170,190,.3);border-radius:5px;padding:10px 12px;
   text-align:center;cursor:pointer;transition:all .2s;margin-bottom:8px}
 .drop:hover,.drop.over{border-color:rgba(var(--key),.7);background:rgba(var(--key),.07)}
@@ -1131,7 +1150,7 @@ function radioRoom(){
    that caused it; HOLD is the month's obligations as stones; LEDGER is what
    is standing, unchanged from the room this replaced. The strip sits above
    all three and never changes with the period toggle — the nut is monthly. */
-const FIN = { period:"month", view:"floor", group:"all", pick:null, drag:null };
+const FIN = { period:"month", view:"floor", group:"all", pick:null, drag:null, ask:null };
 
 function ledgerRoom(){
   return whyBar() + `<div class="fin">
@@ -1304,12 +1323,18 @@ function finFloor(){
   const e = State.fin.expenses, l = State.fin.loads, ro = State.fin.rollup;
   if(!e || !l) return `<div class="panel" style="flex:1"><div class="gen">
     <span class="nodata">${esc(State.fin.err || "the spine has not answered with the floor")}</span></div></div>`;
-  const pool = (e.transactions || []).filter(t => t.sheet_row == null);
+  /* EVERY transaction in the window, not a filtered pool. Bryan, 2026-07-29:
+     "all of the transactions for July in a column." A row he cannot see is a
+     row he cannot reconcile, and the whole point of this floor is that the
+     month ends with nothing left unaccounted for. Placed rows stay visible,
+     marked, so the column is a checklist rather than a shrinking mystery. */
+  const all = (e.transactions || []);
   const stale = l.mirror_stale_hours;
   return `<div class="finscroll">
     <div class="floor">
       <div class="panel">
-        <div class="cap">expenses — ${e.pool_count} to place · ${money(e.pool_total || 0)}</div>
+        <div class="cap">july — ${all.length} transactions · ${
+          e.pool_count} still to place · ${money(e.pool_total || 0)}</div>
         <div class="drop" id="dropCsv">
           <div class="dl">drop a transactions csv</div>
           <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
@@ -1317,7 +1342,7 @@ function finFloor(){
           <div class="dl">balances &amp; statements</div>
           <div class="ds">click then &#8984;V, or drop an image</div></div>
         <div class="exp" style="margin-top:7px">${
-          pool.length ? pool.map(finLine).join("")
+          all.length ? all.map(finLine).join("")
             : `<p class="nodata">nothing in the window</p>`}</div>
         ${e.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
           known through ${esc(e.txn_through||"?")} · ${e.blind_days} day${
@@ -1327,7 +1352,7 @@ function finFloor(){
         <div class="cap">the loads — ${(l.loads||[]).length} in ${esc(FIN.period)} · ${
           money(l.revenue || 0)} earned${stale != null && stale > 6
             ? ` · <span style="color:var(--hot)">mirror ${stale}h old</span>` : ""}</div>
-        <div class="lanes" id="loadZone" style="margin-top:7px">${
+        <div class="lanes" id="loadZone" style="margin-top:7px">${finMonthlyBox()}${
           (l.loads||[]).length ? (l.loads||[]).map(ld => finLane(ld, ro)).join("")
             : `<p class="nodata">no loads delivered in this window</p>`}</div>
       </div>
@@ -1343,6 +1368,49 @@ function finLine(t){
     <div class="em">${esc(t.merchant || t.description || "—")}</div>
     <div class="ea">${money(t.amount)}</div>
     <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}</div></div>`;
+}
+
+/* THE MONTHLY BOX — Bryan, 2026-07-29: "have a box for Monthly and i will drag
+   any monthly in. when i drag it in, it is paid for that month."
+
+   It stands first among the boxes because it is the other half of the month:
+   the loads say what the freight cost, this says what the BUSINESS cost — and
+   until now nothing joined "what the nut says I owe" to "what actually left the
+   bank." A drop is a real financial write, so it goes through the one sanctioned
+   writer, and when the transaction does not name one bill beyond doubt the box
+   asks instead of guessing. */
+function finMonthlyBox(){
+  const s = State.standings;
+  const pay = s ? [...(s.standings||[]), ...(s.tape||[])].filter(x => x.kind === "pay") : [];
+  const settled = pay.filter(x => x.state === "settled");
+  const open = pay.filter(x => x.state !== "settled");
+  const owed = open.reduce((a,x) => a + (x.amount||0), 0);
+  const ask = FIN.ask;                       // a drop the spine handed back to him
+  return `<div class="lane monthly" data-row="monthly">
+    <div class="lh"><span class="lr">${money(settled.reduce((a,x)=>a+(x.amount||0),0))}</span>
+      <div class="lb">MONTHLY</div>
+      <div class="lm">the nut · ${settled.length} of ${pay.length} recorded${
+        owed ? ` · ${money(owed)} still open` : ""}</div></div>
+    <div class="lin">${ask ? `<div class="ask">
+        <div class="at">which bill did ${esc(ask.txn.merchant || "this")} ${
+          money(ask.txn.amount)} pay?</div>
+        ${ask.candidates.map(c => `<button class="acand" data-txn="${ask.txn.id}"
+          data-bt="${esc(c.bill_type)}" data-bid="${esc(c.bill_id)}">
+          <span>${esc(c.name)}</span><b>${money(c.due)}</b>
+          <i>${esc(c.why)}</i></button>`).join("")}
+        <button class="acand cancel">none of these — put it back</button>
+      </div>` : (open.length ? open.slice(0,7).map(x =>
+        `<div class="drop-in" style="cursor:default;opacity:.75"
+           title="${esc(x.sub || "")}"><span>${esc(x.title)}</span>
+           <b>${x.amount == null ? "——" : money(x.amount)}</b></div>`).join("")
+        + (open.length > 7 ? `<div class="cap" style="margin-top:5px">+${
+             open.length-7} more open</div>` : "")
+        : `<div class="empty">drag a monthly bill here<br>and it is paid for ${
+             esc((State.fin.summary&&State.fin.summary.the_month&&
+                  State.fin.summary.the_month.month_name)||"the month")}</div>`)}</div>
+    <div class="lf"><span>${open.length ? "still open" : "all recorded"}</span>
+      <b class="${owed ? "dn" : ""}">${owed ? money(owed) : "clear"}</b></div>
+  </div>`;
 }
 
 /* one load, as an open box you drop into */
@@ -1807,14 +1875,66 @@ function wireFin(){
     z.addEventListener("drop", async ev => {
       ev.preventDefault(); z.classList.remove("over");
       const txn = ev.dataTransfer.getData("text/plain") || FIN.drag;
-      if(txn) await assignTxn(Number(txn), Number(z.dataset.row), z);
+      if(!txn) return;
+      if(z.dataset.row === "monthly") await payMonthly(Number(txn), null, null, z);
+      else await assignTxn(Number(txn), Number(z.dataset.row), z);
     });
   });
   /* click something already in a box to take it back out */
   R.querySelectorAll(".lane .drop-in[data-txn]").forEach(p =>
     p.addEventListener("click", () => assignTxn(Number(p.dataset.txn), null, p.closest(".lane"))));
 
+  /* the monthly box asked which bill; his tap is the answer and the write */
+  R.querySelectorAll(".lane.monthly .acand").forEach(b =>
+    b.addEventListener("click", () => {
+      if(b.classList.contains("cancel")){ FIN.ask = null; renderRoom(); return; }
+      payMonthly(Number(b.dataset.txn), b.dataset.bt, b.dataset.bid, b.closest(".lane"));
+    }));
+
   wireIntake();
+}
+
+/* A drop on MONTHLY asserts a bill was paid. Same refusal doctrine as every
+   other write here — but with a third outcome the load boxes do not have: the
+   spine can come back and ASK. A 409 is not a failure, it is the machine
+   refusing to guess which bill this was; the box then shows the candidates and
+   his tap becomes the write. Nothing is recorded until he answers. */
+async function payMonthly(txn_id, bill_type, bill_id, box){
+  const card = $("room").querySelector(`.eline[data-txn="${txn_id}"]`);
+  card && card.classList.add("writing");
+  try{
+    const r = await fetch(url("/api/fin/monthly"), {
+      method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({txn_id, bill_type, bill_id})});
+    const out = await r.json().catch(() => ({}));
+    if(r.status === 409 && out.ask){
+      FIN.ask = {txn: out.txn, candidates: out.candidates};
+      card && card.classList.remove("writing");
+      renderRoom();
+      finSay(`which bill did this pay? nothing recorded yet`, "ask");
+      return false;
+    }
+    if(!r.ok){
+      card && (card.classList.remove("writing"), card.classList.add("refused"));
+      box && (box.classList.add("deny"), setTimeout(() => box.classList.remove("deny"), 1400));
+      finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true);
+      setTimeout(() => card && card.classList.remove("refused"), 1400);
+      return false;
+    }
+    FIN.ask = null;
+    await loadFin();
+    try{ State.standings = await grab("/api/standings"); }catch(_){}
+    renderRoom();
+    finSay(out.already
+      ? `${out.name} was already recorded paid for ${out.cycle_key}`
+      : `${out.name} recorded paid for ${out.cycle_key} — ${money(out.amount)}`, false);
+    return true;
+  }catch(e){
+    card && (card.classList.remove("writing"), card.classList.add("refused"));
+    finSay("the spine did not answer — nothing was written: " + (e.message||e), true);
+    setTimeout(() => card && card.classList.remove("refused"), 1400);
+    return false;
+  }
 }
 
 async function assignTxn(txn_id, sheet_row, box){
@@ -1850,10 +1970,16 @@ async function assignTxn(txn_id, sheet_row, box){
   }
 }
 
-function finSay(msg, bad){
+/* THREE states, because two was a lie. The monthly box can come back ASKING —
+   nothing written, nothing refused — and stamping that "WRITTEN" put the one
+   word that means a record exists on top of the sentence "nothing recorded
+   yet". On a money surface that is the worst available defect. Pass "ask" for
+   the question, true for a refusal, false for a real write. */
+function finSay(msg, state){
   const w = $("room").querySelector(".why");
   if(!w) return;
-  w.innerHTML = `<span class="tag">${bad ? "REFUSED" : "WRITTEN"}</span><span>${esc(msg)}</span>`;
+  const tag = state === "ask" ? "ASKING" : state ? "REFUSED" : "WRITTEN";
+  w.innerHTML = `<span class="tag">${tag}</span><span>${esc(msg)}</span>`;
 }
 
 /* ── the intake: same doors bik has, new mouth ─────────────────────── */
