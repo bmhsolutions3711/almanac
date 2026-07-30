@@ -54,7 +54,17 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
   background-size:132px 132px}
 .stage{position:relative;z-index:2;width:100%;height:100vh;display:flex;flex-direction:column}
 
-.bar{flex:0 0 auto;display:flex;align-items:center;gap:18px;padding:16px 26px}
+.bar{flex:0 0 auto;display:flex;align-items:center;gap:18px;padding:16px 26px;
+  transition:padding .5s cubic-bezier(.22,.61,.36,1)}
+/* INSIDE A ROOM THE MASTHEAD STANDS DOWN. Bryan, 2026-07-29: "reduce the size
+   of top bar to give more real-estate for the info below." On the field the
+   chrome is the frame; in a room it is a nameplate over the work, and every
+   pixel it holds is a pixel of ledger he cannot see. The orb rail shrinks with
+   it — the orbs stay reachable, they just stop being the subject. */
+.stage.entered .bar{padding:7px 26px 6px}
+.stage.entered .wm{font-size:11.5px;letter-spacing:.3em}
+.stage.entered .bar .d,.stage.entered .bar .hand{font-size:8.5px}
+.stage.entered .why{padding:6px 12px;font-size:11.5px}
 .wm{font:700 14px/1 var(--mono);letter-spacing:.38em}
 .bar .d{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
 .bar .hand{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--amber)}
@@ -345,6 +355,22 @@ body.hot .tmin{color:var(--hot)}
 .eline .ed{grid-column:1;font:400 10px/1.3 var(--mono);letter-spacing:.06em;
   color:var(--etch);text-transform:uppercase}
 .eline.refused{border-color:var(--hot);background:rgba(255,59,24,.12)}
+.eline.done{opacity:.62}
+.eline.done .em{color:var(--mid)}
+.ep{grid-column:1/-1;font:600 9.5px/1.3 var(--mono);letter-spacing:.05em;color:rgba(var(--key),1)}
+.ep.auto{color:var(--etch)}
+.ep.auto::before{content:"◇ "}
+.ep:not(.auto)::before{content:"◆ "}
+.stab{display:flex;gap:6px;margin:7px 0 2px}
+.stab button{flex:1 1 auto;font:700 9.5px/1 var(--mono);letter-spacing:.12em;
+  text-transform:uppercase;padding:8px 6px;border-radius:4px;cursor:pointer;
+  border:1px solid rgba(var(--key),.5);background:rgba(var(--key),.13);color:var(--ink)}
+.stab button:hover:not(:disabled){background:rgba(var(--key),.26)}
+.stab button:disabled{opacity:.4;cursor:wait}
+.stab button.ghost{flex:0 0 auto;border-color:var(--line);background:transparent;color:var(--dim)}
+.drop-in.auto{border-style:dashed;opacity:.85}
+.pt{font-style:normal;font-size:8.5px;letter-spacing:.1em;color:var(--etch);
+  border:1px solid var(--line);border-radius:2px;padding:0 3px;margin-left:3px}
 
 .lanes{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;min-height:290px}
 .lanes::-webkit-scrollbar{height:5px}
@@ -738,19 +764,25 @@ D.forEach((o,i) => {
   host.appendChild(el);
   o.el = el;
 });
-function fieldH(){ return stage.classList.contains("entered") ? 96 : Math.round(innerHeight*0.72); }
+/* 96 -> 72 in a room, and lower still on a short screen: the orb rail is
+   navigation once he is working, not the view. Every pixel here is a pixel of
+   ledger. */
+function fieldH(){
+  if(!stage.classList.contains("entered")) return Math.round(innerHeight*0.72);
+  return innerHeight <= 620 ? 56 : innerHeight <= 820 ? 64 : 72;
+}
 function layout(){
   const entered = stage.classList.contains("entered");
   const W = innerWidth, H = fieldH();
   field.style.height = H + "px";
   D.forEach((o,i) => {
-    const r = entered ? 44 : o.r;
+    const r = entered ? (H <= 60 ? 26 : H <= 68 ? 30 : 34) : o.r;
     const b = o.el.querySelector(".ball");
     b.style.width = r + "px"; b.style.height = r + "px";
     if(entered){
       const n = D.length, span = Math.min(W*0.62, 660), x0 = W/2 - span/2;
       o.el.style.left = (x0 + (i+0.5)*(span/n)) + "px";
-      o.el.style.top  = "48px";
+      o.el.style.top  = Math.round(H/2) + "px";
     } else {
       o.el.style.left = (o.fx/100*W) + "px";
       o.el.style.top  = (o.fy/100*H) + "px";
@@ -1401,11 +1433,16 @@ function finFloor(){
      marked, so the column is a checklist rather than a shrinking mystery. */
   const all = (e.transactions || []);
   const stale = l.mirror_stale_hours;
+  const m0 = (State.fin.summary && State.fin.summary.the_month) || {};
   return `<div class="finscroll">
     <div class="floor">
       <div class="panel">
-        <div class="cap">july — ${all.length} transactions · ${
-          e.pool_count} still to place · ${money(e.pool_total || 0)}</div>
+        <div class="cap">${esc((m0.month_name||"the window").toLowerCase())} — ${
+          all.length} transactions · ${e.pool_count} still to place · ${money(e.pool_total || 0)}</div>
+        <div class="stab">
+          <button id="placeAll">place them for me</button>
+          <button id="clearAuto" class="ghost">clear the machine's</button>
+        </div>
         <div class="drop" id="dropCsv">
           <div class="dl">drop a transactions csv</div>
           <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
@@ -1434,11 +1471,21 @@ function finFloor(){
 /* one expense, as a line you drag */
 function finLine(t){
   const lock = !!t.undraggable_because;
-  return `<div class="eline${lock?" locked":""}" data-txn="${t.id}" ${lock?`title="${
-    esc(t.undraggable_because)}"`:'draggable="true"'}>
+  const pl = t.placements || [];
+  /* A PLACED ROW STAYS IN THE COLUMN, marked. The month is closed when nothing
+     is unaccounted for, so the list has to work as a checklist — a row that
+     vanishes the moment it is placed turns the remainder into a mystery
+     instead of a countdown. Split rows say so, and say by whose hand. */
+  const state = !pl.length ? "" :
+    `<div class="ep${t.auto?" auto":""}">${
+      pl.length > 1 ? `split ${pl.length} ways` : "placed"}${
+      t.auto ? " by the machine" : ""} · ${money(t.placed_total)}</div>`;
+  return `<div class="eline${lock?" locked":""}${pl.length?" done":""}" data-txn="${t.id}" ${
+    lock?`title="${esc(t.undraggable_because)}"`:'draggable="true"'}>
     <div class="em">${esc(t.merchant || t.description || "—")}</div>
     <div class="ea">${money(t.amount)}</div>
-    <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}</div></div>`;
+    <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}</div>
+    ${state}</div>`;
 }
 
 /* THE MONTHLY BOX — Bryan, 2026-07-29: "have a box for Monthly and i will drag
@@ -1496,9 +1543,16 @@ function finLane(ld, ro){
       <div class="lb">${esc(ld.broker || "—")}</div>
       <div class="lm">${esc(ld.pickup_city||"?")} &rarr; ${esc(ld.delivery_city||"?")}${
         ld.delivery_state ? ", " + esc(ld.delivery_state) : ""}<br>${esc(ld.delivery_date||"")}</div></div>
-    <div class="lin">${inside.length ? inside.map(t =>
-      `<div class="drop-in" data-txn="${t.id}" title="click to take it back off">
-        <span>${esc(t.merchant || t.category || "—")}</span><b>${money(t.amount)}</b></div>`).join("")
+    <div class="lin">${inside.length ? inside.map(t => {
+      /* what THIS load carries of that transaction — a Pilot week sits on
+         several loads, so the portion is the truth here, never the whole */
+      const p = (t.placements||[]).find(x => x.sheet_row === ld.sheet_row);
+      const part = p ? p.amount : t.amount;
+      return `<div class="drop-in${p&&p.source==="auto"?" auto":""}" data-txn="${t.id}"
+        title="${esc(p && p.basis ? p.basis : "click to take it back off")}">
+        <span>${esc(t.merchant || t.category || "—")}${
+          (t.placements||[]).length>1 ? ` <i class="pt">part</i>` : ""}</span>
+        <b>${money(part)}</b></div>`; }).join("")
       : `<div class="empty">drag an expense here</div>`}
       ${row && row.fee != null ? `<div class="drop-in" style="opacity:.6;cursor:default">
         <span>factoring fee</span><b>${money(row.fee)}</b></div>` : ""}
@@ -1969,6 +2023,33 @@ function wireFin(){
   /* click something already in a box to take it back out */
   R.querySelectorAll(".lane .drop-in[data-txn]").forEach(p =>
     p.addEventListener("click", () => assignTxn(Number(p.dataset.txn), null, p.closest(".lane"))));
+
+  /* THE STAB. The machine fills the sheet in; he checks it. Both are one call
+     and both are reversible — 'clear the machine's' never touches a placement
+     he made by hand. */
+  const stab = async (path, verb) => {
+    const b = R.querySelector("#placeAll"), c = R.querySelector("#clearAuto");
+    [b,c].forEach(x => x && (x.disabled = true));
+    try{
+      const r = await fetch(url(path), {method:"POST",
+        headers:{...hdr(), "Content-Type":"application/json"},
+        body: JSON.stringify({period: FIN.period})});
+      const out = await r.json().catch(() => ({}));
+      if(!r.ok){ finSay(out.error || `the spine refused (${r.status})`, true); return; }
+      await loadFin(); renderRoom();
+      finSay(out.cleared != null
+        ? `${out.cleared} machine placements cleared — yours untouched`
+        : `${verb} ${out.written} rows across ${out.txns_placed} transactions · ${
+            out.split_txns} split across loads${
+            out.kept_manual ? ` · ${out.kept_manual} of yours kept` : ""}${
+            out.skipped && out.skipped.length ? ` · ${out.skipped.length} left alone` : ""}`,
+        false);
+    }catch(err){ finSay("the spine did not answer — nothing was written: " + (err.message||err), true); }
+    finally{ [b,c].forEach(x => x && (x.disabled = false)); }
+  };
+  const pa = R.querySelector("#placeAll"), ca = R.querySelector("#clearAuto");
+  pa && pa.addEventListener("click", () => stab("/api/fin/place", "placed"));
+  ca && ca.addEventListener("click", () => stab("/api/fin/place/clear", "cleared"));
 
   /* the monthly box asked which bill; his tap is the answer and the write */
   R.querySelectorAll(".lane.monthly .acand").forEach(b =>
