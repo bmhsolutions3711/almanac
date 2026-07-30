@@ -371,6 +371,29 @@ body.hot .tmin{color:var(--hot)}
 .drop-in.auto{border-style:dashed;opacity:.85}
 .pt{font-style:normal;font-size:8.5px;letter-spacing:.1em;color:var(--etch);
   border:1px solid var(--line);border-radius:2px;padding:0 3px;margin-left:3px}
+.lane .lf b.up{color:rgba(var(--key),1)}
+.lane .lf i{font:400 9px/1 var(--mono);color:var(--etch);font-style:normal;margin-left:5px}
+
+/* the move menu */
+.movemenu{position:fixed;z-index:40;min-width:250px;max-width:320px;max-height:70vh;
+  overflow-y:auto;background:var(--glass2);border:1px solid var(--line);border-radius:7px;
+  box-shadow:0 18px 50px rgba(0,0,0,.6);padding:5px;backdrop-filter:blur(14px)}
+.movemenu::-webkit-scrollbar{width:0}
+.movemenu .mh{padding:7px 9px 8px;font:600 11.5px/1.35 var(--sans);color:var(--ink);
+  border-bottom:1px solid var(--line);margin-bottom:4px}
+.movemenu .mh span{display:block;font:400 9.5px/1.3 var(--mono);color:var(--etch);margin-top:2px}
+.movemenu .mh.bad{color:var(--hot);border:0}
+.movemenu .msep{padding:7px 9px 3px;font:700 8px/1 var(--mono);letter-spacing:.18em;
+  text-transform:uppercase;color:var(--etch)}
+.mi{display:block;width:100%;text-align:left;padding:7px 9px;border:0;border-radius:4px;
+  background:transparent;color:var(--ink);cursor:pointer;font:600 12px/1.3 var(--sans)}
+.mi:hover:not(:disabled){background:rgba(var(--key),.16)}
+.mi:disabled{opacity:.4;cursor:default}
+.mi i{display:block;font:400 9.5px/1.35 var(--mono);color:var(--etch);font-style:normal;margin-top:2px}
+.mi.monthly{color:rgba(var(--key),1);border:1px solid rgba(var(--key),.35);
+  background:rgba(var(--key),.09);margin-bottom:2px}
+.mi.off{color:var(--dim);border-top:1px solid var(--line);border-radius:0;margin-top:4px;
+  font-weight:400;font-size:11px}
 
 .lanes{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;min-height:290px}
 .lanes::-webkit-scrollbar{height:5px}
@@ -1535,6 +1558,11 @@ function finMonthlyBox(){
 function finLane(ld, ro){
   const row = ro && (ro.loads||[]).find(x => x.sheet_row === ld.sheet_row);
   const net = row ? row.net : null;
+  /* CONTRIBUTION TO THE NUT, signed. The freight pays its own road first and
+     whatever survives is what fights the month's fixed cost — so a load that
+     ate more than it earned is a MINUS, and it should read as one. Served, not
+     derived here. */
+  const nut = row ? row.nut_contribution : null;
   const ids = row ? (row.assigned_txn_ids || []) : [];
   const txns = State.fin.expenses ? (State.fin.expenses.transactions||[]) : [];
   const inside = ids.map(id => txns.find(t => t.id === id)).filter(Boolean);
@@ -1558,8 +1586,10 @@ function finLane(ld, ro){
         <span>factoring fee</span><b>${money(row.fee)}</b></div>` : ""}
       ${row && row.trip_accrual ? `<div class="drop-in" style="opacity:.6;cursor:default">
         <span>trip accrual</span><b>${money(row.trip_accrual)}</b></div>` : ""}</div>
-    <div class="lf"><span>net</span><b class="${net != null && net < 0 ? "dn" : ""}">${
-      net == null ? "——" : money(net)}</b></div>
+    <div class="lf"><span>to the nut</span>
+      <b class="${nut == null ? "" : nut < 0 ? "dn" : "up"}">${
+        nut == null ? "——" : (nut < 0 ? "−" : "+") + money(Math.abs(nut))}</b>
+      ${row && row.nut_pct != null ? `<i>${row.nut_pct.toFixed(1)}% of it</i>` : ""}</div>
   </div>`;
 }
 
@@ -2020,9 +2050,18 @@ function wireFin(){
       else await assignTxn(Number(txn), Number(z.dataset.row), z);
     });
   });
-  /* click something already in a box to take it back out */
-  R.querySelectorAll(".lane .drop-in[data-txn]").forEach(p =>
-    p.addEventListener("click", () => assignTxn(Number(p.dataset.txn), null, p.closest(".lane"))));
+  /* click something already in a box to take it back out; RIGHT-click to send
+     it somewhere else without first putting it down */
+  R.querySelectorAll(".lane .drop-in[data-txn]").forEach(p => {
+    const lane = p.closest(".lane");
+    const txn = Number(p.dataset.txn);
+    const from = lane.dataset.row === "monthly" ? null : Number(lane.dataset.row);
+    p.addEventListener("click", () => {
+      if(from == null) return;                 // monthly rows are settled, not placed
+      movePlacement(txn, from, null, lane);
+    });
+    p.addEventListener("contextmenu", ev => { ev.preventDefault(); openMove(ev, txn, from); });
+  });
 
   /* THE STAB. The machine fills the sheet in; he checks it. Both are one call
      and both are reversible — 'clear the machine's' never touches a placement
@@ -2066,6 +2105,97 @@ function wireFin(){
    spine can come back and ASK. A 409 is not a failure, it is the machine
    refusing to guess which bill this was; the box then shows the candidates and
    his tap becomes the write. Nothing is recorded until he answers. */
+/* THE MOVE MENU — Bryan, 2026-07-29: "a right click option to move an expense
+   to another load...monthly at top and then most adjacent loads."
+
+   MONTHLY sits at the top because it is the other KIND of answer: this was not
+   a road cost for a load at all, it was a bill. Under it the loads are ordered
+   by how many days separate the expense from the delivery, because the load he
+   means is nearly always the one he was running that day — the ordering does
+   the remembering so he does not have to. The list is served, not sorted here. */
+let MOVEMENU = null;
+async function openMove(ev, txn_id, from_row){
+  closeMove();
+  const m = document.createElement("div");
+  m.className = "movemenu";
+  m.innerHTML = `<div class="mh">loading…</div>`;
+  document.body.appendChild(m);
+  MOVEMENU = m;
+  const place = () => {
+    const w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(6, Math.min(ev.clientX, innerWidth - w - 6)) + "px";
+    m.style.top = Math.max(6, Math.min(ev.clientY, innerHeight - h - 6)) + "px";
+  };
+  place();
+  let d;
+  try{
+    const r = await fetch(url("/api/fin/move/targets"), {method:"POST",
+      headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({txn_id, period: FIN.period})});
+    d = await r.json();
+    if(!r.ok) throw new Error(d.error || `the spine refused (${r.status})`);
+  }catch(err){
+    m.innerHTML = `<div class="mh bad">${esc(err.message || String(err))}</div>`;
+    place(); return;
+  }
+  const t = d.txn;
+  m.innerHTML =
+    `<div class="mh">${esc(t.merchant || "this")} · ${money(t.amount)}
+       <span>${esc(t.date)}</span></div>` +
+    `<button class="mi monthly" data-to="monthly">MONTHLY<i>a bill, not a load's road cost</i></button>` +
+    `<div class="msep">the loads, nearest first</div>` +
+    (d.loads || []).map(l =>
+      `<button class="mi" data-to="${l.sheet_row}"${
+        l.sheet_row === from_row ? ' disabled' : ''}>
+        <span>${esc(l.broker || "—")}</span>
+        <i>${l.days_away === 0 ? "same day" :
+            l.days_away === 1 ? "1 day away" : l.days_away + " days away"} · ${
+            esc(l.delivery_date || "")}${
+            l.sheet_row === from_row ? " · it is here now" : ""}</i></button>`).join("") +
+    `<button class="mi off" data-to="off">take it off — back to the column</button>`;
+  place();
+  m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", () => {
+    const to = b.dataset.to;
+    closeMove();
+    if(to === "monthly") return payMonthly(txn_id, null, null, null);
+    movePlacement(txn_id, from_row, to === "off" ? null : Number(to), null);
+  }));
+}
+function closeMove(){ if(MOVEMENU){ MOVEMENU.remove(); MOVEMENU = null; } }
+addEventListener("click", e => { if(MOVEMENU && !MOVEMENU.contains(e.target)) closeMove(); });
+addEventListener("keydown", e => { if(e.key === "Escape") closeMove(); });
+
+/* Moving carries the PORTION, not the transaction — the $22.09 that landed on
+   Axle moves as $22.09 and the other five portions of that Pilot week stay put.
+   Same refusal doctrine as every write here. */
+async function movePlacement(txn_id, from_row, to_row, box){
+  const card = $("room").querySelector(`.eline[data-txn="${txn_id}"]`);
+  card && card.classList.add("writing");
+  try{
+    const r = await fetch(url("/api/fin/move"), {method:"POST",
+      headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({txn_id, from_row, to_row})});
+    const out = await r.json().catch(() => ({}));
+    if(!r.ok){
+      card && (card.classList.remove("writing"), card.classList.add("refused"));
+      box && (box.classList.add("deny"), setTimeout(() => box.classList.remove("deny"), 1400));
+      finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true);
+      setTimeout(() => card && card.classList.remove("refused"), 1400);
+      return false;
+    }
+    await loadFin(); renderRoom();
+    finSay(out.to == null
+      ? `${money(out.amount)} taken off load ${out.from} — back in the column`
+      : `${money(out.amount)} moved from load ${out.from} to load ${out.to}`, false);
+    return true;
+  }catch(e){
+    card && (card.classList.remove("writing"), card.classList.add("refused"));
+    finSay("the spine did not answer — nothing was written: " + (e.message||e), true);
+    setTimeout(() => card && card.classList.remove("refused"), 1400);
+    return false;
+  }
+}
+
 async function payMonthly(txn_id, bill_type, bill_id, box){
   const card = $("room").querySelector(`.eline[data-txn="${txn_id}"]`);
   card && card.classList.add("writing");
