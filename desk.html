@@ -1295,6 +1295,7 @@ function finStrip(){
    lying to make the room consistent. */
 const C = { red:"#FF4444", yellow:"#FFD600", green:"#00E676",
             chrome:"#C0C8D0", mid:"#86868b", track:"#1f1f1f" };
+let GAUGE_AT = null;
 const bandCol = b => b === "good" ? C.green : b === "warn" ? C.yellow
                    : b === "red" ? C.red : C.chrome;
 const arcPt = (cx,cy,r,t) => { const a = (180 - t*180)*Math.PI/180;
@@ -1315,6 +1316,14 @@ function heroGauge(m){
   const col = bandCol(m.band);
   const n1 = arcPt(cx,cy,52,tBe), n2 = arcPt(cx,cy,R+8,tBe), nl = arcPt(cx,cy,R+34,tBe);
   const nlx = Math.max(96, Math.min(344, nl[0]));
+  /* THE SWING IS AN ARRIVAL, NOT A TIC. It plays when the reading actually
+     changes; on a re-render carrying the same figure the needle is drawn where
+     it already stands. Replaying it on every write made the dial look like it
+     was resetting — which is exactly what Bryan saw. */
+  const pct = Math.min(100, Math.max(0, mtd/gmax*100));
+  const same = GAUGE_AT && GAUGE_AT.m === rotM && GAUGE_AT.p === rotP;
+  const restM = same ? rotM : -90, restP = same ? rotP : -90;
+  const restArc = same ? (100 - pct) : 100;
   return `<svg class="hero" viewBox="0 0 440 286" role="img"
       aria-label="Month revenue ${money(mtd)} against break-even ${money(be)}">
     <defs><linearGradient id="dgrad" x1="0" y1="0" x2="1" y2="0">
@@ -1324,7 +1333,7 @@ function heroGauge(m){
       stroke-width="24" stroke-linecap="round"/>
     <path id="heroArc" d="M40 240 A180 180 0 0 1 400 240" fill="none" stroke="url(#dgrad)"
       stroke-width="24" stroke-linecap="round" pathLength="100" stroke-dasharray="100"
-      stroke-dashoffset="100" style="transition:stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1)"/>
+      stroke-dashoffset="${restArc}" style="transition:stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1)"/>
     <line x1="${n1[0]}" y1="${n1[1]}" x2="${n2[0]}" y2="${n2[1]}" stroke="${C.chrome}"
       stroke-width="3" stroke-dasharray="5 4"/>
     <polygon points="${n2[0]-6},${n2[1]-9} ${n2[0]+6},${n2[1]-9} ${n2[0]},${n2[1]+1}"
@@ -1332,11 +1341,11 @@ function heroGauge(m){
     <text x="${nlx}" y="${nl[1]-2}" fill="${C.chrome}" font-family="var(--mono)"
       font-size="17" font-weight="700" letter-spacing="0.5" text-anchor="middle"
       >BREAK-EVEN ${money(be)}</text>
-    <g id="heroGhost" transform="rotate(-90 ${cx} ${cy})"
+    <g id="heroGhost" transform="rotate(${restP} ${cx} ${cy})"
        style="transition:transform 1.25s cubic-bezier(.16,1,.3,1)" data-rot="${rotP}">
       <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy-nlen+14}" stroke="${C.mid}"
         stroke-width="2.5" stroke-dasharray="5 4"/></g>
-    <g id="heroNeedle" transform="rotate(-90 ${cx} ${cy})"
+    <g id="heroNeedle" transform="rotate(${restM} ${cx} ${cy})"
        style="transition:transform 1.4s cubic-bezier(.16,1,.3,1)" data-rot="${rotM}">
       <polygon points="${cx-7},${cy} ${cx},${cy-nlen} ${cx+7},${cy}" fill="${col}"
         style="filter:drop-shadow(0 0 5px ${col})"/></g>
@@ -1375,6 +1384,9 @@ function swingGauge(){
   arc.style.strokeDashoffset = (100 - pct);
   if(nd) nd.setAttribute("transform", `rotate(${nd.dataset.rot} 220 240)`);
   if(gh) gh.setAttribute("transform", `rotate(${gh.dataset.rot} 220 240)`);
+  /* remember where it now stands, so a re-render carrying the same reading
+     draws it here instead of swinging up from zero again */
+  GAUGE_AT = { m: nd && +nd.dataset.rot, p: gh && +gh.dataset.rot };
 }
 
 /* ── THE FLOOR: cards, loads, and the drag between them ────────────── */
@@ -1773,11 +1785,26 @@ function renderRoom(){
       <div class="nodata" style="margin-top:10px">the spine did not answer</div></div></div></div>`;
     return;
   }
+  /* KEEP HIS PLACE. Every write re-renders the room, and a re-render that
+     scrolls back to the top throws away where he was working — drop an expense
+     on the eleventh load and the answer arrives at the top of the page. The
+     scroll position is his, not the render's. */
+  const keep = [];
+  R.querySelectorAll(".fin,.finbody,.exp,.lanes,.scroll").forEach(el => {
+    if(el.scrollTop || el.scrollLeft)
+      keep.push([el.className, el.scrollTop, el.scrollLeft]);
+  });
+
   R.innerHTML = o.room === "standing" ? standingRoom()
     : o.room === "work" ? workRoom()
     : o.room === "radio" ? radioRoom()
     : o.room === "ledger" ? ledgerRoom()
     : o.room === "learn" ? learnRoom() : soulRoom();
+
+  keep.forEach(([cls, top, left]) => {
+    const el = R.querySelector("." + cls.split(" ")[0]);
+    if(el){ el.scrollTop = top; el.scrollLeft = left; }
+  });
   if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); }
   if(o.room === "work"){ wireCards(); }
   if(o.room === "ledger"){ wireFin(); }
@@ -2307,25 +2334,21 @@ async function load(keep){
     else showConnect("could not reach the spine — if you are away from home, check Tailscale first");
   }
 }
-document.addEventListener("visibilitychange", () => {
-  if(!document.hidden && configured()) load(true);
-});
+/* NOTHING RE-READS BEHIND HIS BACK. Bryan, 2026-07-29: "the dial keeps
+   resetting and bringing me to the top... should load on bringing up the page
+   and only update if i refresh."
 
-/* THE DESK SITS OPEN ALL DAY, so it must re-read on its own — 2026-07-28:
-   three loads were booked, the spine had them, and the desk showed yesterday's
-   money for hours because it only re-read on tab focus. A surface that can go
-   stale without saying so is the same failure as a number that lies. 90s is
-   slow enough to be invisible and fast enough that a booked load shows up
-   before he wonders. The read stamp below is the honesty half: the page always
-   says WHEN it last heard from the spine. */
+   The 30s poll and the focus re-read both called load() -> renderRoom(), which
+   rebuilds the room: scroll jumps to the top and the needle re-swings from
+   zero. Mid-way through placing an expense that is not freshness, it is the
+   floor moving under his hands.
+
+   The staleness this replaced is still handled, and more honestly: the READ
+   stamp always says when the page last heard from the spine and turns hot past
+   four minutes, and it is a BUTTON — his tap pulls the Load Log and re-reads.
+   A surface that says how old it is beats one that silently reloads itself. */
 let REFRESH = 0;
-function startRefresh(){
-  clearInterval(REFRESH);
-  REFRESH = setInterval(() => {
-    if(document.hidden || !configured()) return;
-    load(true);
-  }, 30000);
-}
+function startRefresh(){ clearInterval(REFRESH); }   /* deliberately does nothing */
 
 /* THE LOAD LOG LIVES IN A SHEET, and insights.db only mirrors it when someone
    asks. Before this, the ask happened only when the MI app was opened — so a
