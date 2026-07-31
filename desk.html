@@ -1634,9 +1634,14 @@ function finReconcile(){
         <b class="key">${onActual == null ? "——" : money(onActual)}</b>
         <i>nut + ${money(R.road_actual||0)} actually spent</i></div>
       ${over != null ? `<div class="brow tot">
-        <span>${esc((m.month_name||"month"))} earned ${money(rev)} — against the actual line</span>
+        <span>delivered ${money(rev)} — against the actual line</span>
         <b class="${over >= 0 ? "up" : "dn"}">${over >= 0 ? "+" : "−"}${
-          money(Math.abs(over))}</b><i></i></div>` : ""}
+          money(Math.abs(over))}</b><i>work already run</i></div>` : ""}
+      ${R.over_under_booked != null && R.booked_ahead ? `<div class="brow">
+        <span>booked ${money(R.booked_total)} — same line</span>
+        <b class="${R.over_under_booked >= 0 ? "up" : "dn"}">${
+          R.over_under_booked >= 0 ? "+" : "−"}${money(Math.abs(R.over_under_booked))}</b>
+        <i>incl. ${money(R.booked_ahead)} still to run</i></div>` : ""}
     </div>
   </div>`;
 }
