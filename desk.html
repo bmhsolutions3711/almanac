@@ -511,7 +511,13 @@ body.hot .tmin{color:var(--hot)}
 /* the nut, standing on the left — obligations, not transactions */
 .nut{margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--line)}
 .nut .bill{display:grid;grid-template-columns:1fr auto;gap:1px 10px;align-items:baseline;
-  padding:4px 7px;border-radius:3px;border-left:2px solid rgba(var(--key),.4)}
+  padding:5px 7px;margin-bottom:3px;border-radius:3px;cursor:grab;
+  background:rgba(var(--key),.05);border:1px solid rgba(var(--key),.18);
+  border-left:2px solid rgba(var(--key),.4)}
+.nut .bill:hover{background:rgba(var(--key),.12);border-color:rgba(var(--key),.4)}
+.nut .bill.dragging{opacity:.3}
+.nut .bill.inert{cursor:default;opacity:.6}
+.nut .bill.inert:hover{background:rgba(var(--key),.05);border-color:rgba(var(--key),.18)}
 .nut .bill span{font:600 12px/1.3 var(--sans);color:var(--ink);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nut .bill b{font:700 12px var(--mono);color:var(--ink)}
@@ -1504,13 +1510,15 @@ function finFloor(){
 }
 
 /* THE NUT, ON THE LEFT — Bryan, 2026-08-01: "they should be on the left and
-   when i pay them they will land in the monthly bucket."
+   when i pay them they will land in the monthly bucket." And an hour later,
+   the correction that made it real: "cards that i can drag as i pay."
 
-   What the month demands stands at the top of the same column as what the bank
-   says, because they are one checklist: the month is closed when every bank
-   row is accounted for AND every bill has crossed to the bucket. These rows
-   are obligations, not transactions — nothing here drags, because a bill is
-   never paid by wishing it across; only its bank row can carry it over. */
+   What the month demands stands at the top of the same column as what the
+   bank says, because they are one checklist: the month is closed when every
+   bank row is accounted for AND every bill has crossed to the bucket. Each
+   bill is a CARD — the moment he pays it in the real world he drags it into
+   MONTHLY, because the bank row is often days from import. The row attaches
+   as evidence when it lands; until then the bucket says so honestly. */
 function finNutList(m0){
   const s = State.standings;
   if(!s) return "";
@@ -1522,13 +1530,16 @@ function finNutList(m0){
     <div class="cap">the nut — every bill recorded for ${mon}</div></div>`;
   const owed = open.reduce((a,x) => a + (x.amount||0), 0);
   return `<div class="nut">
-    <div class="cap">the nut — ${open.length} due in ${mon} · ${money(owed)} open</div>
-    ${open.map(x => `<div class="bill${x.state === "unmarked" ? " late" : ""}"
+    <div class="cap">the nut — ${open.length} due in ${mon} · ${money(owed)} open · drag a bill over as you pay it</div>
+    ${open.map(x => {
+      const can = !!(x.bill_type && x.bill_id);
+      return `<div class="bill${x.state === "unmarked" ? " late" : ""}${can ? "" : " inert"}"
+       ${can ? `draggable="true" data-bt="${esc(x.bill_type)}" data-bid="${esc(x.bill_id)}"` : ""}
        title="${esc(x.sub || "")}">
       <span>${esc(x.title)}</span>
       <em>${x.state === "unmarked" ? "date passed — unmarked"
            : x.state === "today" ? "today" : esc(x.sub || "due")}</em>
-      <b>${x.amount == null ? "——" : money(x.amount)}</b></div>`).join("")}
+      <b>${x.amount == null ? "——" : money(x.amount)}</b></div>`;}).join("")}
   </div>`;
 }
 
@@ -1595,13 +1606,13 @@ function finMonthlyBox(){
         return `<div class="drop-in paid"><span>${esc(x.title)}<i class="pev${
             e ? "" : " hand"}">${e
             ? esc(((e.merchant || "bank row") + " · " + (e.date || "")).toLowerCase())
-            : "recorded without a bank row"}</i></span>
+            : "your hand · awaiting the bank row"}</i></span>
           <b>${x.amount == null ? "——" : money(x.amount)}</b></div>`;
       }).join("")
         : `<div class="empty">nothing paid yet for ${
              esc((State.fin.summary&&State.fin.summary.the_month&&
                   State.fin.summary.the_month.month_name)||"the month")} —<br>
-             drag the bank row that paid a bill</div>`)}</div>
+             drag a bill across as you pay it</div>`)}</div>
     <div class="lf"><span>${open.length ? `${open.length} still due` : "all recorded"}</span>
       <b class="${owed ? "dn" : ""}">${owed ? money(owed) : "clear"}</b></div>
   </div>`;
@@ -2097,15 +2108,34 @@ function wireFin(){
     });
     c.addEventListener("dragend", () => { c.classList.remove("dragging"); FIN.drag = null; });
   });
+  /* the bills — his hand at pay time. A bill drags into MONTHLY and nowhere
+     else; a load lane refuses it in words. */
+  R.querySelectorAll(".nut .bill[draggable]").forEach(c => {
+    c.addEventListener("dragstart", ev => {
+      FIN.drag = `bill:${c.dataset.bt}:${c.dataset.bid}`; c.classList.add("dragging");
+      ev.dataTransfer.effectAllowed = "move";
+      ev.dataTransfer.setData("text/plain", FIN.drag);
+    });
+    c.addEventListener("dragend", () => { c.classList.remove("dragging"); FIN.drag = null; });
+  });
   R.querySelectorAll(".lane").forEach(z => {
     z.addEventListener("dragover", ev => { ev.preventDefault(); z.classList.add("over"); });
     z.addEventListener("dragleave", () => z.classList.remove("over"));
     z.addEventListener("drop", async ev => {
       ev.preventDefault(); z.classList.remove("over");
-      const txn = ev.dataTransfer.getData("text/plain") || FIN.drag;
-      if(!txn) return;
-      if(z.dataset.row === "monthly") await payMonthly(Number(txn), null, null, z);
-      else await assignTxn(Number(txn), Number(z.dataset.row), z);
+      const data = ev.dataTransfer.getData("text/plain") || FIN.drag;
+      if(!data) return;
+      if(String(data).startsWith("bill:")){
+        const [, bt, bid] = String(data).split(":");
+        if(z.dataset.row !== "monthly"){
+          finSay("a bill lands in MONTHLY, not on a load — nothing was written", true);
+          return;
+        }
+        await payMonthlyByHand(bt, bid, z);
+        return;
+      }
+      if(z.dataset.row === "monthly") await payMonthly(Number(data), null, null, z);
+      else await assignTxn(Number(data), Number(z.dataset.row), z);
     });
   });
   /* click something already in a box to take it back out; RIGHT-click to send
@@ -2254,6 +2284,36 @@ async function movePlacement(txn_id, from_row, to_row, box){
   }
 }
 
+/* HIS HAND, AT PAY TIME — he pays the bill in the real world and drags the
+   BILL across the moment it happens; the bank row is often days from import.
+   Same endpoint, no transaction: a named bill and his gesture. The bucket
+   reads "awaiting the bank row" until the row lands — then dropping it on
+   MONTHLY attaches it as the evidence. */
+async function payMonthlyByHand(bill_type, bill_id, box){
+  try{
+    const r = await fetch(url("/api/fin/monthly"), {
+      method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({bill_type, bill_id})});
+    const out = await r.json().catch(() => ({}));
+    if(!r.ok){
+      box && (box.classList.add("deny"), setTimeout(() => box.classList.remove("deny"), 1400));
+      finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true);
+      return false;
+    }
+    await loadFin();
+    try{ State.standings = await grab("/api/standings"); }catch(_){}
+    renderRoom();
+    finSay(out.already
+      ? `${out.name} was already recorded paid for ${out.cycle_key}`
+      : `${out.name} recorded paid for ${out.cycle_key}${
+          out.amount != null ? ` — ${money(out.amount)}` : ""} · drag its bank row in when it lands`, false);
+    return true;
+  }catch(e){
+    finSay("the spine did not answer — nothing was written: " + (e.message||e), true);
+    return false;
+  }
+}
+
 async function payMonthly(txn_id, bill_type, bill_id, box){
   const card = $("room").querySelector(`.eline[data-txn="${txn_id}"]`);
   card && card.classList.add("writing");
@@ -2292,7 +2352,9 @@ async function payMonthly(txn_id, bill_type, bill_id, box){
       return true;
     }
     finSay(out.already
-      ? `${out.name} was already recorded paid for ${out.cycle_key}`
+      ? (out.evidenced
+          ? `bank row attached — ${out.name} already recorded paid for ${out.cycle_key}`
+          : `${out.name} was already recorded paid for ${out.cycle_key}`)
       : `${out.name} recorded paid for ${out.cycle_key} — ${money(out.amount)}`, false);
     return true;
   }catch(e){
@@ -2486,7 +2548,7 @@ function showStone(s){
     <div class="hs">${esc(s.sub || "")}${s.next_due ? " · next " + esc(s.next_due) : ""}</div>
     <div class="hb"><span class="cap">${s.state === "settled"
         ? "paid — it sits in the monthly bucket on the floor"
-        : "paid on the floor — drag its bank row into MONTHLY"}</span>
+        : "paid on the floor — drag the bill into MONTHLY as you pay it"}</span>
       <button class="btn" id="stoneClose">close</button></div>`;
   w.appendChild(el);
   $("stoneClose").addEventListener("click", () => { el.remove(); FIN.pick = null; paintHold(); });
