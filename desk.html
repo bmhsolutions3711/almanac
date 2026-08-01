@@ -508,15 +508,26 @@ body.hot .tmin{color:var(--hot)}
 .hcard .ha{margin-top:4px;font:700 24px/1 var(--mono);color:rgba(var(--key),1)}
 .hcard .hs{margin-top:6px;font:400 11.5px/1.5 var(--sans);color:var(--dim)}
 .hcard .hb{margin-top:11px;display:flex;gap:7px;align-items:center}
-.latch{position:relative;flex:1;overflow:hidden;background:rgba(var(--key),.1);
-  border:1px solid rgba(var(--key),.4);border-radius:4px;color:var(--ink);cursor:pointer;
-  padding:10px 12px;font:700 9px/1 var(--mono);letter-spacing:.17em;text-transform:uppercase;
-  touch-action:none;-webkit-user-select:none;user-select:none}
-.latch i{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(var(--key),.34);
-  pointer-events:none}
-.latch span{position:relative}
-.latch.done{background:rgba(120,200,120,.16);border-color:rgba(120,200,120,.6)}
-.latch.bad{background:rgba(255,59,24,.14);border-color:var(--hot)}
+/* the nut, standing on the left — obligations, not transactions */
+.nut{margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.nut .bill{display:grid;grid-template-columns:1fr auto;gap:1px 10px;align-items:baseline;
+  padding:4px 7px;border-radius:3px;border-left:2px solid rgba(var(--key),.4)}
+.nut .bill span{font:600 12px/1.3 var(--sans);color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nut .bill b{font:700 12px var(--mono);color:var(--ink)}
+.nut .bill em{grid-column:1/-1;font:400 9.5px/1.3 var(--mono);letter-spacing:.05em;
+  font-style:normal;color:var(--etch)}
+.nut .bill.late{border-left-color:var(--hot)}
+.nut .bill.late em{color:var(--hot)}
+/* a bill paid, resting in the bucket with its evidence */
+.lane .drop-in.paid{cursor:default;background:rgba(120,200,120,.08);
+  border-color:rgba(120,200,120,.32)}
+.lane .drop-in.paid:hover{background:rgba(120,200,120,.08);
+  border-color:rgba(120,200,120,.32)}
+.lane .drop-in.paid span{display:block}
+.pev{display:block;font:400 9.5px/1.4 var(--mono);letter-spacing:.04em;
+  font-style:normal;color:var(--etch)}
+.pev.hand::before{content:"◇ "}
 .hgrp{display:flex;gap:2px;background:rgba(0,0,0,.3);border-radius:4px;padding:2px;flex-wrap:wrap}
 .hgrp button{background:none;border:0;color:var(--dim);cursor:pointer;padding:5px 9px;border-radius:3px;
   font:700 7.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase}
@@ -994,7 +1005,7 @@ function paintConsider(){
       go: "GO TO QA", i: 1 };
   } else if(s && s.counts && s.counts.standing > 0){
     pick = { q: `${s.counts.standing} obligation${s.counts.standing===1?"":"s"} need your hand.`,
-      rz: `Settled one at a time on the plate — a write is held, never tapped.`, go: "OPEN THE LEDGER", i: 3 };
+      rz: `Each one is paid on the floor — drag the bank row that paid it into MONTHLY.`, go: "OPEN THE LEDGER", i: 3 };
   } else if(l && (l.open||[]).length){
     pick = { q: l.open[0].question,
       rz: `Your open question — ${(l.open[0].options||[]).length} options waiting, none chosen.`,
@@ -1089,7 +1100,7 @@ function actsHTML(){
   if(p.still_out > 0) A.push({n:"ALREADY EARNED",imp:money(p.still_out),
     t:"Chase what is booked and unpaid.", w:`Money you already drove for — served from the same judgement as the standing.`, go:"THE LEDGER", i:3});
   if(s && s.counts && s.counts.standing > 0) A.push({n:"YOUR HAND",imp:String(s.counts.standing),
-    t:"Obligations waiting to be settled.", w:`Each one settles on the plate under a held lever — never in bulk.`, go:"THE LEDGER", i:3});
+    t:"Obligations waiting to be settled.", w:`Each one is paid on the floor — drag the bank row that paid it into MONTHLY.`, go:"THE LEDGER", i:3});
   if(qa) A.push({n:"YOUR APPROVAL",imp:String(qa),
     t:"Cards in QA waiting to close.", w:`Nothing closes but by your hand. Hold to close on the board.`, go:"THE WORK", i:1});
   if(p.blind_days) A.push({n:"NOT YET SEEN",imp:p.blind_days+"d",
@@ -1460,6 +1471,7 @@ function finFloor(){
   return `<div class="finscroll">
     <div class="floor">
       <div class="panel">
+        ${finNutList(m0)}
         <div class="cap">${esc((m0.month_name||"the window").toLowerCase())} — ${
           all.length} transactions · ${e.pool_count} still to place · ${money(e.pool_total || 0)}</div>
         <div class="stab">
@@ -1491,6 +1503,35 @@ function finFloor(){
     ${finReconcile()}${finCharts()}</div>`;
 }
 
+/* THE NUT, ON THE LEFT — Bryan, 2026-08-01: "they should be on the left and
+   when i pay them they will land in the monthly bucket."
+
+   What the month demands stands at the top of the same column as what the bank
+   says, because they are one checklist: the month is closed when every bank
+   row is accounted for AND every bill has crossed to the bucket. These rows
+   are obligations, not transactions — nothing here drags, because a bill is
+   never paid by wishing it across; only its bank row can carry it over. */
+function finNutList(m0){
+  const s = State.standings;
+  if(!s) return "";
+  const open = [...(s.standings||[]), ...(s.tape||[])]
+    .filter(x => x.kind === "pay" && x.state !== "settled")
+    .sort((a,b) => ((a.days ?? 99) - (b.days ?? 99)));
+  const mon = esc((m0 && m0.month_name || "this month").toLowerCase());
+  if(!open.length) return `<div class="nut">
+    <div class="cap">the nut — every bill recorded for ${mon}</div></div>`;
+  const owed = open.reduce((a,x) => a + (x.amount||0), 0);
+  return `<div class="nut">
+    <div class="cap">the nut — ${open.length} due in ${mon} · ${money(owed)} open</div>
+    ${open.map(x => `<div class="bill${x.state === "unmarked" ? " late" : ""}"
+       title="${esc(x.sub || "")}">
+      <span>${esc(x.title)}</span>
+      <em>${x.state === "unmarked" ? "date passed — unmarked"
+           : x.state === "today" ? "today" : esc(x.sub || "due")}</em>
+      <b>${x.amount == null ? "——" : money(x.amount)}</b></div>`).join("")}
+  </div>`;
+}
+
 /* one expense, as a line you drag */
 function finLine(t){
   const lock = !!t.undraggable_because;
@@ -1499,11 +1540,15 @@ function finLine(t){
      is unaccounted for, so the list has to work as a checklist — a row that
      vanishes the moment it is placed turns the remainder into a mystery
      instead of a countdown. Split rows say so, and say by whose hand. */
-  const state = !pl.length ? "" :
+  const mp = t.monthly_pay || [];
+  const state = pl.length ?
     `<div class="ep${t.auto?" auto":""}">${
       pl.length > 1 ? `split ${pl.length} ways` : "placed"}${
-      t.auto ? " by the machine" : ""} · ${money(t.placed_total)}</div>`;
-  return `<div class="eline${lock?" locked":""}${pl.length?" done":""}" data-txn="${t.id}" ${
+      t.auto ? " by the machine" : ""} · ${money(t.placed_total)}</div>`
+    : mp.length ?
+    `<div class="ep">paid ${esc(mp[0].name)} · monthly</div>`
+    : "";
+  return `<div class="eline${lock?" locked":""}${pl.length || mp.length?" done":""}" data-txn="${t.id}" ${
     lock?`title="${esc(t.undraggable_because)}"`:'draggable="true"'}>
     <div class="em">${esc(t.merchant || t.description || "—")}</div>
     <div class="ea">${money(t.amount)}</div>
@@ -1513,25 +1558,30 @@ function finLine(t){
 
 /* THE MONTHLY BOX — Bryan, 2026-07-29: "have a box for Monthly and i will drag
    any monthly in. when i drag it in, it is paid for that month."
+   FLIPPED 2026-08-01, his ruling for the August fresh start: "they should be
+   on the left and when i pay them they will land in the monthly bucket."
 
-   It stands first among the boxes because it is the other half of the month:
-   the loads say what the freight cost, this says what the BUSINESS cost — and
-   until now nothing joined "what the nut says I owe" to "what actually left the
-   bank." A drop is a real financial write, so it goes through the one sanctioned
-   writer, and when the transaction does not name one bill beyond doubt the box
-   asks instead of guessing. */
+   So the box holds ONLY what has actually been paid — each bill wearing the
+   bank row that proved it (the evidence join, monthly_pay). What is still DUE
+   stands on the left with the transactions, part of the same checklist the
+   month has to clear. A drop is a real financial write, so it goes through the
+   one sanctioned writer, and when the transaction does not name one bill
+   beyond doubt the box asks instead of guessing. */
 function finMonthlyBox(){
   const s = State.standings;
   const pay = s ? [...(s.standings||[]), ...(s.tape||[])].filter(x => x.kind === "pay") : [];
   const settled = pay.filter(x => x.state === "settled");
   const open = pay.filter(x => x.state !== "settled");
   const owed = open.reduce((a,x) => a + (x.amount||0), 0);
+  const ev = (State.fin.expenses && State.fin.expenses.monthly_pays) || [];
+  const evFor = x => ev.find(e =>
+    e.bill_type === x.bill_type && String(e.bill_id) === String(x.bill_id));
   const ask = FIN.ask;                       // a drop the spine handed back to him
   return `<div class="lane monthly" data-row="monthly">
     <div class="lh"><span class="lr">${money(settled.reduce((a,x)=>a+(x.amount||0),0))}</span>
       <div class="lb">MONTHLY</div>
-      <div class="lm">the nut · ${settled.length} of ${pay.length} recorded${
-        owed ? ` · ${money(owed)} still open` : ""}</div></div>
+      <div class="lm">paid this month · ${settled.length} of ${pay.length}${
+        owed ? ` · ${money(owed)} still due on the left` : ""}</div></div>
     <div class="lin">${ask ? `<div class="ask">
         <div class="at">which bill did ${esc(ask.txn.merchant || "this")} ${
           money(ask.txn.amount)} pay?</div>
@@ -1540,16 +1590,19 @@ function finMonthlyBox(){
           <span>${esc(c.name)}</span><b>${money(c.due)}</b>
           <i>${esc(c.why)}</i></button>`).join("")}
         <button class="acand cancel">none of these — put it back</button>
-      </div>` : (open.length ? open.slice(0,7).map(x =>
-        `<div class="drop-in" style="cursor:default;opacity:.75"
-           title="${esc(x.sub || "")}"><span>${esc(x.title)}</span>
-           <b>${x.amount == null ? "——" : money(x.amount)}</b></div>`).join("")
-        + (open.length > 7 ? `<div class="cap" style="margin-top:5px">+${
-             open.length-7} more open</div>` : "")
-        : `<div class="empty">drag a monthly bill here<br>and it is paid for ${
+      </div>` : (settled.length ? settled.map(x => {
+        const e = evFor(x);
+        return `<div class="drop-in paid"><span>${esc(x.title)}<i class="pev${
+            e ? "" : " hand"}">${e
+            ? esc(((e.merchant || "bank row") + " · " + (e.date || "")).toLowerCase())
+            : "recorded without a bank row"}</i></span>
+          <b>${x.amount == null ? "——" : money(x.amount)}</b></div>`;
+      }).join("")
+        : `<div class="empty">nothing paid yet for ${
              esc((State.fin.summary&&State.fin.summary.the_month&&
-                  State.fin.summary.the_month.month_name)||"the month")}</div>`)}</div>
-    <div class="lf"><span>${open.length ? "still open" : "all recorded"}</span>
+                  State.fin.summary.the_month.month_name)||"the month")} —<br>
+             drag the bank row that paid a bill</div>`)}</div>
+    <div class="lf"><span>${open.length ? `${open.length} still due` : "all recorded"}</span>
       <b class="${owed ? "dn" : ""}">${owed ? money(owed) : "clear"}</b></div>
   </div>`;
 }
@@ -1726,7 +1779,7 @@ function finHold(){
         `<button data-g="${k}" class="${FIN.group===k?"on":""}">${l}</button>`).join("")}</div>
       <div class="sp"></div>
       <span class="cap">${standing.length} standing${
-        standing.length ? " · drag to read · hold to settle" : ""}</span>
+        standing.length ? " · drag to read · paid on the floor" : ""}</span>
     </div>
     <div class="panel" style="flex:1;min-height:0;padding:0;overflow:hidden">
       <div class="holdw" id="holdW">
@@ -1818,7 +1871,7 @@ function finStanding(){
     <div class="s">${esc(s.sub || s.kicker || "")}</div></div>`;
   const st = d.standings || [], tape = d.tape || [], faults = d.faults || [];
   return `<div class="panel" style="flex:1;min-height:0">
-    <div class="cap">standing — ${st.length} need your hand · settled on the plate, one at a time</div>
+    <div class="cap">standing — ${st.length} need your hand · paid on the floor, evidenced by the bank row</div>
     <div class="scroll">` +
       (st.length ? st.map(s => row(s,false)).join("") : `<p class="nodata">nothing standing</p>`) +
       (tape.length ? `<div class="cap" style="margin:18px 0 6px">the tape — settled this month</div>`
@@ -2227,6 +2280,17 @@ async function payMonthly(txn_id, bill_type, bill_id, box){
     await loadFin();
     try{ State.standings = await grab("/api/standings"); }catch(_){}
     renderRoom();
+    /* evidenced:false is the spine saying the PAYMENT was recorded but the
+       evidence join was not — the one thing this drag exists to persist. A
+       clean "recorded paid" here would swallow a failed write, and the bucket
+       would then read "recorded without a bank row" about a row he just
+       dragged. Loud, in red, with the true split: payment yes, evidence no. */
+    if(out.evidenced === false && !out.already){
+      finSay(`${out.name} recorded paid for ${out.cycle_key} — but saving WHICH `
+        + `bank row paid it FAILED. the bucket will not show the evidence; `
+        + `drop the row on it again to retry`, true);
+      return true;
+    }
     finSay(out.already
       ? `${out.name} was already recorded paid for ${out.cycle_key}`
       : `${out.name} recorded paid for ${out.cycle_key} — ${money(out.amount)}`, false);
@@ -2394,7 +2458,7 @@ async function sendShot(dataUrl){
   }catch(e){ dropState(el,"bad","nothing was saved", String(e.message||e)); }
 }
 
-/* ── THE HOLD: drag to read, hold to settle ────────────────────────── */
+/* ── THE HOLD: drag to read — paying happens on the floor ──────────── */
 function wireHold(){
   const cv = $("holdC"); if(!cv) return;
   const hit = ev => {
@@ -2417,80 +2481,23 @@ function showStone(s){
   w.querySelector(".hcard")?.remove();
   const el = document.createElement("div");
   el.className = "hcard";
-  const settleable = s.settleable !== false && s.bill_type && s.state !== "settled";
   el.innerHTML = `<div class="hn">${esc(s.title)}</div>
     <div class="ha">${s.amount == null ? "——" : money(s.amount)}</div>
     <div class="hs">${esc(s.sub || "")}${s.next_due ? " · next " + esc(s.next_due) : ""}</div>
-    <div class="hb">${settleable
-      ? `<button class="latch" id="stoneLatch"><i></i><span>hold to record paid</span></button>`
-      : `<span class="cap">this one is not settled here</span>`}
+    <div class="hb"><span class="cap">${s.state === "settled"
+        ? "paid — it sits in the monthly bucket on the floor"
+        : "paid on the floor — drag its bank row into MONTHLY"}</span>
       <button class="btn" id="stoneClose">close</button></div>`;
   w.appendChild(el);
   $("stoneClose").addEventListener("click", () => { el.remove(); FIN.pick = null; paintHold(); });
-  const L = $("stoneLatch");
-  if(L) wireLatch(L, () => settleStone(s, el));
 }
 
-/* The lever holds under real tension for as long as the network takes, and the
-   WALL CLOCK decides — never animation.finished, which a hidden document
-   freezes and resumes later. That defect once fired a $1,500 write nobody
-   asked for. Releasing early answers OUT LOUD that nothing was written. */
-function wireLatch(btn, commit){
-  const HOLD = 900;
-  let t0 = 0, raf = 0, fired = false;
-  const bar = btn.querySelector("i"), lab = btn.querySelector("span");
-  const tick = () => {
-    const p = Math.min(1, (Date.now() - t0)/HOLD);
-    bar.style.width = (p*100) + "%";
-    if(p >= 1 && !fired){ fired = true; lab.textContent = "writing…"; commit(); return; }
-    if(!fired) raf = requestAnimationFrame(tick);
-  };
-  const down = e => {
-    e.preventDefault();
-    if(fired) return;
-    t0 = Date.now(); btn.setPointerCapture?.(e.pointerId);
-    lab.textContent = "keep holding";
-    raf = requestAnimationFrame(tick);
-  };
-  const up = () => {
-    cancelAnimationFrame(raf);
-    if(fired) return;
-    bar.style.width = "0%";
-    lab.textContent = "released early — nothing was written. hold it.";
-    setTimeout(() => { if(!fired) lab.textContent = "hold to record paid"; }, 1800);
-  };
-  btn.addEventListener("pointerdown", down);
-  btn.addEventListener("pointerup", up);
-  btn.addEventListener("pointercancel", up);
-  btn.addEventListener("pointerleave", up);
-}
-
-async function settleStone(s, card){
-  const L = $("stoneLatch"), lab = L && L.querySelector("span");
-  try{
-    const r = await fetch(url(`/api/standings/${s.bill_type}/${s.bill_id}/settle`), {
-      method:"POST", headers:{...hdr(), "Content-Type":"application/json",
-        "Idempotency-Key": s.idem_key || `${s.bill_type}:${s.bill_id}:${s.cycle_key||""}`},
-      body: JSON.stringify({cycle_key: s.cycle_key})});
-    const o = await r.json().catch(() => ({}));
-    /* written:false + already:true is a SUCCESS, not a refusal — the write is
-       idempotent by construction (UNIQUE on bill+cycle), so a second hold on
-       a bill already recorded must say "already recorded", never "refused".
-       Calling that a failure would teach him to distrust a correct answer. */
-    if(!r.ok || (o.written === false && !o.already)){
-      L && L.classList.add("bad");
-      lab && (lab.textContent = (o.error || "refused — nothing was written").slice(0,80));
-      return;
-    }
-    L && L.classList.add("done");
-    lab && (lab.textContent = o.already ? "already recorded" : "recorded");
-    await load(true);
-    setTimeout(() => { card.remove(); FIN.pick = null; renderRoom(); }, 700);
-  }catch(e){
-    L && L.classList.add("bad");
-    lab && (lab.textContent = "the spine did not answer — nothing was written");
-  }
-}
+/* The hold-to-settle latch lived here until 2026-08-01. It recorded a bill paid
+   on Bryan's word alone — no bank row — and he retired that: "we replace the
+   old way of tracking payment of monthly expenses." The ONE way a bill is now
+   recorded paid on this desk is the floor's evidence join: drag the bank row
+   that paid it into MONTHLY. The hold remains what it is good at — reading the
+   month's weight. */
 
 /* ── the room's own fetches ────────────────────────────────────────── */
 async function loadFin(){

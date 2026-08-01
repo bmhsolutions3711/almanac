@@ -20,8 +20,9 @@
   to show its arithmetic in place (tap the row; the working unfolds engraved
   beneath it — the page computes NOTHING). WORK is the board. Learn and Soul are
   one node each — pages you read. Finances expands into one node per obligation,
-  because those are settled one at a time and a detent is exactly the right
-  control for that.
+  read one at a time. Since 2026-08-01 the spindle only READS them: recording a
+  bill paid happens on the desk floor, evidenced by the bank row that paid it —
+  the lever here keys the radio and closes the book, nothing else.
 
   THE LATCH IS UNCHANGED and is the thing this whole surface exists to carry: the
   progress of the lever IS the progress of the write. The request leaves at the
@@ -921,9 +922,13 @@ function paint(){
     $("head").textContent = s.title || "";
     if(s.amount == null) setFig(null, null, true); else setFig(money(s.amount).split(".")[0], "." + money(s.amount).split(".")[1]);
     $("sub").textContent = [s.kicker, s.sub].filter(Boolean).join(" · ");
-    const settleable = s.kind === "pay" && s.bill_type && s.bill_id;
-    lever.disabled = !(settleable && State.source === "live");
-    $("leverCap").textContent = settleable ? "RECORD PAID" : "NOT SETTLEABLE HERE";
+    /* The settle arm died 2026-08-01 — Bryan: "we replace the old way of
+       tracking payment of monthly expenses... kill the detent lever too."
+       A bill is recorded paid in ONE place now: the desk floor, by dragging
+       the bank row that actually paid it into MONTHLY. The detent still reads
+       every obligation; it can no longer assert one paid on word alone. */
+    lever.disabled = true;
+    $("leverCap").textContent = s.kind === "pay" ? "PAID ON THE DESK FLOOR" : "NOT SETTLEABLE HERE";
   }
   else if(n.kind === "radio"){
     const r = State.radio;
@@ -1217,12 +1222,15 @@ async function seat(){
   lever.dataset.state = "seating";
   const node = NODES[spin.pos];
   $("leverCap").textContent = node.kind === "radio" ? "TRANSMITTING" : "WRITING";
-  const path = node.kind === "close" ? "/api/entry/close"
-             : node.kind === "radio" ? "/api/messages"
-             : `/api/standings/${node.s.bill_type}/${node.s.bill_id}/settle`;
-  const body = node.kind === "close" ? {}
-             : node.kind === "radio" ? { body: $("mic").value.trim() }
-             : { cycle_key: node.s.cycle_key };
+  /* Only the book and the radio seat here now. The settle branch that stood
+     third died 2026-08-01 with the lever's pay arm — leaving a dead route to
+     an unevidenced finance write is how it comes back by accident. */
+  if(node.kind !== "close" && node.kind !== "radio"){
+    refuse(new Error("bills are paid on the desk floor now — nothing was written"));
+    return;
+  }
+  const path = node.kind === "close" ? "/api/entry/close" : "/api/messages";
+  const body = node.kind === "close" ? {} : { body: $("mic").value.trim() };
   const net = new AbortController();
   const kill = setTimeout(() => net.abort("timeout"), 9000);
   try{
