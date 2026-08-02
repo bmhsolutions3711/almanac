@@ -508,6 +508,28 @@ body.hot .tmin{color:var(--hot)}
 .hcard .ha{margin-top:4px;font:700 24px/1 var(--mono);color:rgba(var(--key),1)}
 .hcard .hs{margin-top:6px;font:400 11.5px/1.5 var(--sans);color:var(--dim)}
 .hcard .hb{margin-top:11px;display:flex;gap:7px;align-items:center}
+/* the books: cash rows and the nut being fed */
+.cashrow{display:grid;grid-template-columns:1fr auto;gap:1px 10px;align-items:baseline;
+  padding:7px 8px;border-bottom:1px solid var(--line)}
+.cashrow span{font:600 13px/1.3 var(--sans);color:var(--ink)}
+.cashrow span u{font:400 10px var(--mono);color:var(--etch);text-decoration:none}
+.cashrow b{font:700 15px var(--mono);color:var(--ink)}
+.cashrow i{grid-column:1/-1;font:400 10px/1.3 var(--mono);letter-spacing:.05em;
+  font-style:normal;color:var(--etch)}
+.cashrow.tot{background:rgba(var(--key),.07);border:1px solid rgba(var(--key),.25);
+  border-radius:4px;margin-bottom:6px}
+.cashrow.tot b{color:rgba(var(--key),1);font-size:17px}
+.env{grid-column:1/-1;display:flex;gap:8px;align-items:baseline;padding:2px 0 2px 14px}
+.env span{font:400 11px/1.3 var(--sans);color:var(--mid);flex:1}
+.env b{font:600 11px var(--mono);color:var(--mid)}
+.env i{font:400 9.5px var(--mono);font-style:normal;color:var(--etch)}
+.nutbar{position:relative;height:34px;border:1px solid var(--line);border-radius:4px;
+  background:rgba(0,0,0,.25);overflow:hidden}
+.nutseg{position:absolute;top:0;bottom:0;background:rgba(var(--key),.55);
+  border-right:1px solid rgba(0,0,0,.5)}
+.nutseg:hover{background:rgba(var(--key),.85)}
+.nutline{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--hot);
+  box-shadow:0 0 6px rgba(255,59,24,.6)}
 /* the nut, standing on the left — obligations, not transactions */
 .nut{margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--line)}
 .nut .bill{display:grid;grid-template-columns:1fr auto;gap:1px 10px;align-items:baseline;
@@ -1287,7 +1309,7 @@ function ledgerRoom(){
   return whyBar() + `<div class="fin">
     <div class="finbar">
       <div class="seg" id="finView">${
-        [["floor","the floor"],["hold","the hold"],["ledger","standing"]].map(([k,l]) =>
+        [["floor","the floor"],["hold","the hold"],["ledger","the books"]].map(([k,l]) =>
           `<button data-v="${k}" class="${FIN.view===k?"on":""}">${l}</button>`).join("")}</div>
       <div class="sp"></div>
       ${FIN.view === "floor" ? `<div class="seg" id="finPeriod">${
@@ -1296,7 +1318,7 @@ function ledgerRoom(){
     </div>
     ${finStrip()}
     <div id="finBody" class="finbody">${
-      FIN.view === "floor" ? finFloor() : FIN.view === "hold" ? finHold() : finStanding()}</div>
+      FIN.view === "floor" ? finFloor() : FIN.view === "hold" ? finHold() : finBooks()}</div>
   </div>`;
 }
 
@@ -1482,7 +1504,8 @@ function finFloor(){
      the top of the pile is the work (bank rows waiting for a load) and the
      bottom is the already-spoken-for. Stable sort: the producer's date order
      survives within each tier. */
-  const tier = t => (t.trip_direct && !t.personal) ? 0
+  const tier = t => t.accounted ? 2
+    : (t.trip_direct && !t.personal) ? 0
     : ((t.monthly_pay || []).length
        || (t.undraggable_because || "").startsWith("month-level")) ? 2 : 1;
   const all = (e.transactions || []).slice().sort((a,b) => tier(a) - tier(b));
@@ -1572,8 +1595,10 @@ function finLine(t){
       t.auto ? " by the machine" : ""} · ${money(t.placed_total)}</div>`
     : mp.length ?
     `<div class="ep">paid ${esc(mp[0].name)} · monthly</div>`
+    : t.accounted ?
+    `<div class="ep">already accounted for · your hand</div>`
     : "";
-  return `<div class="eline${lock?" locked":""}${pl.length || mp.length?" done":""}" data-txn="${t.id}" ${
+  return `<div class="eline${lock?" locked":""}${pl.length || mp.length || t.accounted?" done":""}" data-txn="${t.id}" ${
     lock?`title="${esc(t.undraggable_because)}"`:'draggable="true"'}>
     <div class="em">${esc(t.merchant || t.description || "—")}</div>
     <div class="ea">${money(t.amount)}</div>
@@ -1883,25 +1908,83 @@ function paintHold(){
   }
 }
 
-function finStanding(){
-  const d = State.standings;
-  if(!d) return `<div class="panel" style="flex:1"><div class="gen">
-    <span class="nodata">the spine has not answered with the standings</span></div></div>`;
-  const row = (s,dim) => `<div class="lrow${s.severity==="short"?" short":""}${dim?" dim":""}">
-    <div class="t">${esc(s.title)}</div>
-    <div class="a">${s.amount==null?'<span style="color:var(--unknown)">——</span>':money(s.amount)}</div>
-    <div class="s">${esc(s.sub || s.kicker || "")}</div></div>`;
-  const st = d.standings || [], tape = d.tape || [], faults = d.faults || [];
-  return `<div class="panel" style="flex:1;min-height:0">
-    <div class="cap">standing — ${st.length} need your hand · paid on the floor, evidenced by the bank row</div>
-    <div class="scroll">` +
-      (st.length ? st.map(s => row(s,false)).join("") : `<p class="nodata">nothing standing</p>`) +
-      (tape.length ? `<div class="cap" style="margin:18px 0 6px">the tape — settled this month</div>`
-        + tape.map(s => row(s,true)).join("") : "") +
-      (faults.length ? `<div class="cap" style="margin:18px 0 6px">faults</div>` +
-        faults.map(f => `<div class="hotline">${esc(f.name||f.bill_id||"?")}${
-          f.amount!=null?" · "+money(f.amount):""} — ${esc(f.why||f.kind||"")}</div>`).join("") : "") +
-    `</div></div>`;
+/* THE BOOKS — Bryan, 2026-08-02: "repurpose the standing tab for an overview
+   of my accounts cash status, visuals on contributions from loads to the nut.
+   this is where i will go to deep dive on my finances."
+
+   Two facts side by side: what is IN THE TANKS right now (accounts + their
+   envelopes, served whole from the one finance store), and WHO FED THE NUT —
+   each load's surviving contribution laid as a filling bar against the
+   month's fixed cost. The standings list this replaced lives on where it
+   belongs now: open bills in the nut checklist, settled ones in the bucket. */
+function finBooks(){
+  const A = State.fin.accounts, ro = State.fin.rollup, l = State.fin.loads;
+  const R = (ro && ro.reconciliation) || {};
+  /* ── cash ── */
+  let cash;
+  if(!A) cash = `<div class="gen" style="min-height:80px"><span class="nodata">${
+    esc(State.fin.acctErr || "the spine has not answered with the accounts")}</span></div>`;
+  else cash = `<div class="cashrow tot"><span>all accounts</span>
+      <b>${A.total == null ? "——" : money(A.total)}</b>
+      <i>${A.available_total == null ? "" : money(A.available_total) + " available"}</i></div>`
+    + (A.accounts||[]).map(a => `<div class="cashrow">
+      <span>${esc(a.name || a.id || "?")}${a.last4 ? ` <u>·${esc(a.last4)}</u>` : ""}</span>
+      <b>${a.balance == null ? "——" : money(a.balance)}</b>
+      <i>${a.available_balance == null ? "" : money(a.available_balance) + " avail · "}${
+        a.updated_at ? "as of " + esc(String(a.updated_at).slice(0,10)) : "as-of unknown"}</i>
+      ${(a.envelopes||[]).map(en => `<div class="env"><span>${esc(en.name)}</span>
+        <b>${en.balance == null ? "——" : money(en.balance)}</b>${
+        en.target ? `<i>of ${money(en.target)}</i>` : ""}</div>`).join("")}
+    </div>`).join("");
+  /* ── the nut, being fed ── */
+  const rows = (ro && ro.loads || [])
+    .map(r => {
+      const id = (l && (l.loads||[]).find(x => x.sheet_row === r.sheet_row)) || {};
+      return {...r, broker: id.broker, city: id.delivery_city, date: id.delivery_date};
+    })
+    .filter(r => r.nut_contribution != null)
+    .sort((a,b) => (a.date||"") < (b.date||"") ? -1 : 1);
+  const nut = R.nut;
+  let feed;
+  if(!ro) feed = `<div class="gen" style="min-height:80px"><span class="nodata">${
+    esc(State.fin.err || "the spine has not answered with the rollup")}</span></div>`;
+  else if(nut == null) feed = `<div class="nodata">the nut is unreadable — nothing to measure against</div>`;
+  else {
+    /* presentation sums of SERVED per-load figures — same practice as the
+       bucket header; no financial judgement is derived here */
+    const fed = rows.reduce((s,r) => s + Math.max(0, r.nut_contribution), 0);
+    const gave = rows.reduce((s,r) => s + Math.min(0, r.nut_contribution), 0);
+    const scale = Math.max(nut, fed, 1);
+    let x = 0;
+    const segs = rows.filter(r => r.nut_contribution > 0).map(r => {
+      const w = r.nut_contribution / scale * 100, x0 = x; x += w;
+      return `<div class="nutseg" style="left:${x0}%;width:${Math.max(w,.4)}%"
+        title="${esc(r.broker || "?")} · ${esc(r.date || "")} · ${money(r.nut_contribution)}${
+        r.nut_pct != null ? " · " + r.nut_pct + "% of the nut" : ""}"></div>`;
+    }).join("");
+    feed = `<div class="nutbar">
+        ${segs}
+        <div class="nutline" style="left:${Math.min(nut/scale*100, 99.7)}%"></div>
+      </div>
+      <div class="recline" style="margin-top:6px">
+        <span><b>${money(fed)}</b> fed to the nut</span>
+        ${gave < 0 ? `<span><b class="hot">${money(gave)}</b> given back</span>` : ""}
+        <span>the nut: <b>${money(nut)}</b></span>
+      </div>
+      <div class="scroll" style="margin-top:9px;max-height:38vh">${
+        rows.slice().sort((a,b) => b.nut_contribution - a.nut_contribution).map(r =>
+        `<div class="lrow${r.nut_contribution < 0 ? " short" : ""}">
+          <div class="t">${esc(r.broker || "—")}${r.city ? " · " + esc(r.city) : ""}</div>
+          <div class="a">${(r.nut_contribution >= 0 ? "+" : "−") + money(Math.abs(r.nut_contribution))}</div>
+          <div class="s">${esc(r.date || "")}${
+            r.nut_pct != null ? ` · ${r.nut_pct}% of the nut` : ""}</div></div>`).join("")
+        || `<p class="nodata">no loads with a contribution in this window</p>`}</div>`;
+  }
+  return `<div class="finscroll"><div class="floor" style="grid-template-columns:minmax(280px,380px) 1fr">
+    <div class="panel"><div class="cap">cash — the tanks${
+      A && A.as_of ? " · newest reading " + esc(String(A.as_of).slice(0,10)) : ""}</div>${cash}</div>
+    <div class="panel"><div class="cap">feeding the nut — ${esc(FIN.period)}, each load's surviving contribution</div>${feed}</div>
+  </div></div>`;
 }
 function learnRoom(){
   const l = State.learn;
@@ -2098,7 +2181,15 @@ function wireFin(){
   const R = $("room");
 
   R.querySelectorAll("#finView button").forEach(b => b.addEventListener("click", () => {
-    FIN.view = b.dataset.v; FIN.pick = null; renderRoom();
+    FIN.view = b.dataset.v; FIN.pick = null;
+    /* the books measure against the NUT, and the nut is monthly — entering
+       them on a week/quarter toggle would draw a monthly line under a
+       non-month window. Snap to month, refetch, redraw. */
+    if(FIN.view === "ledger" && FIN.period !== "month"){
+      FIN.period = "month";
+      loadFin().then(renderRoom).catch(()=>{});
+    }
+    renderRoom();
   }));
   R.querySelectorAll("#finPeriod button").forEach(b => b.addEventListener("click", () => {
     FIN.period = b.dataset.p; loadFin(); renderRoom();
@@ -2118,6 +2209,20 @@ function wireFin(){
       ev.dataTransfer.setData("text/plain", c.dataset.txn);
     });
     c.addEventListener("dragend", () => { c.classList.remove("dragging"); FIN.drag = null; });
+  });
+  /* RIGHT-CLICK ON ANY COLUMN ROW — "already accounted for" (2026-08-02).
+     Some pasted rows are covered by a bill card he already dragged at pay
+     time. The mark sinks the row and shrinks the pool; it never deletes —
+     the column doubles as the running record of all transactions with their
+     categories. Reversible from the same menu. */
+  R.querySelectorAll(".exp .eline[data-txn]").forEach(c => {
+    c.addEventListener("contextmenu", ev => {
+      ev.preventDefault();
+      const t = ((State.fin.expenses||{}).transactions||[]).find(x => x.id === Number(c.dataset.txn));
+      if(!t) return;
+      if((t.placements||[]).length){ openMove(ev, t.id, t.sheet_row); return; }
+      openAcct(ev, t);
+    });
   });
   /* the bills — his hand at pay time. A bill drags into MONTHLY and nowhere
      else; a load lane refuses it in words. */
@@ -2213,6 +2318,41 @@ function wireFin(){
    means is nearly always the one he was running that day — the ordering does
    the remembering so he does not have to. The list is served, not sorted here. */
 let MOVEMENU = null;
+/* the "already accounted for" menu — one honest action and its undo */
+function openAcct(ev, t){
+  closeMove();
+  const m = document.createElement("div");
+  m.className = "movemenu";
+  m.innerHTML =
+    `<div class="mh">${esc(t.merchant || t.description || "this")} · ${money(t.amount)}
+       <span>${esc(t.date)}</span></div>` +
+    (t.accounted
+      ? `<button class="mi" data-acct="off">take it back into the pile<i>it will count as work again</i></button>`
+      : `<button class="mi" data-acct="on">already accounted for<i>a card covers it — it stays in the record, marked</i></button>`) +
+    `<button class="mi off" data-acct="x">never mind</button>`;
+  document.body.appendChild(m);
+  MOVEMENU = m;
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(6, Math.min(ev.clientX, innerWidth - w - 6)) + "px";
+  m.style.top = Math.max(6, Math.min(ev.clientY, innerHeight - h - 6)) + "px";
+  m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", async () => {
+    const act = b.dataset.acct;
+    closeMove();
+    if(act === "x") return;
+    try{
+      const r = await fetch(url("/api/fin/accounted"), {method:"POST",
+        headers:{...hdr(), "Content-Type":"application/json"},
+        body: JSON.stringify({txn_id: t.id, on: act === "on"})});
+      const out = await r.json().catch(() => ({}));
+      if(!r.ok){ finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true); return; }
+      await loadFin(); renderRoom();
+      finSay(act === "on"
+        ? `${out.merchant || "row"} marked already accounted for — it stays in the record`
+        : `${out.merchant || "row"} is back in the pile`, false);
+    }catch(e){ finSay("the spine did not answer — nothing was written: " + (e.message||e), true); }
+  }));
+}
+
 async function openMove(ev, txn_id, from_row){
   closeMove();
   const m = document.createElement("div");
@@ -2507,8 +2647,18 @@ async function sendShot(dataUrl){
       method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
       body: JSON.stringify({image:dataUrl, account:"loadpay"})});
     let o = await r.json().catch(() => ({}));
-    if(r.ok && (o.balance != null || o.available != null || o.updated)){
-      dropState(el, "ok", "balance read", JSON.stringify(o).slice(0,90));
+    /* The reader answers {ok, extracted:{accounts:[...]}} (or the old
+       single-account {balance,...}). Checking the WRONG keys here made a
+       SUCCESSFUL balance write fall through to the transaction reader and
+       report "nothing found" about balances already saved (2026-08-02 —
+       Bryan's PNC paste landed while the surface said it hadn't). */
+    const got = (o.extracted && (o.extracted.accounts
+                 || (o.extracted.balance != null ? [o.extracted] : []))) || [];
+    if(r.ok && (o.ok || o.updated) && got.length){
+      dropState(el, "ok", `balances read — ${got.length} account${got.length===1?"":"s"}`,
+        got.map(a => (a.account_name || a.name || "account")
+          + (a.total_balance != null ? " " + money(a.total_balance)
+             : a.balance != null ? " " + money(a.balance) : "")).join(" · ").slice(0,90));
       await loadFin(); renderRoom(); return;
     }
     r = await fetch(url("/api/fin/intake/screenshot"), {
@@ -2575,14 +2725,17 @@ function showStone(s){
 /* ── the room's own fetches ────────────────────────────────────────── */
 async function loadFin(){
   const q = `?period=${FIN.period}`;
-  const [sum, ld, ex, ro] = await Promise.allSettled([
+  const [sum, ld, ex, ro, ac] = await Promise.allSettled([
     grab("/api/fin/summary"), grab("/api/fin/loads"+q),
-    grab("/api/fin/expenses"+q), grab("/api/fin/rollup"+q)]);
+    grab("/api/fin/expenses"+q), grab("/api/fin/rollup"+q),
+    grab("/api/fin/accounts")]);
   State.fin.summary = sum.status === "fulfilled" ? sum.value : null;
   State.fin.summaryErr = sum.status === "rejected" ? String(sum.reason.message||sum.reason) : null;
   State.fin.loads = ld.status === "fulfilled" ? ld.value : null;
   State.fin.expenses = ex.status === "fulfilled" ? ex.value : null;
   State.fin.rollup = ro.status === "fulfilled" ? ro.value : null;
+  State.fin.accounts = ac.status === "fulfilled" ? ac.value : null;
+  State.fin.acctErr = ac.status === "rejected" ? String(ac.reason.message||ac.reason) : null;
   State.fin.err = [ld,ex,ro].filter(x => x.status === "rejected")
     .map(x => String(x.reason.message||x.reason))[0] || null;
   /* A mirror nobody refreshed reads as "booked ahead $0.00" on a day three
