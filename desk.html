@@ -1601,6 +1601,8 @@ function finLine(t){
     `<div class="ep">paid ${esc(mp[0].name)} · monthly</div>`
     : t.accounted ?
     `<div class="ep">already accounted for · your hand</div>`
+    : t.expired ?
+    `<div class="ep" style="color:var(--etch)">expired pre-auth — never settled · held out</div>`
     : "";
   return `<div class="eline${lock?" locked":""}${pl.length || mp.length || t.accounted?" done":""}" data-txn="${t.id}" ${
     lock?`title="${esc(t.undraggable_because)}"`
@@ -1608,7 +1610,8 @@ function finLine(t){
         :'draggable="true"'}>
     <div class="em">${esc(t.merchant || t.description || "—")}</div>
     <div class="ea">${money(t.amount)}</div>
-    <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}</div>
+    <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}${
+      t.pending ? ` · <span style="color:rgba(255,200,60,.9)">pending</span>` : ""}</div>
     ${state}</div>`;
 }
 
@@ -2033,8 +2036,9 @@ function finBooks(){
             ? `split ${t.placements.length} ways on loads` : "placed on a load")
           : (t.monthly_pay||[]).length ? `paid ${esc(t.monthly_pay[0].name)} — monthly`
           : t.accounted ? "already accounted for — your hand"
+          : t.expired ? "expired pre-auth — never settled, held out"
           : t.personal ? "tagged personal"
-          : "unplaced"}</div></div>`).join("")
+          : "unplaced"}${t.pending ? " · pending" : ""}</div></div>`).join("")
       : `<p class="nodata">nothing in the window — drop a csv up on the floor</p>`}</div></div>`;
   /* the intake lives HERE now (Bryan, 2026-08-02: "move the drop cards from
      the floor to the books") — dropping feeds the record and the tanks, and
