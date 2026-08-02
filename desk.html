@@ -1518,12 +1518,6 @@ function finFloor(){
   return `<div class="finscroll">
     <div class="floor">
       <div class="panel">
-        <div class="drop" id="dropCsv">
-          <div class="dl">drop a transactions csv</div>
-          <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
-        <div class="drop" id="dropShot" tabindex="0">
-          <div class="dl">balances &amp; statements</div>
-          <div class="ds">click then &#8984;V, or drop an image</div></div>
         ${finNutList(m0)}
         <div class="cap">${esc((m0.month_name||"the window").toLowerCase())} — ${
           all.length} transactions · ${e.pool_count} still to place · ${money(e.pool_total || 0)}</div>
@@ -2022,7 +2016,19 @@ function finBooks(){
           : t.personal ? "tagged personal"
           : "unplaced"}</div></div>`).join("")
       : `<p class="nodata">nothing in the window — drop a csv up on the floor</p>`}</div></div>`;
-  return `<div class="finscroll">${faultStrip}<div class="floor" style="grid-template-columns:minmax(280px,380px) 1fr">
+  /* the intake lives HERE now (Bryan, 2026-08-02: "move the drop cards from
+     the floor to the books") — dropping feeds the record and the tanks, and
+     both of those live on this tab. Moved, not copied. */
+  const intake = `<div class="panel" style="margin-bottom:10px;display:grid;
+      grid-template-columns:1fr 1fr;gap:8px">
+    <div class="drop" id="dropCsv" style="margin:0">
+      <div class="dl">drop a transactions csv</div>
+      <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
+    <div class="drop" id="dropShot" tabindex="0" style="margin:0">
+      <div class="dl">balances &amp; statements</div>
+      <div class="ds">click then &#8984;V, or drop an image</div></div>
+  </div>`;
+  return `<div class="finscroll">${intake}${faultStrip}<div class="floor" style="grid-template-columns:minmax(280px,380px) 1fr">
     <div class="panel"><div class="cap">cash — the tanks${
       A && A.as_of ? " · newest reading " + esc(String(A.as_of).slice(0,10)) : ""}</div>${cash}</div>
     <div class="panel"><div class="cap">feeding the nut — ${esc(FIN.period)}, each load's surviving contribution</div>${feed}</div>
@@ -2241,6 +2247,9 @@ function wireFin(){
   }));
 
   if(FIN.view === "hold"){ paintHold(); wireHold(); return; }
+  /* the intake wells live in THE BOOKS now (Bryan, 2026-08-02: "move the
+     drop cards from the floor to the books") — wire them there */
+  if(FIN.view === "ledger"){ wireIntake(); return; }
   if(FIN.view !== "floor") return;
 
   /* the drag: one expense line, one load box, one write */
@@ -2347,8 +2356,6 @@ function wireFin(){
       if(b.classList.contains("cancel")){ FIN.ask = null; renderRoom(); return; }
       payMonthly(Number(b.dataset.txn), b.dataset.bt, b.dataset.bid, b.closest(".lane"));
     }));
-
-  wireIntake();
 }
 
 /* A drop on MONTHLY asserts a bill was paid. Same refusal doctrine as every
@@ -2639,7 +2646,7 @@ function wireIntake(){
   }
 }
 function finPaste(e){
-  const shot = $("dropShot"); if(!shot || FIN.view !== "floor") return;
+  const shot = $("dropShot"); if(!shot || FIN.view !== "ledger") return;
   for(const it of (e.clipboardData || {}).items || []){
     if(it.type.startsWith("image/")){
       const f = it.getAsFile();
