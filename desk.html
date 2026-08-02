@@ -2434,10 +2434,11 @@ async function openAcct(ev, t){
       ? `<button class="mi monthly" data-act="monthly">MONTHLY<i>say which bill this paid</i></button>` : "") +
     (loads.length ? `<div class="msep">the last loads, nearest this date</div>` +
       loads.map(l => `<button class="mi" data-act="load" data-row="${l.sheet_row}">
-        <span>${esc(l.broker || "—")}</span>
+        <span>${esc(l.pickup_city || "?")} &rarr; ${esc(l.delivery_city || "?")}${
+          l.delivery_state ? ", " + esc(l.delivery_state) : ""}</span>
         <i>${l.days_away === 0 ? "same day" :
             l.days_away === 1 ? "1 day away" : l.days_away + " days away"} · ${
-            esc(l.delivery_date || "")}</i></button>`).join("") : "") +
+            esc(l.delivery_date || "")}${l.broker ? " · " + esc(l.broker) : ""}</i></button>`).join("") : "") +
     (t.accounted
       ? `<button class="mi" data-act="off">take it back into the pile<i>it will count as work again</i></button>`
       : `<button class="mi" data-act="on">already accounted for<i>a card covers it — it stays in the record, marked</i></button>`) +
@@ -2496,10 +2497,11 @@ async function openMove(ev, txn_id, from_row){
     (d.loads || []).map(l =>
       `<button class="mi" data-to="${l.sheet_row}"${
         l.sheet_row === from_row ? ' disabled' : ''}>
-        <span>${esc(l.broker || "—")}</span>
+        <span>${esc(l.pickup_city || "?")} &rarr; ${esc(l.delivery_city || "?")}${
+          l.delivery_state ? ", " + esc(l.delivery_state) : ""}</span>
         <i>${l.days_away === 0 ? "same day" :
             l.days_away === 1 ? "1 day away" : l.days_away + " days away"} · ${
-            esc(l.delivery_date || "")}${
+            esc(l.delivery_date || "")}${l.broker ? " · " + esc(l.broker) : ""}${
             l.sheet_row === from_row ? " · it is here now" : ""}</i></button>`).join("") +
     `<button class="mi off" data-to="off">take it off — back to the column</button>`;
   place();
