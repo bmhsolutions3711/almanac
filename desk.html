@@ -512,6 +512,11 @@ body.hot .tmin{color:var(--hot)}
   font:600 9px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
   color:var(--mid);background:rgba(var(--key),.1);border:1px solid rgba(var(--key),.22);
   vertical-align:middle}
+.catchip.edit{cursor:pointer}
+.catchip.edit:hover{background:rgba(var(--key),.25);border-color:rgba(var(--key),.55);
+  color:var(--ink)}
+.movemenu.cats{max-height:62vh;overflow-y:auto}
+.movemenu.cats .mi.on{background:rgba(var(--key),.18)}
 /* the books: cash rows and the nut being fed */
 .cashrow{display:grid;grid-template-columns:1fr auto;gap:1px 10px;align-items:baseline;
   padding:7px 8px;border-bottom:1px solid var(--line)}
@@ -2029,7 +2034,9 @@ function finBooks(){
     <div class="scroll" style="max-height:44vh">${
       tx.length ? tx.map(t => `<div class="lrow${t.accounted ? " dim" : ""}">
         <div class="t">${esc(t.merchant || t.description || "—")}
-          <span class="catchip">${esc(t.category || "uncategorized")}</span></div>
+          <span class="catchip edit" data-cat-txn="${t.id}"
+            title="tap to change the category — the rules learn it">${
+            esc(t.category || "uncategorized")}</span></div>
         <div class="a">${money(t.amount)}</div>
         <div class="s">${esc(t.date)} · ${
           (t.placements||[]).length ? (t.placements.length > 1
@@ -2272,8 +2279,18 @@ function wireFin(){
 
   if(FIN.view === "hold"){ paintHold(); wireHold(); return; }
   /* the intake wells live in THE BOOKS now (Bryan, 2026-08-02: "move the
-     drop cards from the floor to the books") — wire them there */
-  if(FIN.view === "ledger"){ wireIntake(); return; }
+     drop cards from the floor to the books") — wire them there, along with
+     the record's tap-to-edit category chips */
+  if(FIN.view === "ledger"){
+    wireIntake();
+    R.querySelectorAll(".catchip.edit[data-cat-txn]").forEach(ch =>
+      ch.addEventListener("click", ev => {
+        const t = ((State.fin.expenses||{}).transactions||[])
+          .find(x => x.id === Number(ch.dataset.catTxn));
+        if(t) openCat(ev, t);
+      }));
+    return;
+  }
   if(FIN.view !== "floor") return;
 
   /* the drag: one expense line, one load box, one write */
@@ -2400,6 +2417,47 @@ function wireFin(){
    means is nearly always the one he was running that day — the ordering does
    the remembering so he does not have to. The list is served, not sorted here. */
 let MOVEMENU = null;
+/* THE CATEGORY PICKER — the books' tap-to-edit chip (2026-08-02: "categories
+   need to be editable from books...same categories as bik"). The vocabulary
+   is SERVED (/api/fin/categories = bik's canon ∪ the ledger); the write goes
+   through the one writer, which learns a rule so this merchant's next
+   arrival categorizes itself. */
+async function openCat(ev, t){
+  closeMove();
+  if(!State.fin.cats){
+    try{ State.fin.cats = (await grab("/api/fin/categories")).categories || []; }
+    catch(e){ finSay("the spine has no category list: " + (e.message||e), true); return; }
+  }
+  const m = document.createElement("div");
+  m.className = "movemenu cats";
+  m.innerHTML =
+    `<div class="mh">${esc(t.merchant || t.description || "this")} · ${money(t.amount)}
+       <span>${esc(t.category || "uncategorized")}</span></div>` +
+    State.fin.cats.map(c => `<button class="mi${c === t.category ? " on" : ""}"
+        data-cat="${esc(c)}"><span>${esc(c)}</span>${
+        c === t.category ? "<i>it is this now</i>" : ""}</button>`).join("") +
+    `<button class="mi off" data-cat="">never mind</button>`;
+  document.body.appendChild(m);
+  MOVEMENU = m;
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(6, Math.min(ev.clientX, innerWidth - w - 6)) + "px";
+  m.style.top = Math.max(6, Math.min(ev.clientY, innerHeight - h - 6)) + "px";
+  m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", async () => {
+    const cat = b.dataset.cat;
+    closeMove();
+    if(!cat || cat === t.category) return;
+    try{
+      const r = await fetch(url("/api/fin/categorize"), {method:"POST",
+        headers:{...hdr(), "Content-Type":"application/json"},
+        body: JSON.stringify({txn_id: t.id, category: cat})});
+      const out = await r.json().catch(() => ({}));
+      if(!r.ok){ finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true); return; }
+      await loadFin(); renderRoom();
+      finSay(`${t.merchant || "row"} → ${cat}${out.learned ? " · the rules learned it" : ""}`, false);
+    }catch(e){ finSay("the spine did not answer — nothing was written: " + (e.message||e), true); }
+  }));
+}
+
 /* the row menu — right-click on an unplaced row (2026-08-02: "give the last 4
    loads on right click to send to a specific load"). MONTHLY first when the
    row looks like a bill's bank row, then the four loads nearest the expense's
