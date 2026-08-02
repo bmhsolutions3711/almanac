@@ -1476,12 +1476,27 @@ function finFloor(){
      row he cannot reconcile, and the whole point of this floor is that the
      month ends with nothing left unaccounted for. Placed rows stay visible,
      marked, so the column is a checklist rather than a shrinking mystery. */
-  const all = (e.transactions || []);
+  /* THE COLUMN'S ORDER IS THE WORK'S ORDER (Bryan, 2026-08-02): intake at the
+     very top — dropping is the first act of the day; then the nut; then the
+     rows, PLACEABLE FIRST and monthly charges filtered to the bottom, because
+     the top of the pile is the work (bank rows waiting for a load) and the
+     bottom is the already-spoken-for. Stable sort: the producer's date order
+     survives within each tier. */
+  const tier = t => (t.trip_direct && !t.personal) ? 0
+    : ((t.monthly_pay || []).length
+       || (t.undraggable_because || "").startsWith("month-level")) ? 2 : 1;
+  const all = (e.transactions || []).slice().sort((a,b) => tier(a) - tier(b));
   const stale = l.mirror_stale_hours;
   const m0 = (State.fin.summary && State.fin.summary.the_month) || {};
   return `<div class="finscroll">
     <div class="floor">
       <div class="panel">
+        <div class="drop" id="dropCsv">
+          <div class="dl">drop a transactions csv</div>
+          <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
+        <div class="drop" id="dropShot" tabindex="0">
+          <div class="dl">balances &amp; statements</div>
+          <div class="ds">click then &#8984;V, or drop an image</div></div>
         ${finNutList(m0)}
         <div class="cap">${esc((m0.month_name||"the window").toLowerCase())} — ${
           all.length} transactions · ${e.pool_count} still to place · ${money(e.pool_total || 0)}</div>
@@ -1489,12 +1504,6 @@ function finFloor(){
           <button id="placeAll">place them for me</button>
           <button id="clearAuto" class="ghost">clear the machine's</button>
         </div>
-        <div class="drop" id="dropCsv">
-          <div class="dl">drop a transactions csv</div>
-          <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
-        <div class="drop" id="dropShot" tabindex="0">
-          <div class="dl">balances &amp; statements</div>
-          <div class="ds">click then &#8984;V, or drop an image</div></div>
         <div class="exp" style="margin-top:7px">${
           all.length ? all.map(finLine).join("")
             : `<p class="nodata">nothing in the window</p>`}</div>
