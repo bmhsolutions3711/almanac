@@ -551,6 +551,10 @@ body.hot .tmin{color:var(--hot)}
   font-style:normal;color:var(--etch)}
 .nut .bill.late{border-left-color:var(--hot)}
 .nut .bill.late em{color:var(--hot)}
+/* an arrived bank row, waiting at the top of the bucket to be matched */
+.lane .drop-in.arr{background:rgba(255,200,60,.07);border-color:rgba(255,200,60,.35);
+  border-style:dashed}
+.lane .drop-in.arr:hover{background:rgba(255,200,60,.16);border-color:rgba(255,200,60,.6)}
 /* a bill paid, resting in the bucket with its evidence */
 .lane .drop-in.paid{cursor:default;background:rgba(120,200,120,.08);
   border-color:rgba(120,200,120,.32)}
@@ -1510,6 +1514,7 @@ function finFloor(){
      survives within each tier. */
   const tier = t => t.accounted ? 2
     : (t.trip_direct && !t.personal) ? 0
+    : t.monthly_candidate ? 1              // a bill's bank row is WORK: attach it
     : ((t.monthly_pay || []).length
        || (t.undraggable_because || "").startsWith("month-level")) ? 2 : 1;
   const all = (e.transactions || []).slice().sort((a,b) => tier(a) - tier(b));
@@ -1580,7 +1585,8 @@ function finNutList(m0){
 
 /* one expense, as a line you drag */
 function finLine(t){
-  const lock = !!t.undraggable_because;
+  /* a bill's bank row is grabbable — it drags to MONTHLY and nowhere else */
+  const lock = !!t.undraggable_because && !t.monthly_candidate;
   const pl = t.placements || [];
   /* A PLACED ROW STAYS IN THE COLUMN, marked. The month is closed when nothing
      is unaccounted for, so the list has to work as a checklist — a row that
@@ -1597,7 +1603,9 @@ function finLine(t){
     `<div class="ep">already accounted for · your hand</div>`
     : "";
   return `<div class="eline${lock?" locked":""}${pl.length || mp.length || t.accounted?" done":""}" data-txn="${t.id}" ${
-    lock?`title="${esc(t.undraggable_because)}"`:'draggable="true"'}>
+    lock?`title="${esc(t.undraggable_because)}"`
+        :t.monthly_candidate?`draggable="true" title="a bill's bank row — drag it into MONTHLY, or right-click"`
+        :'draggable="true"'}>
     <div class="em">${esc(t.merchant || t.description || "—")}</div>
     <div class="ea">${money(t.amount)}</div>
     <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}</div>
@@ -1624,6 +1632,8 @@ function finMonthlyBox(){
   const ev = (State.fin.expenses && State.fin.expenses.monthly_pays) || [];
   const evFor = x => ev.find(e =>
     e.bill_type === x.bill_type && String(e.bill_id) === String(x.bill_id));
+  const arrived = ((State.fin.expenses && State.fin.expenses.transactions) || [])
+    .filter(t => t.monthly_candidate);
   const ask = FIN.ask;                       // a drop the spine handed back to him
   return `<div class="lane monthly" data-row="monthly">
     <div class="lh"><span class="lr">${money(settled.reduce((a,x)=>a+(x.amount||0),0))}</span>
@@ -1638,7 +1648,17 @@ function finMonthlyBox(){
           <span>${esc(c.name)}</span><b>${money(c.due)}</b>
           <i>${esc(c.why)}</i></button>`).join("")}
         <button class="acand cancel">none of these — put it back</button>
-      </div>` : (settled.length ? settled.map(x => {
+      </div>` : (arrived.length || settled.length ?
+        /* ARRIVED BANK ROWS FIRST (Bryan, 2026-08-02: "these... should be at
+           the top of monthly cards") — the imports that look like bills, each
+           one tap away from attaching to the card it paid. */
+        (arrived.length ? `<div class="cap" style="margin-bottom:5px">arrived — tap to match to a bill</div>`
+          + arrived.map(t => `<div class="drop-in arr" data-arr="${t.id}"
+              title="tap to say which bill this paid">
+              <span>${esc(t.merchant || t.description || "—")}</span>
+              <b>${money(t.amount)}</b></div>`).join("")
+          + (settled.length ? `<div class="cap" style="margin:7px 0 5px">paid</div>` : "") : "")
+        + settled.map(x => {
         const e = evFor(x);
         return `<div class="drop-in paid"><span>${esc(x.title)}<i class="pev${
             e ? "" : " hand"}">${e
@@ -2350,6 +2370,10 @@ function wireFin(){
   pa && pa.addEventListener("click", () => stab("/api/fin/place", "placed"));
   ca && ca.addEventListener("click", () => stab("/api/fin/place/clear", "cleared"));
 
+  /* an arrived bank row at the top of the bucket — his tap asks which bill */
+  R.querySelectorAll(".lane.monthly .drop-in.arr").forEach(p =>
+    p.addEventListener("click", () =>
+      payMonthly(Number(p.dataset.arr), null, null, p.closest(".lane"))));
   /* the monthly box asked which bill; his tap is the answer and the write */
   R.querySelectorAll(".lane.monthly .acand").forEach(b =>
     b.addEventListener("click", () => {
@@ -2372,27 +2396,55 @@ function wireFin(){
    means is nearly always the one he was running that day — the ordering does
    the remembering so he does not have to. The list is served, not sorted here. */
 let MOVEMENU = null;
-/* the "already accounted for" menu — one honest action and its undo */
-function openAcct(ev, t){
+/* the row menu — right-click on an unplaced row (2026-08-02: "give the last 4
+   loads on right click to send to a specific load"). MONTHLY first when the
+   row looks like a bill's bank row, then the four loads nearest the expense's
+   own date (cross-month — an Aug-2 fuel stop usually belongs to a July load),
+   then the accounted mark and its undo. Every action is a producer write and
+   refuses in the spine's words when the ruling excludes it. */
+async function openAcct(ev, t){
   closeMove();
   const m = document.createElement("div");
   m.className = "movemenu";
+  m.innerHTML = `<div class="mh">loading…</div>`;
+  document.body.appendChild(m);
+  MOVEMENU = m;
+  const place = () => {
+    const w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(6, Math.min(ev.clientX, innerWidth - w - 6)) + "px";
+    m.style.top = Math.max(6, Math.min(ev.clientY, innerHeight - h - 6)) + "px";
+  };
+  place();
+  let loads = [];
+  try{
+    const r = await fetch(url("/api/fin/move/targets"), {method:"POST",
+      headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({txn_id: t.id})});
+    const d = await r.json().catch(() => ({}));
+    if(r.ok) loads = (d.loads || []).slice(0, 4);
+  }catch(e){ /* the menu still offers the mark — loads just stay absent */ }
   m.innerHTML =
     `<div class="mh">${esc(t.merchant || t.description || "this")} · ${money(t.amount)}
        <span>${esc(t.date)}</span></div>` +
+    (t.monthly_candidate
+      ? `<button class="mi monthly" data-act="monthly">MONTHLY<i>say which bill this paid</i></button>` : "") +
+    (loads.length ? `<div class="msep">the last loads, nearest this date</div>` +
+      loads.map(l => `<button class="mi" data-act="load" data-row="${l.sheet_row}">
+        <span>${esc(l.broker || "—")}</span>
+        <i>${l.days_away === 0 ? "same day" :
+            l.days_away === 1 ? "1 day away" : l.days_away + " days away"} · ${
+            esc(l.delivery_date || "")}</i></button>`).join("") : "") +
     (t.accounted
-      ? `<button class="mi" data-acct="off">take it back into the pile<i>it will count as work again</i></button>`
-      : `<button class="mi" data-acct="on">already accounted for<i>a card covers it — it stays in the record, marked</i></button>`) +
-    `<button class="mi off" data-acct="x">never mind</button>`;
-  document.body.appendChild(m);
-  MOVEMENU = m;
-  const w = m.offsetWidth, h = m.offsetHeight;
-  m.style.left = Math.max(6, Math.min(ev.clientX, innerWidth - w - 6)) + "px";
-  m.style.top = Math.max(6, Math.min(ev.clientY, innerHeight - h - 6)) + "px";
+      ? `<button class="mi" data-act="off">take it back into the pile<i>it will count as work again</i></button>`
+      : `<button class="mi" data-act="on">already accounted for<i>a card covers it — it stays in the record, marked</i></button>`) +
+    `<button class="mi off" data-act="x">never mind</button>`;
+  place();
   m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", async () => {
-    const act = b.dataset.acct;
+    const act = b.dataset.act, row = b.dataset.row;
     closeMove();
     if(act === "x") return;
+    if(act === "monthly") return payMonthly(t.id, null, null, null);
+    if(act === "load") return assignTxn(t.id, Number(row), null);
     try{
       const r = await fetch(url("/api/fin/accounted"), {method:"POST",
         headers:{...hdr(), "Content-Type":"application/json"},
