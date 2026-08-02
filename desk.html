@@ -508,6 +508,10 @@ body.hot .tmin{color:var(--hot)}
 .hcard .ha{margin-top:4px;font:700 24px/1 var(--mono);color:rgba(var(--key),1)}
 .hcard .hs{margin-top:6px;font:400 11.5px/1.5 var(--sans);color:var(--dim)}
 .hcard .hb{margin-top:11px;display:flex;gap:7px;align-items:center}
+.catchip{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:3px;
+  font:600 9px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
+  color:var(--mid);background:rgba(var(--key),.1);border:1px solid rgba(var(--key),.22);
+  vertical-align:middle}
 /* the books: cash rows and the nut being fed */
 .cashrow{display:grid;grid-template-columns:1fr auto;gap:1px 10px;align-items:baseline;
   padding:7px 8px;border-bottom:1px solid var(--line)}
@@ -1725,6 +1729,7 @@ function finReconcile(){
       ${chip("cash", H.cash, "what it bought on the road is unknown until you itemize it")}
       ${chip("tagged personal", H.personal_road, "road categories MI auto-tagged personal — flip its pin if that is wrong")}
       ${chip("uncategorized", H.uncategorized, "no category yet, so no lane")}
+      ${chip("already accounted", H.accounted, "rows your hand declared covered elsewhere — held out of road and the line")}
     </div>` : ""}
     ${ex && ex.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
       spend known only through ${esc(ex.txn_through)} — ${ex.blind_days} day${
@@ -1921,26 +1926,35 @@ function finBooks(){
   const A = State.fin.accounts, ro = State.fin.rollup, l = State.fin.loads;
   const R = (ro && ro.reconciliation) || {};
   /* ── cash ── */
+  /* AVAILABLE IS THE CALLOUT (Bryan, 2026-08-02): available is what he can
+     actually spend today; the ledger figure is context and rides tiny. */
   let cash;
   if(!A) cash = `<div class="gen" style="min-height:80px"><span class="nodata">${
     esc(State.fin.acctErr || "the spine has not answered with the accounts")}</span></div>`;
-  else cash = `<div class="cashrow tot"><span>all accounts</span>
-      <b>${A.total == null ? "——" : money(A.total)}</b>
-      <i>${A.available_total == null ? "" : money(A.available_total) + " available"}</i></div>`
-    + (A.accounts||[]).map(a => `<div class="cashrow">
+  else cash = `<div class="cashrow tot"><span>all accounts — available</span>
+      <b>${A.available_total == null ? "——" : money(A.available_total)}</b>
+      <i>${A.total == null ? "" : "ledger " + money(A.total)}</i></div>`
+    + (A.accounts||[]).map(a => {
+      const avail = a.available_balance != null ? a.available_balance : a.balance;
+      return `<div class="cashrow">
       <span>${esc(a.name || a.id || "?")}${a.last4 ? ` <u>·${esc(a.last4)}</u>` : ""}</span>
-      <b>${a.balance == null ? "——" : money(a.balance)}</b>
-      <i>${a.available_balance == null ? "" : money(a.available_balance) + " avail · "}${
+      <b>${avail == null ? "——" : money(avail)}</b>
+      <i>${a.balance == null ? "" : "ledger " + money(a.balance) + " · "}${
         a.updated_at ? "as of " + esc(String(a.updated_at).slice(0,10)) : "as-of unknown"}</i>
       ${(a.envelopes||[]).map(en => `<div class="env"><span>${esc(en.name)}</span>
         <b>${en.balance == null ? "——" : money(en.balance)}</b>${
         en.target ? `<i>of ${money(en.target)}</i>` : ""}</div>`).join("")}
-    </div>`).join("");
+    </div>`;}).join("");
   /* ── the nut, being fed ── */
+  /* the rollup rows already CARRY broker/city/date served — the loads join
+     only freshens them; when the loads fetch failed the served values stand
+     (panel finding: the join was clobbering served fields with undefined) */
   const rows = (ro && ro.loads || [])
     .map(r => {
       const id = (l && (l.loads||[]).find(x => x.sheet_row === r.sheet_row)) || {};
-      return {...r, broker: id.broker, city: id.delivery_city, date: id.delivery_date};
+      return {...r, broker: id.broker || r.broker,
+              city: id.delivery_city || r.delivery_city,
+              date: id.delivery_date || r.delivery_date};
     })
     .filter(r => r.nut_contribution != null)
     .sort((a,b) => (a.date||"") < (b.date||"") ? -1 : 1);
@@ -1980,11 +1994,39 @@ function finBooks(){
             r.nut_pct != null ? ` · ${r.nut_pct}% of the nut` : ""}</div></div>`).join("")
         || `<p class="nodata">no loads with a contribution in this window</p>`}</div>`;
   }
-  return `<div class="finscroll"><div class="floor" style="grid-template-columns:minmax(280px,380px) 1fr">
+  /* faults — the spine still names them; since the standings list left this
+     tab, the books are their one home (panel finding: they rendered nowhere) */
+  const faults = (State.standings && State.standings.faults) || [];
+  const faultStrip = !faults.length ? "" :
+    `<div class="panel" style="margin-bottom:10px"><div class="cap">faults — the spine cannot place these</div>${
+      faults.map(f => `<div class="hotline">${esc(f.name||f.bill_id||"?")}${
+        f.amount != null ? " · " + money(f.amount) : ""} — ${esc(f.why||f.kind||"")}</div>`).join("")}</div>`;
+  /* THE RECORD — Bryan, 2026-08-02: "where are the individual transactions
+     with categories... we will use the running list as all transactions with
+     categories." Every row in the window, category worn on its sleeve, its
+     state named. Read-only here — the floor is where rows get worked. */
+  const tx = (State.fin.expenses && State.fin.expenses.transactions) || [];
+  const record = `<div class="panel" style="margin-top:10px">
+    <div class="cap">the record — ${tx.length} transaction${tx.length===1?"":"s"} in ${
+      esc(FIN.period)}, every one with its category</div>
+    <div class="scroll" style="max-height:44vh">${
+      tx.length ? tx.map(t => `<div class="lrow${t.accounted ? " dim" : ""}">
+        <div class="t">${esc(t.merchant || t.description || "—")}
+          <span class="catchip">${esc(t.category || "uncategorized")}</span></div>
+        <div class="a">${money(t.amount)}</div>
+        <div class="s">${esc(t.date)} · ${
+          (t.placements||[]).length ? (t.placements.length > 1
+            ? `split ${t.placements.length} ways on loads` : "placed on a load")
+          : (t.monthly_pay||[]).length ? `paid ${esc(t.monthly_pay[0].name)} — monthly`
+          : t.accounted ? "already accounted for — your hand"
+          : t.personal ? "tagged personal"
+          : "unplaced"}</div></div>`).join("")
+      : `<p class="nodata">nothing in the window — drop a csv up on the floor</p>`}</div></div>`;
+  return `<div class="finscroll">${faultStrip}<div class="floor" style="grid-template-columns:minmax(280px,380px) 1fr">
     <div class="panel"><div class="cap">cash — the tanks${
       A && A.as_of ? " · newest reading " + esc(String(A.as_of).slice(0,10)) : ""}</div>${cash}</div>
     <div class="panel"><div class="cap">feeding the nut — ${esc(FIN.period)}, each load's surviving contribution</div>${feed}</div>
-  </div></div>`;
+  </div>${record}</div>`;
 }
 function learnRoom(){
   const l = State.learn;
@@ -2220,7 +2262,12 @@ function wireFin(){
       ev.preventDefault();
       const t = ((State.fin.expenses||{}).transactions||[]).find(x => x.id === Number(c.dataset.txn));
       if(!t) return;
-      if((t.placements||[]).length){ openMove(ev, t.id, t.sheet_row); return; }
+      /* a SPLIT row serves sheet_row null — hand the menu its first portion's
+         load or every action 500s (panel finding, 2026-08-02) */
+      if((t.placements||[]).length){
+        openMove(ev, t.id, t.sheet_row != null ? t.sheet_row : t.placements[0].sheet_row);
+        return;
+      }
       openAcct(ev, t);
     });
   });
@@ -2653,7 +2700,8 @@ async function sendShot(dataUrl){
        report "nothing found" about balances already saved (2026-08-02 —
        Bryan's PNC paste landed while the surface said it hadn't). */
     const got = (o.extracted && (o.extracted.accounts
-                 || (o.extracted.balance != null ? [o.extracted] : []))) || [];
+                 || (o.extracted.total_balance != null || o.extracted.balance != null
+                     ? [o.extracted] : []))) || [];
     if(r.ok && (o.ok || o.updated) && got.length){
       dropState(el, "ok", `balances read — ${got.length} account${got.length===1?"":"s"}`,
         got.map(a => (a.account_name || a.name || "account")
@@ -2724,11 +2772,16 @@ function showStone(s){
 
 /* ── the room's own fetches ────────────────────────────────────────── */
 async function loadFin(){
+  /* the last fetch wins, not the last to ARRIVE — the books' month-snap can
+     fire while a week fetch is in flight, and the stale answer must not
+     overwrite the fresh one (panel finding, 2026-08-02) */
+  const seq = FIN._seq = (FIN._seq || 0) + 1;
   const q = `?period=${FIN.period}`;
   const [sum, ld, ex, ro, ac] = await Promise.allSettled([
     grab("/api/fin/summary"), grab("/api/fin/loads"+q),
     grab("/api/fin/expenses"+q), grab("/api/fin/rollup"+q),
     grab("/api/fin/accounts")]);
+  if(seq !== FIN._seq) return;               // a newer fetch superseded this one
   State.fin.summary = sum.status === "fulfilled" ? sum.value : null;
   State.fin.summaryErr = sum.status === "rejected" ? String(sum.reason.message||sum.reason) : null;
   State.fin.loads = ld.status === "fulfilled" ? ld.value : null;
