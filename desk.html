@@ -1523,7 +1523,6 @@ function finFloor(){
   return `<div class="finscroll">
     <div class="floor">
       <div class="panel">
-        ${finNutList(m0)}
         <div class="cap">${esc((m0.month_name||"the window").toLowerCase())} — ${
           all.length} transactions · ${e.pool_count} still to place · ${money(e.pool_total || 0)}</div>
         <div class="stab">
@@ -1536,6 +1535,7 @@ function finFloor(){
         ${e.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
           known through ${esc(e.txn_through||"?")} · ${e.blind_days} day${
           e.blind_days===1?"":"s"} not imported</div>` : ""}
+        <div style="margin-top:9px">${finNutList(m0)}</div>
       </div>
       <div class="panel">
         <div class="cap">the loads — ${(l.loads||[]).length} in ${esc(FIN.period)} · ${
