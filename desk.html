@@ -1715,7 +1715,9 @@ function finMonthlyBox(){
   const open = pay.filter(x => x.state !== "settled");
   const owed = open.reduce((a,x) => a + (x.amount||0), 0);
   const ev = (State.fin.expenses && State.fin.expenses.monthly_pays) || [];
-  const evFor = x => ev.find(e =>
+  /* ALL of a bill's bank rows, not the first one — the SBA loan pays in two
+     ACH debits every month (2026-08-03), and the bucket reads their sum */
+  const evAll = x => ev.filter(e =>
     e.bill_type === x.bill_type && String(e.bill_id) === String(x.bill_id));
   const arrived = ((State.fin.expenses && State.fin.expenses.transactions) || [])
     .filter(t => t.monthly_candidate);
@@ -1726,8 +1728,11 @@ function finMonthlyBox(){
       <div class="lm">paid this month · ${settled.length} of ${pay.length}${
         owed ? ` · ${money(owed)} still due on the left` : ""}</div></div>
     <div class="lin">${ask ? `<div class="ask">
-        <div class="at">which bill did ${esc(ask.txn.merchant || "this")} ${
-          money(ask.txn.amount)} pay?</div>
+        <div class="at">${ask.no_match
+          ? `no bill matches ${esc(ask.txn.merchant || "this row")} ${
+              money(ask.txn.amount)} — name it yourself`
+          : `which bill did ${esc(ask.txn.merchant || "this")} ${
+              money(ask.txn.amount)} pay?`}</div>
         ${ask.candidates.map(c => `<button class="acand" data-txn="${ask.txn.id}"
           data-bt="${esc(c.bill_type)}" data-bid="${esc(c.bill_id)}">
           <span>${esc(c.name)}</span><b>${money(c.due)}</b>
@@ -1744,10 +1749,15 @@ function finMonthlyBox(){
               <b>${money(t.amount)}</b></div>`).join("")
           + (settled.length ? `<div class="cap" style="margin:7px 0 5px">paid</div>` : "") : "")
         + settled.map(x => {
-        const e = evFor(x);
+        const es = evAll(x);
+        const covered = es.reduce((a,e) => a + (e.amount || 0), 0);
         return `<div class="drop-in paid"><span>${esc(x.title)}<i class="pev${
-            e ? "" : " hand"}">${e
-            ? esc(((e.merchant || "bank row") + " · " + (e.date || "")).toLowerCase())
+            es.length ? "" : " hand"}">${es.length > 1
+            ? `${es.length} bank rows · ${money(covered)}${
+                x.amount != null && Math.abs(covered - x.amount) > 0.01
+                  ? " of " + money(x.amount) : ""}`
+            : es.length
+            ? esc(((es[0].merchant || "bank row") + " · " + (es[0].date || "")).toLowerCase())
             : "your hand · awaiting the bank row"}</i></span>
           <b>${x.amount == null ? "——" : money(x.amount)}</b></div>`;
       }).join("")
@@ -2171,12 +2181,14 @@ function finBooks(){
         <div class="strough">${wl != null ? `<div class="wline" style="bottom:${wl}%"
           title="trailing average · ${money(c.avg)}"></div>` : ""}${bars}</div>
         <div class="sxl">${sp.windows.map(w => `<span>${esc(w.label)}</span>`).join("")}</div>
-      </div>`;}).join("")
-    + `<div class="sfoot">${money(sp.window_total)} spent in the window · dashed line = the trailing
-       average · held out: ${esc(sp.held_out)} · each trend on its own scale · tap a category to sift the record</div>`;
+      </div>`;}).join("");
   const spend = `<div class="panel" style="min-width:0">
-    <div class="cap">where the money goes — top ${(sp && (sp.categories||[]).length) || 0} of ${
-      esc(FIN.period)}, trailing ${(sp && (sp.windows||[]).length) || 6}</div>${goes}</div>`;
+    <div class="cap">where the money goes — top ${(sp && (sp.categories||[]).length) || 0}, ranked by
+      the trailing average${FIN.catFilter ? "" : " — the year's shape, not the young month"}</div>
+    <div class="scroll" style="max-height:58vh">${goes}</div>
+    ${sp && (sp.categories||[]).length ? `<div class="sfoot">${money(sp.window_total)} spent in the
+       window · dashed line = the trailing average · held out: ${esc(sp.held_out)} ·
+       each trend on its own scale · tap a category to sift the record</div>` : ""}</div>`;
   /* the intake lives HERE now (Bryan, 2026-08-02: "move the drop cards from
      the floor to the books") — dropping feeds the record and the tanks, and
      both of those live on this tab. Moved, not copied. */
@@ -2804,10 +2816,12 @@ async function payMonthly(txn_id, bill_type, bill_id, box){
       body: JSON.stringify({txn_id, bill_type, bill_id})});
     const out = await r.json().catch(() => ({}));
     if(r.status === 409 && out.ask){
-      FIN.ask = {txn: out.txn, candidates: out.candidates};
+      FIN.ask = {txn: out.txn, candidates: out.candidates, no_match: out.no_match};
       card && card.classList.remove("writing");
       renderRoom();
-      finSay(`which bill did this pay? nothing recorded yet`, "ask");
+      finSay(out.no_match
+        ? `no bill matches that row — the full list is up, name it yourself`
+        : `which bill did this pay? nothing recorded yet`, "ask");
       return false;
     }
     if(!r.ok){
@@ -2832,11 +2846,17 @@ async function payMonthly(txn_id, bill_type, bill_id, box){
         + `drop the row on it again to retry`, true);
       return true;
     }
+    /* additive evidence: the second ACH debit lands as "2 bank rows now carry
+       669.65 of 700.00" — coverage said out loud, drift left visible */
+    const cover = out.evidence_n > 1 && out.covered != null
+      ? ` · ${out.evidence_n} bank rows now carry ${money(out.covered)}${
+          out.due != null ? " of " + money(out.due) : ""}`
+      : "";
     finSay(out.already
       ? (out.evidenced
-          ? `bank row attached — ${out.name} already recorded paid for ${out.cycle_key}`
+          ? `bank row attached — ${out.name} already recorded paid for ${out.cycle_key}${cover}`
           : `${out.name} was already recorded paid for ${out.cycle_key}`)
-      : `${out.name} recorded paid for ${out.cycle_key} — ${money(out.amount)}`, false);
+      : `${out.name} recorded paid for ${out.cycle_key} — ${money(out.amount)}${cover}`, false);
     return true;
   }catch(e){
     card && (card.classList.remove("writing"), card.classList.add("refused"));
