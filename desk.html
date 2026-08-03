@@ -2285,6 +2285,11 @@ function wireFin(){
     wireIntake();
     R.querySelectorAll(".catchip.edit[data-cat-txn]").forEach(ch =>
       ch.addEventListener("click", ev => {
+        /* the window's click-closes-the-menu listener fires on this SAME
+           click once the categories are cached (the menu builds synchronously
+           and dies as it is born — "works for one, not the next"). The chip's
+           click must not reach it. */
+        ev.stopPropagation();
         const t = ((State.fin.expenses||{}).transactions||[])
           .find(x => x.id === Number(ch.dataset.catTxn));
         if(t) openCat(ev, t);
