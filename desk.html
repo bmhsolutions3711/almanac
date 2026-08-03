@@ -352,6 +352,7 @@ body.hot .tmin{color:var(--hot)}
 .eline .em{font:600 12.5px/1.3 var(--sans);color:var(--ink);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .eline .ea{font:700 12.5px var(--mono);color:var(--ink)}
+.eline .ea.cr{color:#7ec87e}
 .eline .ed{grid-column:1;font:400 10px/1.3 var(--mono);letter-spacing:.06em;
   color:var(--etch);text-transform:uppercase}
 .eline.refused{border-color:var(--hot);background:rgba(255,59,24,.12)}
@@ -1606,15 +1607,22 @@ function finLine(t){
     `<div class="ep">paid ${esc(mp[0].name)} · monthly</div>`
     : t.accounted ?
     `<div class="ep">already accounted for · your hand</div>`
+    : t.deposit ?
+    `<div class="ep" style="color:rgba(255,200,60,.9)">${t.deposit_refund
+        ? "deposit · refunded " + esc(t.deposit_refund.refund_date || "")
+        : "deposit · awaiting the refund"}</div>`
     : t.expired ?
     `<div class="ep" style="color:var(--etch)">expired pre-auth — never settled · held out</div>`
+    : t.credit ?
+    `<div class="ep" style="color:#7ec87e">credit — drag it onto the load it belongs to</div>`
     : "";
   return `<div class="eline${lock?" locked":""}${pl.length || mp.length || t.accounted?" done":""}" data-txn="${t.id}" ${
     lock?`title="${esc(t.undraggable_because)}"`
         :t.monthly_candidate?`draggable="true" title="a bill's bank row — drag it into MONTHLY, or right-click"`
         :'draggable="true"'}>
     <div class="em">${esc(t.merchant || t.description || "—")}</div>
-    <div class="ea">${money(t.amount)}</div>
+    <div class="ea${t.credit ? " cr" : ""}">${
+      t.credit ? "+" + money(Math.abs(t.amount)) : money(t.amount)}</div>
     <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}${
       t.pending ? ` · <span style="color:rgba(255,200,60,.9)">pending</span>` : ""}</div>
     ${state}</div>`;
@@ -1752,6 +1760,7 @@ function finReconcile(){
       ${chip("tagged personal", H.personal_road, "road categories MI auto-tagged personal — flip its pin if that is wrong")}
       ${chip("uncategorized", H.uncategorized, "no category yet, so no lane")}
       ${chip("already accounted", H.accounted, "rows your hand declared covered elsewhere — held out of road and the line")}
+      ${chip("on deposit", H.on_deposit, "parked with hotels, coming back — never cost; refunded pairs cancel silently")}
     </div>` : ""}
     ${ex && ex.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
       spend known only through ${esc(ex.txn_through)} — ${ex.blind_days} day${
@@ -2043,7 +2052,11 @@ function finBooks(){
             ? `split ${t.placements.length} ways on loads` : "placed on a load")
           : (t.monthly_pay||[]).length ? `paid ${esc(t.monthly_pay[0].name)} — monthly`
           : t.accounted ? "already accounted for — your hand"
+          : t.deposit ? (t.deposit_refund
+              ? "deposit — refunded " + esc(t.deposit_refund.refund_date || "")
+              : "deposit — awaiting the refund")
           : t.expired ? "expired pre-auth — never settled, held out"
+          : t.credit ? "credit — place it on the load it belongs to"
           : t.personal ? "tagged personal"
           : "unplaced"}${t.pending ? " · pending" : ""}</div></div>`).join("")
       : `<p class="nodata">nothing in the window — drop a csv up on the floor</p>`}</div></div>`;
@@ -2505,6 +2518,9 @@ async function openAcct(ev, t){
     (t.accounted
       ? `<button class="mi" data-act="off">take it back into the pile<i>it will count as work again</i></button>`
       : `<button class="mi" data-act="on">already accounted for<i>a card covers it — it stays in the record, marked</i></button>`) +
+    (t.deposit
+      ? `<button class="mi" data-act="dep-off">not a deposit<i>count it as spend again</i></button>`
+      : `<button class="mi" data-act="dep-on">deposit — wait for the refund<i>parked with the hotel; it comes back and the pair cancels</i></button>`) +
     `<button class="mi off" data-act="x">never mind</button>`;
   place();
   m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", async () => {
@@ -2513,6 +2529,20 @@ async function openAcct(ev, t){
     if(act === "x") return;
     if(act === "monthly") return payMonthly(t.id, null, null, null);
     if(act === "load") return assignTxn(t.id, Number(row), null);
+    if(act === "dep-on" || act === "dep-off"){
+      try{
+        const r = await fetch(url("/api/fin/deposit"), {method:"POST",
+          headers:{...hdr(), "Content-Type":"application/json"},
+          body: JSON.stringify({txn_id: t.id, on: act === "dep-on"})});
+        const out = await r.json().catch(() => ({}));
+        if(!r.ok){ finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true); return; }
+        await loadFin(); renderRoom();
+        finSay(act === "dep-on"
+          ? `${out.merchant || "row"} flagged as a deposit — watching for the refund`
+          : `${out.merchant || "row"} counts as spend again`, false);
+      }catch(e){ finSay("the spine did not answer — nothing was written: " + (e.message||e), true); }
+      return;
+    }
     try{
       const r = await fetch(url("/api/fin/accounted"), {method:"POST",
         headers:{...hdr(), "Content-Type":"application/json"},
