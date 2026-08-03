@@ -673,6 +673,74 @@ body.hot .act .h .n{color:var(--hot)}
 .lrow .a{grid-row:1/span 2;align-self:center;font:600 14px var(--mono);color:var(--ink);text-align:right}
 .lrow.short .t{color:var(--hot)}
 .lrow.dim{opacity:.5}
+
+/* THE RECORD AS A LEDGER — Bryan, 2026-08-03: "it should read Date | Category |
+   Payee | Amount | Notes | Status." A ledger line reads left to right in the
+   order a bookkeeper writes it: when, what kind, who, how much, what became of
+   it, where the bank stands. */
+.lghead,.lgr{display:grid;grid-template-columns:44px 118px minmax(0,1.1fr) 84px minmax(0,1.45fr) 58px;
+  gap:0 12px;align-items:center}
+.lghead{padding:2px 0 7px;border-bottom:1px solid var(--line);
+  font:700 7.5px/1 var(--mono);letter-spacing:.18em;color:var(--etch);text-transform:uppercase}
+.lghead .ra{text-align:right}
+.lgr{padding:8px 0;border-bottom:1px dotted var(--line)}
+.lgr.dim{opacity:.5}
+.lgr .ld{font:600 10.5px var(--mono);color:var(--dim);letter-spacing:.03em}
+.lgr .lp{font:600 12.5px/1.3 var(--sans);color:var(--ink);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.lgr .la{font:600 12.5px var(--mono);color:var(--ink);text-align:right;white-space:nowrap}
+.lgr .la.cr{color:#7ec87e}
+.lgr .ln{font:400 11px/1.4 var(--sans);color:var(--dim);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.lgr .lst{font:700 8px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--etch);text-align:right}
+.lgr .lst.pending{color:var(--amber)}
+.lgr .lst.expired{color:var(--unknown);text-decoration:line-through}
+.lgr .lsub{display:none}
+@media(max-width:760px){
+  /* the cover screen folds the ledger back to two lines — same order, stacked */
+  .lghead{display:none}
+  .lgr{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:
+    "cat amt" "payee amt" "sub sub";row-gap:2px}
+  .lgr .lc{grid-area:cat}.lgr .lp{grid-area:payee}.lgr .la{grid-area:amt;align-self:center}
+  .lgr>.ld,.lgr>.ln,.lgr>.lst{display:none}
+  .lgr .lsub{display:block;grid-area:sub;font:400 10.5px/1.4 var(--sans);color:var(--dim)}
+}
+
+/* WHERE THE MONEY GOES — the books' breakdown: the window's five biggest
+   categories, each with its trailing six windows etched like level marks on
+   glass. The viewed window burns amber; the dashed line is the trailing
+   average — the waterline the month is filling toward. Each trend wears its
+   own scale; the NUMBERS carry cross-category size, the bars carry shape. */
+.bookslow{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px;
+  margin-top:10px;align-items:start}
+@media(max-width:900px){.bookslow{grid-template-columns:1fr}}
+.scat{padding:10px 0 7px;border-bottom:1px dotted var(--line);cursor:pointer;
+  margin:0 -6px;padding-left:6px;padding-right:6px;border-radius:5px;
+  transition:background .25s}
+.scat:hover{background:rgba(var(--key),.05)}
+.scat.picked{background:rgba(var(--key),.09);box-shadow:inset 2px 0 0 var(--amber)}
+.scat .sr1{display:flex;align-items:baseline;gap:8px}
+.scat .rank{font:700 9px var(--mono);color:var(--etch);letter-spacing:.08em}
+.scat .scn{font:600 12.5px/1.2 var(--sans);color:var(--ink);flex:1 1 auto;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scat .scn.uncat{font-style:italic;color:var(--amber)}
+.scat .sca{font:600 12px var(--mono);color:var(--ink);white-space:nowrap}
+.scat .sca i{font:400 9px var(--mono);font-style:normal;color:var(--dim);margin-left:6px}
+.strough{position:relative;display:flex;align-items:flex-end;gap:2px;height:44px;
+  margin-top:7px;padding-bottom:1px;border-bottom:1px solid var(--line)}
+.strough .sb{flex:1 1 0;height:100%;display:flex;align-items:flex-end;min-width:8px}
+.strough .sb i{display:block;width:100%;min-height:1px;border-radius:2px 2px 0 0;
+  background:rgba(var(--key),.30);transition:height .5s cubic-bezier(.22,.61,.36,1)}
+.strough .sb.on i{background:var(--amber);box-shadow:0 0 14px rgba(var(--key),.4)}
+.strough .sb:hover i{background:rgba(var(--key),.55)}
+.strough .sb.on:hover i{background:var(--amber)}
+.strough .wline{position:absolute;left:0;right:0;border-top:1px dashed rgba(233,237,240,.35);
+  pointer-events:none;z-index:1}
+.sxl{display:flex;gap:2px;margin-top:3px}
+.sxl span{flex:1 1 0;font:600 7px/1 var(--mono);letter-spacing:.06em;color:var(--etch);
+  text-align:center;text-transform:uppercase}
+.sfoot{margin-top:9px;font:400 9.5px/1.6 var(--mono);color:var(--etch)}
 .scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
 .scroll::-webkit-scrollbar{width:0}
 .creed{padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer}
@@ -1317,7 +1385,8 @@ function radioRoom(){
    that caused it; HOLD is the month's obligations as stones; LEDGER is what
    is standing, unchanged from the room this replaced. The strip sits above
    all three and never changes with the period toggle — the nut is monthly. */
-const FIN = { period:"month", view:"floor", group:"all", pick:null, drag:null, ask:null };
+const FIN = { period:"month", view:"floor", group:"all", pick:null, drag:null, ask:null,
+              catFilter:null };
 
 function ledgerRoom(){
   return whyBar() + `<div class="fin">
@@ -2034,32 +2103,80 @@ function finBooks(){
         f.amount != null ? " · " + money(f.amount) : ""} — ${esc(f.why||f.kind||"")}</div>`).join("")}</div>`;
   /* THE RECORD — Bryan, 2026-08-02: "where are the individual transactions
      with categories... we will use the running list as all transactions with
-     categories." Every row in the window, category worn on its sleeve, its
-     state named. Read-only here — the floor is where rows get worked. */
-  const tx = (State.fin.expenses && State.fin.expenses.transactions) || [];
-  const record = `<div class="panel" style="margin-top:10px">
-    <div class="cap">the record — ${tx.length} transaction${tx.length===1?"":"s"} in ${
-      esc(FIN.period)}, every one with its category</div>
-    <div class="scroll" style="max-height:44vh">${
-      tx.length ? tx.map(t => `<div class="lrow${t.accounted ? " dim" : ""}">
-        <div class="t">${esc(t.merchant || t.description || "—")}
-          <span class="catchip edit" data-cat-txn="${t.id}"
-            title="tap to change the category — the rules learn it">${
-            esc(t.category || "uncategorized")}</span></div>
-        <div class="a">${money(t.amount)}</div>
-        <div class="s">${esc(t.date)} · ${
-          (t.placements||[]).length ? (t.placements.length > 1
-            ? `split ${t.placements.length} ways on loads` : "placed on a load")
-          : (t.monthly_pay||[]).length ? `paid ${esc(t.monthly_pay[0].name)} — monthly`
-          : t.accounted ? "already accounted for — your hand"
-          : t.deposit ? (t.deposit_refund
-              ? "deposit — refunded " + esc(t.deposit_refund.refund_date || "")
-              : "deposit — awaiting the refund")
-          : t.expired ? "expired pre-auth — never settled, held out"
-          : t.credit ? "credit — place it on the load it belongs to"
-          : t.personal ? "tagged personal"
-          : "unplaced"}${t.pending ? " · pending" : ""}</div></div>`).join("")
-      : `<p class="nodata">nothing in the window — drop a csv up on the floor</p>`}</div></div>`;
+     categories." 2026-08-03: reordered to read like a ledger line — Date |
+     Category | Payee | Amount | Notes | Status, the order a bookkeeper
+     writes: when, what kind, who, how much, what became of it, where the
+     bank stands — and given two thirds of the row, WHERE THE MONEY GOES
+     standing beside it. Read-only here — the floor is where rows get worked. */
+  const txAll = (State.fin.expenses && State.fin.expenses.transactions) || [];
+  const sift = FIN.catFilter;
+  const tx = sift ? txAll.filter(t => (t.category || "uncategorized") === sift) : txAll;
+  const note = t =>
+    (t.placements||[]).length ? (t.placements.length > 1
+      ? `split ${t.placements.length} ways on loads` : "placed on a load")
+    : (t.monthly_pay||[]).length ? `paid ${esc(t.monthly_pay[0].name)} — monthly`
+    : t.accounted ? "already accounted for — your hand"
+    : t.deposit ? (t.deposit_refund
+        ? "deposit — refunded " + esc(t.deposit_refund.refund_date || "")
+        : "deposit — awaiting the refund")
+    : t.expired ? "the bank never settled it — held out"
+    : t.credit ? "credit — place it on the load it belongs to"
+    : t.personal ? "tagged personal"
+    : "unplaced";
+  const bank = t => t.expired ? "expired" : t.pending ? "pending" : "posted";
+  const record = `<div class="panel" style="min-width:0">
+    <div class="cap">the record — ${tx.length}${sift ? ` of ${txAll.length}` : ""} transaction${
+      tx.length===1?"":"s"} in ${esc(FIN.period)}${
+      sift ? ` · sifted to ${esc(sift)} — tap it again to clear` : ", every one with its category"}</div>
+    <div class="lghead"><span>date</span><span>category</span><span>payee</span>
+      <span class="ra">amount</span><span>notes</span><span style="text-align:right">status</span></div>
+    <div class="scroll" style="max-height:52vh">${
+      tx.length ? tx.map(t => `<div class="lgr${t.accounted ? " dim" : ""}">
+        <span class="ld" title="${esc(t.date)}">${esc(String(t.date||"").slice(5))}</span>
+        <span class="lc"><span class="catchip edit" data-cat-txn="${t.id}"
+          title="tap to change the category — the rules learn it">${
+          esc(t.category || "uncategorized")}</span></span>
+        <span class="lp" title="${esc(t.description || "")}">${esc(t.merchant || t.description || "—")}</span>
+        <span class="la${t.credit ? " cr" : ""}">${
+          t.credit ? "+" + money(Math.abs(t.amount)) : money(t.amount)}</span>
+        <span class="ln">${note(t)}</span>
+        <span class="lst ${bank(t)}">${bank(t)}</span>
+        <span class="lsub">${esc(String(t.date||"").slice(5))} · ${note(t)} · ${bank(t)}</span></div>`).join("")
+      : `<p class="nodata">${sift ? `nothing in ${esc(sift)} this window` :
+          "nothing in the window — drop a csv up on the floor"}</p>`}</div></div>`;
+  /* WHERE THE MONEY GOES — the window's five biggest categories, trailing
+     six windows etched like level marks on glass; the viewed window burns
+     amber, the dashed line is the trailing average. The producer computed
+     all of it; this only draws. Each trend wears its OWN scale — the
+     numbers carry size across categories, the bars carry shape within one. */
+  const sp = State.fin.spend;
+  let goes;
+  if(!sp) goes = `<span class="nodata">the spine has not answered with the breakdown</span>`;
+  else if(!(sp.categories||[]).length) goes = `<span class="nodata">no spend in the window yet</span>`;
+  else goes = sp.categories.map((c,ix) => {
+      const mx = Math.max(...c.series.map(v => Math.max(v,0)), 1);
+      const bars = c.series.map((v,i) => {
+        const on = i === sp.windows.length - 1;
+        const h = v > 0 ? Math.max(v/mx*100, 3) : 0;
+        return `<div class="sb${on ? " on" : ""}" title="${esc(sp.windows[i].label)} · ${
+          money(Math.max(v,0))}${v < 0 ? " net credit" : ""}"><i style="height:${h}%"></i></div>`;
+      }).join("");
+      const wl = c.avg > 0 ? Math.min(c.avg/mx*100, 100) : null;
+      const un = c.name === "uncategorized";
+      return `<div class="scat${FIN.catFilter===c.name ? " picked" : ""}" data-spend-cat="${esc(c.name)}"
+        title="tap to sift the record to ${esc(c.name)}">
+        <div class="sr1"><span class="rank">${String(ix+1).padStart(2,"0")}</span>
+          <span class="scn${un ? " uncat" : ""}">${esc(c.name)}${un ? " — needs your hand" : ""}</span>
+          <span class="sca">${money(c.now)}<i>${c.share != null ? Math.round(c.share)+"%" : ""}</i></span></div>
+        <div class="strough">${wl != null ? `<div class="wline" style="bottom:${wl}%"
+          title="trailing average · ${money(c.avg)}"></div>` : ""}${bars}</div>
+        <div class="sxl">${sp.windows.map(w => `<span>${esc(w.label)}</span>`).join("")}</div>
+      </div>`;}).join("")
+    + `<div class="sfoot">${money(sp.window_total)} spent in the window · dashed line = the trailing
+       average · held out: ${esc(sp.held_out)} · each trend on its own scale · tap a category to sift the record</div>`;
+  const spend = `<div class="panel" style="min-width:0">
+    <div class="cap">where the money goes — top ${(sp && (sp.categories||[]).length) || 0} of ${
+      esc(FIN.period)}, trailing ${(sp && (sp.windows||[]).length) || 6}</div>${goes}</div>`;
   /* the intake lives HERE now (Bryan, 2026-08-02: "move the drop cards from
      the floor to the books") — dropping feeds the record and the tanks, and
      both of those live on this tab. Moved, not copied. */
@@ -2076,7 +2193,7 @@ function finBooks(){
     <div class="panel"><div class="cap">cash — the tanks${
       A && A.as_of ? " · newest reading " + esc(String(A.as_of).slice(0,10)) : ""}</div>${cash}</div>
     <div class="panel"><div class="cap">feeding the nut — ${esc(FIN.period)}, each load's surviving contribution</div>${feed}</div>
-  </div>${record}</div>`;
+  </div><div class="bookslow">${record}${spend}</div></div>`;
 }
 function learnRoom(){
   const l = State.learn;
@@ -2306,6 +2423,14 @@ function wireFin(){
         const t = ((State.fin.expenses||{}).transactions||[])
           .find(x => x.id === Number(ch.dataset.catTxn));
         if(t) openCat(ev, t);
+      }));
+    /* the breakdown sifts the ledger — tap a category, read only its rows;
+       tap it again and the whole record comes back */
+    R.querySelectorAll("[data-spend-cat]").forEach(el =>
+      el.addEventListener("click", () => {
+        const c = el.dataset.spendCat;
+        FIN.catFilter = FIN.catFilter === c ? null : c;
+        renderRoom();
       }));
     return;
   }
@@ -2935,11 +3060,12 @@ async function loadFin(){
      overwrite the fresh one (panel finding, 2026-08-02) */
   const seq = FIN._seq = (FIN._seq || 0) + 1;
   const q = `?period=${FIN.period}`;
-  const [sum, ld, ex, ro, ac] = await Promise.allSettled([
+  const [sum, ld, ex, ro, ac, sp] = await Promise.allSettled([
     grab("/api/fin/summary"), grab("/api/fin/loads"+q),
     grab("/api/fin/expenses"+q), grab("/api/fin/rollup"+q),
-    grab("/api/fin/accounts")]);
+    grab("/api/fin/accounts"), grab("/api/fin/spend"+q)]);
   if(seq !== FIN._seq) return;               // a newer fetch superseded this one
+  State.fin.spend = sp.status === "fulfilled" ? sp.value : null;
   State.fin.summary = sum.status === "fulfilled" ? sum.value : null;
   State.fin.summaryErr = sum.status === "rejected" ? String(sum.reason.message||sum.reason) : null;
   State.fin.loads = ld.status === "fulfilled" ? ld.value : null;
