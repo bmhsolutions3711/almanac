@@ -1615,19 +1615,27 @@ function finFloor(){
      the top of the pile is the work (bank rows waiting for a load) and the
      bottom is the already-spoken-for. Stable sort: the producer's date order
      survives within each tier. */
+  /* ONE ROW, ONE WORKBENCH (Bryan, 2026-08-04). A bill's bank row works in
+     the bucket's ARRIVED tray; a paid bill rests in the bucket's PAID — and
+     when five sat in both places at once the honest dual-render read as the
+     twin bug. The pile is load work and the marked/held, nothing else; the
+     cap says where the bill rows went, because a row that leaves a list
+     silently reads as lost. The books' record still carries every row. */
+  const billBound = t => t.monthly_candidate || (t.monthly_pay || []).length;
+  const pile = (e.transactions || []).filter(t => !billBound(t));
+  const trayN = (e.transactions || []).length - pile.length;
   const tier = t => t.accounted ? 2
     : (t.trip_direct && !t.personal) ? 0
-    : t.monthly_candidate ? 1              // a bill's bank row is WORK: attach it
-    : ((t.monthly_pay || []).length
-       || (t.undraggable_because || "").startsWith("month-level")) ? 2 : 1;
-  const all = (e.transactions || []).slice().sort((a,b) => tier(a) - tier(b));
+    : (t.undraggable_because || "").startsWith("month-level") ? 2 : 1;
+  const all = pile.slice().sort((a,b) => tier(a) - tier(b));
   const stale = l.mirror_stale_hours;
   const m0 = (State.fin.summary && State.fin.summary.the_month) || {};
   return `<div class="finscroll">
     <div class="floor">
       <div class="panel">
         <div class="cap">${esc((m0.month_name||"the window").toLowerCase())} — ${
-          all.length} transactions · ${e.pool_count} still to place · ${money(e.pool_total || 0)}</div>
+          all.length} in the pile · ${e.pool_count} still to place · ${money(e.pool_total || 0)}${
+          trayN ? ` · ${trayN} with the bills &rarr;` : ""}</div>
         <div class="stab">
           <button id="placeAll">place them for me</button>
           <button id="clearAuto" class="ghost">clear the machine's</button>
