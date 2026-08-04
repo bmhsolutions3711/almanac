@@ -191,6 +191,30 @@ body.hot .centre .n{color:var(--hot);text-shadow:0 0 70px rgba(255,59,24,.55)}
 .centre .weeks i.now{background:rgba(var(--key),1);box-shadow:0 0 10px -2px rgba(var(--key),1)}
 body.hot .centre .weeks i.now{background:var(--hot);box-shadow:0 0 10px -2px var(--hot)}
 .centre .sub{margin-top:8px;font:400 11.5px/1.45 var(--sans);color:var(--mid);max-width:46ch}
+
+/* THE ROAD PULSE (2026-08-04): the operation's own row — $/mile from the spine,
+   a capture well for the dash photo. The desk is his capture point now. */
+.pulse{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:6px}
+.pulse .rpm{font:700 clamp(24px,2.4vw,34px)/1 var(--mono);color:rgba(var(--key),1);
+  text-shadow:0 0 22px rgba(var(--key),.4);white-space:nowrap}
+.pulse .rpm i{font:700 9px/1 var(--mono);letter-spacing:.16em;color:var(--dim);
+  font-style:normal;margin-left:6px}
+.pulse .rpm.unk{color:var(--unknown);text-shadow:none}
+.pulse .pops{font:600 11px/1.6 var(--mono);color:var(--mid)}
+.pulse .pnote{flex:1 1 24ch;font:400 11.5px/1.5 var(--sans);color:var(--dim);min-width:20ch}
+.snaprow{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.snapwell{flex:1 1 30ch;border:1px dashed var(--line);border-radius:4px;padding:9px 12px;
+  font:600 10px/1.4 var(--mono);letter-spacing:.08em;color:var(--dim);cursor:pointer}
+.snapwell:hover{background:rgba(var(--key),.05)}
+.snapwell.armed{border-color:rgba(var(--key),.6);color:rgba(var(--key),1)}
+.snapwell.busy{border-style:solid;color:var(--mid)}
+.camlab{border:1px solid var(--line);border-radius:4px;padding:9px 12px;cursor:pointer;
+  font:700 10px/1 var(--mono);letter-spacing:.12em;color:var(--mid)}
+.camlab:hover{background:rgba(var(--key),.05);color:rgba(var(--key),1)}
+.snapline{margin-top:8px;font:500 10.5px/1.6 var(--mono);color:var(--dim)}
+.snapline b{color:var(--mid)}
+.snapline .mis{margin-left:8px;cursor:pointer;color:var(--dim);text-decoration:underline dotted}
+.snapline .mis:hover{color:var(--hot)}
 .rows{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;margin-top:8px}
 .rw{display:flex;align-items:center;gap:9px;font:400 11px/1.3 var(--sans);color:var(--mid)}
 .rw .b{flex:1;height:4px;background:rgba(255,255,255,.09);border-radius:2px;overflow:hidden;min-width:18px}
@@ -598,7 +622,7 @@ body.hot .tmin{color:var(--hot)}
 .brow i{font:400 10.5px/1.4 var(--mono);color:var(--etch);font-style:normal}
 .brow.tot{margin-top:5px;padding-top:6px;border-top:3px double rgba(255,255,255,.14);color:var(--ink)}
 
-.acts{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.acts{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .act{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:11px 13px;
   display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px);transition:border-color .6s}
 body.hot .act{border-color:rgba(255,59,24,.26)}
@@ -1259,7 +1283,38 @@ function standingRoom(){
           p.earned ? Math.min(100, Math.round(100*(p.still_out||0)/p.earned)) : 0}%"></i></span>
           <span class="v">${p.still_out==null?"——":money(p.still_out)}</span></div>
       </div>
-    </div>` + actsHTML() + `</div>`;
+    </div>` + pulseHTML() + actsHTML() + `</div>`;
+}
+/* THE ROAD PULSE — served whole by /api/hotshot; the page computes nothing.
+   rpm renders UNKNOWN with the reason in words until two anchors cover the
+   month (the wk-miles lesson, kept). Capture: paste/drop the dash photo, or
+   the camera lane — both of his ruled lanes, one well. A misread is one tap
+   from gone; its photo stays on disk. */
+function pulseHTML(){
+  const h = State.hotshot;
+  if(!h) return `<div class="panel" style="grid-column:1 / -1;grid-row:2">
+    <div class="cap">the road pulse</div>
+    <div class="gen"><span class="nodata">the spine has not answered with the pulse</span></div></div>`;
+  const ls = h.last_snap;
+  return `<div class="panel" style="grid-column:1 / -1;grid-row:2">
+    <div class="cap">the road pulse · ${esc(h.month||"")} revenue per mile</div>
+    <div class="pulse">
+      <div class="rpm${h.rpm==null?" unk":""}">${h.rpm==null?"——":money(h.rpm)}<i>/ MILE</i></div>
+      <div class="pops">revenue ${h.revenue==null?"——":money(h.revenue)}<br>
+        miles ${h.miles==null?"——":h.miles.toLocaleString()}</div>
+      <div class="pnote">${esc(h.note || "covered — both operands measured this month")}</div>
+    </div>
+    <div class="snaprow">
+      <div class="snapwell" id="snapWell">dash photo · click then ⌘V, or drop the image</div>
+      <label class="camlab" for="snapCam">CAMERA</label>
+      <input type="file" id="snapCam" accept="image/*" capture="environment" hidden>
+    </div>
+    ${ls ? `<div class="snapline">anchored <b>${esc(ls.captured_at.slice(0,10))}</b> ·
+      odo <b>${ls.odometer.toLocaleString()}</b> · ${esc(ls.trailer||"")} ·
+      ${ls.age_days==null?"":ls.age_days+"d ago"}
+      <span class="mis" data-mis="${ls.id}" title="a misread row is deleted; its photo stays">misread?</span>
+    </div>` : ""}
+  </div>`;
 }
 /* every action names a SERVED figure and a real destination — the machine
    proposing, never inventing */
@@ -2565,7 +2620,7 @@ function renderRoom(){
     const el = R.querySelector("." + cls.split(" ")[0]);
     if(el){ el.scrollTop = top; el.scrollLeft = left; }
   });
-  if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); }
+  if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); wireSnap(); }
   if(o.room === "work"){ wireCards(); }
   if(o.room === "ledger"){ wireFin(); }
   if(o.room === "radio"){ wireKeyup(); markRead(); }
@@ -2592,6 +2647,78 @@ function wireFigs(){
 function wireActs(){
   document.querySelectorAll(".act .go").forEach(b =>
     b.addEventListener("click", () => enter(+b.dataset.go)));
+}
+/* the capture well — click arms the paste ear, drop and camera land directly.
+   stopPropagation is law on anything that opens/closes; the paste ear only
+   listens while ARMED and the standing room is up, so it can never fight the
+   money room's well over ⌘V. */
+let SNAP_ARMED = false;
+function wireSnap(){
+  const well = $("snapWell"), cam = $("snapCam");
+  if(!well) return;
+  well.addEventListener("click", e => { e.stopPropagation();
+    SNAP_ARMED = !SNAP_ARMED;
+    well.classList.toggle("armed", SNAP_ARMED);
+    well.textContent = SNAP_ARMED ? "listening — ⌘V the dash photo"
+      : "dash photo · click then ⌘V, or drop the image";
+  });
+  well.addEventListener("dragover", e => e.preventDefault());
+  well.addEventListener("drop", e => { e.preventDefault(); e.stopPropagation();
+    const f = [...(e.dataTransfer.files||[])].find(x => x.type.startsWith("image/"));
+    if(f) sendSnap(f);
+  });
+  cam && cam.addEventListener("change", () => {
+    const f = cam.files && cam.files[0];
+    if(f) sendSnap(f);
+    cam.value = "";
+  });
+  document.querySelectorAll(".snapline .mis").forEach(el =>
+    el.addEventListener("click", async e => { e.stopPropagation();
+      el.textContent = "deleting…";
+      try{
+        await fetch(url(`/api/hotshot/snap/${el.dataset.mis}/misread`), {method:"POST",
+          headers:{...hdr(), "Content-Type":"application/json"}, body:"{}"});
+        State.hotshot = await grab("/api/hotshot");
+      }catch(_){}
+      renderRoom();
+    }));
+}
+document.addEventListener("paste", e => {
+  if(!SNAP_ARMED) return;
+  const o = D[ACTIVE];
+  if(!o || o.room !== "standing") return;
+  const item = [...((e.clipboardData||{}).items||[])].find(i => i.type.startsWith("image/"));
+  if(!item) return;
+  e.preventDefault();
+  sendSnap(item.getAsFile());
+});
+async function sendSnap(file){
+  SNAP_ARMED = false;
+  const w0 = $("snapWell");
+  if(w0){ w0.classList.remove("armed"); w0.classList.add("busy");
+    w0.textContent = "reading the dash…"; }
+  try{
+    const dataUrl = await fileToDataUrl(file);
+    const r = await fetch(url("/api/hotshot/snap"), {method:"POST",
+      headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({image: dataUrl})});
+    const o = await r.json().catch(() => ({}));
+    if(!r.ok){
+      /* the refusal in words — a blank or unreadable dash never writes */
+      if(w0){ w0.classList.remove("busy");
+        w0.textContent = o.error || `the spine said ${r.status}`; }
+      return;
+    }
+    State.hotshot = o.pulse || State.hotshot;
+    renderRoom();
+    const w1 = $("snapWell");
+    if(w1) w1.textContent = `read: odo ${(o.snap.odometer||0).toLocaleString()}` +
+      (o.snap.trailer ? ` · ${o.snap.trailer}` : "") +
+      " — wrong? tap misread on the anchor line";
+  }catch(err){
+    const w = $("snapWell");
+    if(w){ w.classList.remove("busy"); w.textContent = String(err.message||err); }
+  }
 }
 function wireCards(){
   document.querySelectorAll(".kc").forEach(el => {
@@ -3567,7 +3694,7 @@ async function load(keep){
     /* the rest are not worth failing the desk over */
     const rest = [
       ["radio","/api/messages"], ["learn","/api/learning"], ["soul","/api/doctrine"],
-      ["held","/api/push/held"], ["watch","/api/watch"]
+      ["held","/api/push/held"], ["watch","/api/watch"], ["hotshot","/api/hotshot"]
     ];
     await Promise.all(rest.map(([k,p]) =>
       grab(p).then(v => { State[k] = v; }).catch(() => {})));
