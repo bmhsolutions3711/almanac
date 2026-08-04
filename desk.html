@@ -683,7 +683,8 @@ body.hot .act .h .n{color:var(--hot)}
 .lghead{padding:2px 0 7px;border-bottom:1px solid var(--line);
   font:700 7.5px/1 var(--mono);letter-spacing:.18em;color:var(--etch);text-transform:uppercase}
 .lghead .ra{text-align:right}
-.lgr{padding:8px 0;border-bottom:1px dotted var(--line)}
+.lgr{padding:8px 0;border-bottom:1px dotted var(--line);cursor:pointer}
+.lgr:hover{background:rgba(var(--key),.04)}
 .lgr.dim{opacity:.5}
 .lgr .ld{font:600 10.5px var(--mono);color:var(--dim);letter-spacing:.03em}
 .lgr .lp{font:600 12.5px/1.3 var(--sans);color:var(--ink);overflow:hidden;
@@ -1712,8 +1713,8 @@ function finLine(t){
     : "";
   return `<div class="eline${lock?" locked":""}${pl.length || mp.length || t.accounted?" done":""}" data-txn="${t.id}" ${
     lock?`title="${esc(t.undraggable_because)}"`
-        :t.monthly_candidate?`draggable="true" title="a bill's bank row — drag it into MONTHLY, or right-click"`
-        :'draggable="true"'}>
+        :t.monthly_candidate?`draggable="true" title="a bill's bank row — tap it, drag it into MONTHLY, or right-click"`
+        :'draggable="true" title="tap for the row&#39;s moves, or drag it onto a load"'}>
     <div class="em">${esc(t.merchant || t.description || "—")}</div>
     <div class="ea${t.credit ? " cr" : ""}">${
       t.credit ? "+" + money(Math.abs(t.amount)) : money(t.amount)}</div>
@@ -2159,14 +2160,30 @@ function finBooks(){
     : t.personal ? "tagged personal"
     : "unplaced";
   const bank = t => t.expired ? "expired" : t.pending ? "pending" : "posted";
+  /* the ask lives here too now — a MONTHLY answer begun from the record must
+     come back to the record, not to a bucket on another tab */
+  const ask = FIN.ask ? `<div class="ask" style="margin-bottom:9px">
+      <div class="at">${FIN.ask.no_match
+        ? `no bill matches ${esc(FIN.ask.txn.merchant || "this row")} ${
+            money(FIN.ask.txn.amount)} — name it yourself`
+        : `which bill did ${esc(FIN.ask.txn.merchant || "this")} ${
+            money(FIN.ask.txn.amount)} pay?`}</div>
+      ${FIN.ask.candidates.map(c => `<button class="acand" data-txn="${FIN.ask.txn.id}"
+        data-bt="${esc(c.bill_type)}" data-bid="${esc(c.bill_id)}">
+        <span>${esc(c.name)}</span><b>${money(c.due)}</b>
+        <i>${esc(c.why)}</i></button>`).join("")}
+      <button class="acand cancel">none of these — put it back</button>
+    </div>` : "";
   const record = `<div class="panel" style="min-width:0">
     <div class="cap">the record — ${tx.length}${sift ? ` of ${txAll.length}` : ""} transaction${
       tx.length===1?"":"s"} in ${esc(FIN.period)}${
       sift ? ` · sifted to ${esc(sift)} — tap it again to clear` : ", every one with its category"}</div>
+    ${ask}
     <div class="lghead"><span>date</span><span>category</span><span>payee</span>
       <span class="ra">amount</span><span>notes</span><span style="text-align:right">status</span></div>
     <div class="scroll" style="max-height:52vh">${
-      tx.length ? tx.map(t => `<div class="lgr${t.accounted ? " dim" : ""}">
+      tx.length ? tx.map(t => `<div class="lgr${t.accounted ? " dim" : ""}" data-txn="${t.id}"
+        title="tap the row for its moves — MONTHLY, a load, accounted, deposit">
         <span class="ld" title="${esc(t.date)}">${esc(String(t.date||"").slice(5))}</span>
         <span class="lc"><span class="catchip edit" data-cat-txn="${t.id}"
           title="tap to change the category — the rules learn it">${
@@ -2533,6 +2550,34 @@ function wireFin(){
         FIN.catFilter = FIN.catFilter === c ? null : c;
         renderRoom();
       }));
+    /* THE RECORD WORKS ROWS NOW (Bryan, 2026-08-03: "not letting me drag or
+       use the right click" — he was in the books, where the ledger was
+       read-only, and on the Fold there is no HTML5 drag at all). Tap or
+       right-click a row: the same menu the floor's rows carry — MONTHLY, the
+       last loads, accounted, deposit. The chip keeps its own tap. */
+    R.querySelectorAll(".lgr[data-txn]").forEach(c => {
+      const route = ev => {
+        if(ev.target.closest(".catchip")) return;   // the chip's tap is the chip's
+        ev.preventDefault();
+        ev.stopPropagation();                        // the menu must outlive this click
+        const t = ((State.fin.expenses||{}).transactions||[])
+          .find(x => x.id === Number(c.dataset.txn));
+        if(!t) return;
+        if((t.placements||[]).length){
+          openMove(ev, t.id, t.sheet_row != null ? t.sheet_row : t.placements[0].sheet_row);
+          return;
+        }
+        openAcct(ev, t);
+      };
+      c.addEventListener("click", route);
+      c.addEventListener("contextmenu", route);
+    });
+    /* the ask, answered from the record — same buttons as the bucket */
+    R.querySelectorAll(".ask .acand").forEach(b =>
+      b.addEventListener("click", () => {
+        if(b.classList.contains("cancel")){ FIN.ask = null; renderRoom(); return; }
+        payMonthly(Number(b.dataset.txn), b.dataset.bt, b.dataset.bid, null);
+      }));
     return;
   }
   if(FIN.view !== "floor") return;
@@ -2552,8 +2597,12 @@ function wireFin(){
      the column doubles as the running record of all transactions with their
      categories. Reversible from the same menu. */
   R.querySelectorAll(".exp .eline[data-txn]").forEach(c => {
-    c.addEventListener("contextmenu", ev => {
+    const route = ev => {
       ev.preventDefault();
+      /* opening from a TAP: the window's click-closes-the-menu listener fires
+         on this SAME click (the picker died as it was born, 2026-08-02) — the
+         row's tap must not reach it */
+      ev.stopPropagation();
       const t = ((State.fin.expenses||{}).transactions||[]).find(x => x.id === Number(c.dataset.txn));
       if(!t) return;
       /* a SPLIT row serves sheet_row null — hand the menu its first portion's
@@ -2563,7 +2612,14 @@ function wireFin(){
         return;
       }
       openAcct(ev, t);
-    });
+    };
+    /* TAP IS THE GESTURE (Bryan, 2026-08-03: "not letting me drag or use the
+       right click") — on the Fold there IS no HTML5 drag, and long-press on a
+       draggable row feeds Chrome's drag ghost instead of the menu. The same
+       menu right-click opens now opens on a plain tap; drag stays for the
+       desk. A real drag suppresses the click, so the two never collide. */
+    c.addEventListener("contextmenu", route);
+    c.addEventListener("click", route);
   });
   /* the bills — his hand at pay time. A bill drags into MONTHLY and nowhere
      else; a load lane refuses it in words. */
