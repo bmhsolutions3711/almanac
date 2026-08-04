@@ -3386,6 +3386,10 @@ if("serviceWorker" in navigator){
     .then(r => r.active && r.active.postMessage({type:"VERSION"})).catch(()=>{});
   askV(); setTimeout(askV, 2500);
   setTimeout(() => { if(el && !el.textContent.trim()) el.textContent = "fresh"; }, 4000);
+  /* a newer worker takes over seconds after load (install skip-waits) — the
+     stamp must re-ask THEN, or it reads the old number all session and "i am
+     still on v43" is what Bryan gets told by a device already running v45 */
+  navigator.serviceWorker.addEventListener("controllerchange", () => setTimeout(askV, 300));
   el && el.addEventListener("click", async () => {
     el.textContent = "pulling…";
     try{
