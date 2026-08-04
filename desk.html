@@ -2488,19 +2488,33 @@ function learnRoom(){
           <div class="s">${esc(r.took_away||"")}</div></div>`).join("") : "") +
     `</div></div>`;
 }
+/* The soul sections fold like the pile does (v52 idiom): content is coming to
+   this page (his word, 2026-08-04), and a page that grows must tuck. His open/
+   tuck choice per tier survives reloads; reference starts tucked because that
+   tier is retrieved-when-relevant by design, never dumped. */
+const SOUL_OPEN = (() => {
+  try{ return JSON.parse(localStorage.getItem("soul.folds") || "{}"); }catch(_){ return {}; }
+})();
+function soulOpen(k){ return k in SOUL_OPEN ? !!SOUL_OPEN[k] : k !== "reference"; }
+function soulToggle(k){
+  SOUL_OPEN[k] = !soulOpen(k);
+  try{ localStorage.setItem("soul.folds", JSON.stringify(SOUL_OPEN)); }catch(_){}
+}
 function soulRoom(){
   const d = State.soul;
   if(!d) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
     <span class="nodata">the spine has not answered with the doctrine</span></div></div>`;
-  const tiers = [["bedrock","bedrock"],["working","working"]];
+  const tiers = [["bedrock","bedrock"],["working","working"],["reference","reference"]];
   let html = "";
   for(const [k,l] of tiers){
     const rows = (d.rows||[]).filter(r => r.tier === k);
     if(!rows.length) continue;
-    html += `<div class="cap" style="margin:14px 0 4px">${l} — ${rows.length}</div>` +
-      rows.map(r => `<div class="creed"><div class="ct"><span>${esc(r.title)}</span>
+    const open = soulOpen(k);
+    html += `<div class="fold soulFold" data-tier="${k}" style="margin:14px 0 4px">
+        <span>${l} — ${rows.length}</span><i>${open ? "tuck away" : "open"}</i></div>` +
+      (open ? rows.map(r => `<div class="creed"><div class="ct"><span>${esc(r.title)}</span>
         <span class="cf${r.confirmed?" yes":""}">${r.confirmed?"confirmed":"unconfirmed"}</span></div>
-        <div class="cb" hidden>${esc(r.body||"")}</div></div>`).join("");
+        <div class="cb" hidden>${esc(r.body||"")}</div></div>`).join("") : "");
   }
   return whyBar() + `<div class="panel" style="flex:1;min-height:0">
     <div class="cap">${d.confirmed} of ${d.total} confirmed, in your words</div>
@@ -2541,8 +2555,16 @@ function renderRoom(){
   if(o.room === "work"){ wireCards(); }
   if(o.room === "ledger"){ wireFin(); }
   if(o.room === "radio"){ wireKeyup(); markRead(); }
-  if(o.room === "soul"){ R.querySelectorAll(".creed").forEach(el =>
-    el.addEventListener("click", () => { const b = el.querySelector(".cb"); b.hidden = !b.hidden; })); }
+  if(o.room === "soul"){
+    /* stopPropagation is law on anything that opens/closes (ruled 08-03 after
+       three bites of the menu-closer class) */
+    R.querySelectorAll(".creed").forEach(el =>
+      el.addEventListener("click", e => { e.stopPropagation();
+        const b = el.querySelector(".cb"); b.hidden = !b.hidden; }));
+    R.querySelectorAll(".soulFold").forEach(el =>
+      el.addEventListener("click", e => { e.stopPropagation();
+        soulToggle(el.dataset.tier); renderRoom(); }));
+  }
 }
 let openW = null;
 function wireFigs(){
