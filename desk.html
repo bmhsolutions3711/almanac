@@ -807,6 +807,8 @@ body.hot .act .h .n{color:var(--hot)}
     <span class="d" id="dateline"></span>
     <span class="hand" id="hand"></span>
     <span class="right">
+      <button class="readstamp" id="shellv"
+        title="the shell this device is serving — tap to fetch the newest and reload">&#8203;</button>
       <button class="readstamp" id="readstamp" title="click to pull the Load Log and re-read the spine"></button>
       <span class="pill" id="pill">reading the spine</span>
       <button class="btn" id="home" hidden>&#9666; THE FIELD</button>
@@ -3368,6 +3370,45 @@ function answerHash(){
 addEventListener("hashchange", answerHash);
 
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+/* THE VERSION STAMP (Bryan, 2026-08-04: "where is the version number pill on
+   the site" — there wasn't one, and every cache dance was blind because of
+   it). One home for the number: the service worker's VERSION. The stamp shows
+   what THIS DEVICE is actually serving — not what Pages holds — because that
+   gap is exactly the thing worth seeing. No SW answering means the page came
+   straight from the network: "fresh". Tap = fetch the newest and reload. */
+if("serviceWorker" in navigator){
+  const el = document.getElementById("shellv");
+  navigator.serviceWorker.addEventListener("message", e => {
+    if(e.data && e.data.type === "VERSION" && el)
+      el.textContent = String(e.data.version || "").replace("almanac-shell-", "") || "v?";
+  });
+  const askV = () => navigator.serviceWorker.ready
+    .then(r => r.active && r.active.postMessage({type:"VERSION"})).catch(()=>{});
+  askV(); setTimeout(askV, 2500);
+  setTimeout(() => { if(el && !el.textContent.trim()) el.textContent = "fresh"; }, 4000);
+  el && el.addEventListener("click", async () => {
+    el.textContent = "pulling…";
+    try{
+      const r = await navigator.serviceWorker.getRegistration();
+      if(r){
+        /* the worker skip-waits at install, so the moment the newer one takes
+           the controller is the moment to reload — racing it reloads into the
+           OLD shell and the stamp reads like the pull did nothing */
+        navigator.serviceWorker.addEventListener("controllerchange",
+          () => location.reload(), {once: true});
+        await r.update();
+        const w = r.waiting;
+        if(w) w.postMessage({type: "SKIP_WAITING"});
+        setTimeout(() => location.reload(), 3000);   // already-newest, or a browser
+        return;                                      // that never fires the event
+      }
+    }catch(_){/* the reload below still serves the point */}
+    location.reload();
+  });
+}else{
+  const el = document.getElementById("shellv");
+  if(el) el.textContent = "fresh";
+}
 if(!configured()) showConnect();
 else {
   /* Open the desk → the sheet is pulled once, then the spine is read. Opening
