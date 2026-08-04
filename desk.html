@@ -148,15 +148,19 @@ body.hot .big{color:var(--hot);text-shadow:0 0 30px rgba(255,59,24,.5)}
 .big.unk{color:var(--unknown);font-weight:400;letter-spacing:.1em;text-shadow:none}
 .sm{margin-top:5px;font:400 11px/1.4 var(--sans);color:var(--dim)}
 
-.rgrid{flex:1 1 auto;min-height:0;display:grid;gap:10px;
-  grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}
-.gwrap{flex:1 1 auto;min-height:190px;position:relative;margin-top:4px}
+/* COMPACTED (his ask 2026-08-04: "these are too big...take up too much room")
+   — the row hugs its content instead of stretching, and the reading lives in
+   the OPEN CENTER OF THE DIAL, not below the hub. */
+.rgrid{flex:1 1 auto;min-height:0;display:grid;gap:10px;align-content:start;
+  grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);grid-template-rows:auto auto}
+.gwrap{flex:0 0 auto;height:172px;min-height:0;position:relative;margin-top:4px}
 .gwrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.gread{position:absolute;left:0;right:0;bottom:2px;text-align:center;pointer-events:none}
-.gread .n{font:700 clamp(26px,2.5vw,38px)/1 var(--mono);color:rgba(var(--key),1);
+.gread{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding-top:7%;text-align:center;pointer-events:none}
+.gread .n{font:700 clamp(19px,1.8vw,27px)/1 var(--mono);color:rgba(var(--key),1);
   text-shadow:0 0 26px rgba(var(--key),.45)}
 body.hot .gread .n{color:var(--hot)}
-.gread .u{margin-top:3px;font:700 8px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
+.gread .u{margin-top:3px;font:700 7px/1 var(--mono);letter-spacing:.17em;color:var(--dim)}
 .figs{display:flex;gap:2px;margin-top:8px;flex:0 0 auto}
 .fg{flex:1;min-width:0;background:rgba(255,255,255,.03);border-radius:3px;padding:7px 8px;cursor:pointer}
 .fg:hover{background:rgba(255,255,255,.06)}
@@ -177,16 +181,16 @@ body.hot .gread .n{color:var(--hot)}
 
 .centre{align-items:center;justify-content:center;text-align:center}
 .centre .lab{font:700 9.5px/1 var(--mono);letter-spacing:.26em;color:var(--dim)}
-.centre .n{margin:8px 0 3px;font:700 clamp(56px,7vw,104px)/.9 var(--mono);letter-spacing:-.03em;
+.centre .n{margin:6px 0 3px;font:700 clamp(34px,4vw,58px)/.9 var(--mono);letter-spacing:-.03em;
   color:var(--ink);text-shadow:0 0 60px rgba(var(--key),.4)}
 body.hot .centre .n{color:var(--hot);text-shadow:0 0 70px rgba(255,59,24,.55)}
 .centre .u{font:700 10px/1 var(--mono);letter-spacing:.28em;color:var(--dim)}
-.centre .weeks{margin-top:13px;display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.centre .weeks{margin-top:9px;display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
 .centre .weeks i{width:14px;height:6px;border-radius:1px;background:rgba(255,255,255,.12)}
 .centre .weeks i.gone{background:rgba(255,255,255,.3)}
 .centre .weeks i.now{background:rgba(var(--key),1);box-shadow:0 0 10px -2px rgba(var(--key),1)}
 body.hot .centre .weeks i.now{background:var(--hot);box-shadow:0 0 10px -2px var(--hot)}
-.centre .sub{margin-top:13px;font:400 12.5px/1.5 var(--sans);color:var(--mid);max-width:46ch}
+.centre .sub{margin-top:8px;font:400 11.5px/1.45 var(--sans);color:var(--mid);max-width:46ch}
 .rows{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;margin-top:8px}
 .rw{display:flex;align-items:center;gap:9px;font:400 11px/1.3 var(--sans);color:var(--mid)}
 .rw .b{flex:1;height:4px;background:rgba(255,255,255,.09);border-radius:2px;overflow:hidden;min-width:18px}
@@ -1208,16 +1212,15 @@ $("home").addEventListener("click", () => {
 });
 
 /* ── THE STANDING (hotshot) ───────────────────────────────────────── */
-const LAUNCH = new Date(2026, 9, 1);          /* 10/1 — the heartbeat */
-function daysToLaunch(){
-  const n = new Date(); n.setHours(0,0,0,0);
-  return Math.max(0, Math.round((LAUNCH - n) / 86400000));
-}
+/* THE LINE is SERVED (his ruling 2026-08-04: every clock counts to 10/1).
+   The page computes no days — a client-side date here and a served date in
+   the money strip is how T−48 and 58 shared one screen. */
 function standingRoom(){
   const j = State.standing && State.standing.judgement;
   const p = (j && j.parts) || {};
   const s = State.standings;
-  const dl = daysToLaunch(), weeks = Math.ceil(dl/7);
+  const line = (j && j.line) || {};
+  const dl = line.days, weeks = dl == null ? null : Math.ceil(dl/7);
   const figs = [
     ["earned","earned",p.earned], ["road","road",p.road_mtd],
     ["contribution","contribution",p.contribution], ["nut","the nut",p.nut],
@@ -1239,12 +1242,13 @@ function standingRoom(){
     </div>
     <div class="panel centre" style="grid-column:2;grid-row:1">
       <div class="lab">MILEAGE INSIGHTS · PUBLIC LAUNCH</div>
-      <div class="n">${dl}</div><div class="u">DAYS TO 10 / 1</div>
+      <div class="n">${dl == null ? "——" : dl}</div>
+      <div class="u">DAYS TO ${esc(line.label || "10/1")}</div>
       <div class="weeks">${Array.from({length:13},(_,i) =>
-        `<i class="${i < 13-weeks ? "gone" : i === 13-weeks ? "now" : ""}"></i>`).join("")}</div>
-      <div class="sub">${weeks} week${weeks===1?"":"s"} out. The date is the heartbeat — it does not move
-        because the month got hard.</div>
-      <div class="rows" style="width:100%;margin-top:18px">
+        `<i class="${weeks == null ? "" : i < 13-weeks ? "gone" : i === 13-weeks ? "now" : ""}"></i>`).join("")}</div>
+      <div class="sub">${weeks == null ? "the spine has not answered with the line"
+        : weeks + " week" + (weeks===1?"":"s") + " out. The date is the heartbeat — it does not move because the month got hard."}</div>
+      <div class="rows" style="width:100%;margin-top:10px">
         <div class="rw"><span style="width:78px">collected</span><span class="b"><i style="width:${
           p.earned ? Math.min(100, Math.round(100*(p.collected||0)/p.earned)) : 0}%"></i></span>
           <span class="v">${p.collected==null?"——":money(p.collected)}</span></div>
@@ -1288,7 +1292,7 @@ function paintGauge(){
   const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
   if(p.nut == null || p.contribution == null) return;
   const r = cv.getBoundingClientRect();
-  const W = Math.max(240, r.width), H = Math.max(190, r.height);
+  const W = Math.max(240, r.width), H = Math.max(150, r.height);
   cv.width = W*2; cv.height = H*2;
   const g = cv.getContext("2d"); g.scale(2,2);
   const NUT = p.nut, C = Math.max(0, p.contribution), MAX = NUT*1.28;
@@ -1511,7 +1515,7 @@ function finStrip(){
     <div class="panel clk">
       <div class="cap">the clock</div>
       <div class="tmin" style="margin-top:7px">${days == null ? "——" : "T−" + days}</div>
-      <div class="cap" style="margin-top:2px">days to the line</div>
+      <div class="cap" style="margin-top:2px">days to 10/1</div>
       <div class="ln" style="margin-top:9px"><span>cash</span><b>${
         r.cash == null ? "——" : money(r.cash)}</b></div>
       <div class="ln"><span>runway</span><b class="${
@@ -1906,7 +1910,11 @@ function finReconcile(){
   if(!R) return "";
   const m = (sm && sm.the_month) || {};
   const onActual = R.break_even_actual, over = R.over_under_actual, rev = R.revenue;
-  const pct = R.road_actual ? Math.round(100 * (R.attributed||0) / R.road_actual) : 0;
+  /* placement progress is measured on the WINDOW's rows (what landed this
+     period), never the load-shifted figure — against the shifted one the bar
+     reads past 100% the moment a row rides an earlier month's load */
+  const roadWin = R.road_window != null ? R.road_window : R.road_actual;
+  const pct = roadWin ? Math.min(100, Math.round(100 * (R.attributed||0) / roadWin)) : 0;
   const H = R.held_out || {};
   const chip = (k, v, why) => !v ? "" :
     `<span class="hchip" title="${esc(why)}">${esc(k)} <b>${money(v)}</b></span>`;
@@ -1916,8 +1924,14 @@ function finReconcile(){
     <div class="recline">
       <span><b>${money(R.attributed||0)}</b> placed on loads</span>
       <span><b class="${R.unattributed > 0 ? "hot" : ""}">${money(R.unattributed||0)}</b> still to place</span>
-      <span>of <b>${money(R.road_actual||0)}</b> road, actual</span>
+      <span>of <b>${money(roadWin||0)}</b> spent this ${esc(FIN.period)}</span>
     </div>
+    ${R.road_shift && (R.road_shift.off || R.road_shift.on) ? `<div class="recline">
+      <span>road follows the load:</span>
+      ${R.road_shift.off ? `<span><b>−${money(R.road_shift.off)}</b> riding loads outside this ${esc(FIN.period)}</span>` : ""}
+      ${R.road_shift.on ? `<span><b>+${money(R.road_shift.on)}</b> earlier spend riding this ${esc(FIN.period)}'s loads</span>` : ""}
+      <span>= <b>${money(R.road_actual||0)}</b> this ${esc(FIN.period)}'s work</span>
+    </div>` : ""}
     ${(H.cash || H.personal_road || H.uncategorized) ? `<div class="held">
       <span class="cap">held out of every load — rule on these and the month closes honestly</span>
       ${chip("cash", H.cash, "what it bought on the road is unknown until you itemize it")}
@@ -3446,9 +3460,12 @@ async function sendShot(dataUrl){
       dropState(el,"bad","nothing was read", o.error || "no transactions found in that image");
       return;
     }
+    /* the chip's account rides the SAVE too — the runner stamps every row with
+       this value, and a hardcoded pnc here filed a LoadPay paste under the
+       wrong book (caught 2026-08-04 before it bit) */
     const s = await fetch(url("/api/fin/intake/save-screenshot"), {
       method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
-      body: JSON.stringify({transactions:txns, account:"pnc"})});
+      body: JSON.stringify({transactions:txns, account: FIN.shotAcct || "pnc"})});
     const so = await s.json().catch(() => ({}));
     if(!s.ok){ dropState(el,"bad","read but not saved", so.error || `the writer said ${s.status}`); return; }
     dropState(el, "ok", `${so.saved||0} saved · ${so.skipped||0} already had`,
