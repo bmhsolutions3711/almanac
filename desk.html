@@ -1466,6 +1466,25 @@ async function qBook(){
   try{ const g = await grab("/api/quote/customers"); if(g.customers) QCUST = g.customers; }
   catch(e){}
 }
+/* His ask 2026-08-04: the price researches ITSELF for the from/to regions.
+   EIA weekly retail via the spine; a refusal arrives in words, once, and his
+   last number stands. A later hand-edit of the chip outranks the fetch until
+   the route changes again. */
+async function qDiesel(){
+  const t = qTrip();
+  try{
+    const g = await grab("/api/quote/diesel?from=" + encodeURIComponent(t.origin) +
+                         "&to=" + encodeURIComponent(t.dest));
+    if(g.corridor){
+      QT.fuel_price = g.corridor; QT.fuel_basis = g.basis;
+      qSave(); qRender(); qWeigh();
+    } else {
+      const why = (g.from && !g.from.ok && g.from.why) ||
+                  (g.to && !g.to.ok && g.to.why) || "the price source did not answer";
+      toast("diesel not fetched — " + why);
+    }
+  }catch(e){ toast("diesel not fetched — the spine did not answer"); }
+}
 function qSave(){ try{ localStorage.setItem(QTRIP_KEY, JSON.stringify(QT)); }catch(e){} }
 function qAskKey(){ return qTrip().mode === "partial" ? "ask_partial" : "ask_dedicated"; }
 function qPosKey(){ return qTrip().mode === "partial" ? "pos_partial" : "pos_dedicated"; }
@@ -1485,7 +1504,7 @@ function qWeigh(){
       miles_positioning: t[qPosKey()], weight_lbs: t.weight_lbs,
       tolls_trip: t.tolls_trip, hut_dollars: t.hut_dollars,
       lodging_nights: t.lodging_nights, lodging_rate: t.lodging_rate,
-      fuel_price: t.fuel_price };
+      fuel_price: t.fuel_price, fuel_basis: t.fuel_basis };
     try{
       const r = await fetch(url("/api/quote"), { method:"POST",
         headers: hdr({"Content-Type":"application/json"}), body: JSON.stringify(body) });
@@ -1578,9 +1597,13 @@ function qEdit(chip, k, isText){
     if(done) return; done = true;
     if(ok){
       const v = isText ? inp.value.trim() : parseFloat(inp.value);
-      if(isText ? v : Number.isFinite(v)) QT[k] = v;
+      if(isText ? v : Number.isFinite(v)){
+        QT[k] = v;
+        if(k === "fuel_price") QT.fuel_basis = "your hand";
+      }
     }
     qSave(); qRender(); if(!isText) qWeigh();
+    if(ok && (k === "origin" || k === "dest")) qDiesel();
   };
   inp.addEventListener("keydown", e => {
     e.stopPropagation();
