@@ -2285,8 +2285,8 @@ function finBooks(){
         <div class="sxl">${sp.windows.map(w => `<span>${esc(w.label)}</span>`).join("")}</div>
       </div>`;}).join("");
   const spend = `<div class="panel" style="min-width:0">
-    <div class="cap">where the money goes — top ${(sp && (sp.categories||[]).length) || 0}, ranked by
-      the trailing average${FIN.catFilter ? "" : " — the year's shape, not the young month"}</div>
+    <div class="cap">where the money goes — top ${(sp && (sp.categories||[]).length) || 0} · ${
+      esc((sp && sp.ranked_by) || "ranked by the trailing average")}</div>
     <div class="scroll" style="max-height:58vh">${goes}</div>
     ${sp && (sp.categories||[]).length ? `<div class="sfoot">${money(sp.window_total)} spent in the
        window · dashed line = the trailing average · held out: ${esc(sp.held_out)} ·
