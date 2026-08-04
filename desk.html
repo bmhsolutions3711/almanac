@@ -643,7 +643,7 @@ body.hot .qsc .mchip.on{border-color:rgba(255,59,24,.7);background:rgba(255,59,2
 .qsc .qchip .v{font:700 11px/1 var(--mono);color:var(--ink)}
 .qsc .qchip input{width:76px;background:rgba(0,0,0,.5);border:1px solid rgba(var(--key),.7);
   border-radius:3px;color:#fff;font:700 11px var(--mono);padding:2px 4px;outline:none}
-.qsc .beamwrap{padding:16px 6px 4px}
+.qsc .beamwrap{padding:16px 6px 44px}
 .qsc .rail{position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,.07)}
 .qsc .seg{position:absolute;top:0;height:5px;border-radius:3px;transition:left .8s cubic-bezier(.2,1.3,.35,1),width .8s cubic-bezier(.2,1.3,.35,1)}
 .qsc .seg.cost{background:rgba(255,255,255,.2)}
@@ -653,13 +653,20 @@ body.hot .qsc .seg.day{background:linear-gradient(90deg,rgba(255,164,25,.55),rgb
 .qsc .seg.day.neg{background:linear-gradient(90deg,rgba(255,59,24,.55),rgba(255,59,24,1));box-shadow:0 0 14px -2px rgba(255,59,24,.95)}
 .qsc .mark{position:absolute;top:-5px;width:2px;height:15px;background:var(--ink);
   transition:left .8s cubic-bezier(.2,1.3,.35,1)}
-.qsc .mark i{position:absolute;top:17px;left:50%;transform:translateX(-50%);white-space:nowrap;
+.qsc .mark i{position:absolute;top:17px;left:50%;transform:translateX(-50%);white-space:nowrap;max-width:none;
   font:600 6.5px/1.3 var(--mono);letter-spacing:.11em;color:var(--dim);font-style:normal;text-transform:uppercase}
 .qsc .mark b{position:absolute;top:26px;left:50%;transform:translateX(-50%);white-space:nowrap;
   font:700 9px/1 var(--mono);color:var(--mid)}
+.qsc .mark[data-edge="r"] i,.qsc .mark[data-edge="r"] b{left:auto;right:-4px;transform:none;text-align:right}
+.qsc .mark[data-edge="l"] i,.qsc .mark[data-edge="l"] b{left:-4px;transform:none;text-align:left}
+@media (max-width:520px){
+  .qsc .asknum{font-size:18px}
+  .qsc .qchip{min-width:56px;padding:5px 7px}
+  .qsc .verdict{flex-basis:100%;text-align:left;margin-left:0}
+}
 .qsc .mark.ask{background:rgba(var(--key),1);box-shadow:0 0 10px rgba(var(--key),.9)}
 body.hot .qsc .mark.ask{background:var(--hot);box-shadow:0 0 10px rgba(255,59,24,.9)}
-.qsc .askrow{display:flex;align-items:center;gap:10px;margin-top:26px;flex-wrap:wrap}
+.qsc .askrow{display:flex;align-items:center;gap:10px;margin-top:2px;flex-wrap:wrap}
 .qsc .askrow .lbl{font:700 8px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
 .qsc .step{background:none;border:1px solid var(--line);border-radius:3px;color:var(--mid);
   font:700 12px/1 var(--mono);width:30px;height:30px;cursor:pointer}
@@ -1482,6 +1489,7 @@ function qRender(){
     const floor = a.cash_floor.dollars, be = a.breakeven.dollars;
     const max = Math.max(ask, be, 1) * 1.12;
     const L = v => Math.min(97.5, v / max * 100);
+    const E = l => l > 82 ? "r" : l < 10 ? "l" : "";
     const dayL = Math.min(L(be), L(ask)), dayW = Math.abs(L(ask) - L(be));
     const neg = ask < be, belowCash = ask < floor;
     const margin = ask - be, pct = be ? Math.round(margin / be * 100) : 0;
@@ -1494,9 +1502,9 @@ function qRender(){
     <div class="beamwrap"><div class="rail">
       <div class="seg cost" style="left:0;width:${L(be)}%"></div>
       <div class="seg day${neg ? " neg" : ""}" style="left:${dayL}%;width:${dayW}%"></div>
-      <div class="mark" style="left:${L(floor)}%"><i>cash floor</i><b>${money(floor)}</b></div>
-      <div class="mark" style="left:${L(be)}%"><i>breakeven</i><b>${money(be)}</b></div>
-      <div class="mark ask" style="left:${L(ask)}%"><i>the ask</i><b>${money(ask)}</b></div>
+      <div class="mark" data-edge="${E(L(floor))}" style="left:${L(floor)}%"><i>cash floor</i><b>${money(floor)}</b></div>
+      <div class="mark" data-edge="${E(L(be))}" style="left:${L(be)}%"><i>breakeven</i><b>${money(be)}</b></div>
+      <div class="mark ask" data-edge="${E(L(ask))}" style="left:${L(ask)}%"><i>the ask</i><b>${money(ask)}</b></div>
     </div></div>
     <div class="askrow">
       <span class="lbl">THE ASK</span>
