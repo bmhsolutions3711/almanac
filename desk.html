@@ -790,6 +790,14 @@ body.hot .act .h .n{color:var(--hot)}
 .srow span{font:600 11.5px/1.35 var(--sans);color:var(--ink)}
 .srow span i{display:block;font:400 9.5px/1.3 var(--mono);color:var(--etch);font-style:normal}
 .srow .samt{font:700 11.5px var(--mono);color:var(--amber);white-space:nowrap}
+.fold{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:10px 2px 9px;border-top:3px double rgba(255,255,255,.14);margin-top:4px;
+  cursor:pointer;transition:background .25s}
+.fold:hover{background:rgba(var(--key),.05)}
+.fold span{font:700 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim)}
+.fold i{font:700 8px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--amber);font-style:normal;flex:0 0 auto}
 .scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
 .scroll::-webkit-scrollbar{width:0}
 .creed{padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer}
@@ -1437,7 +1445,7 @@ function radioRoom(){
    is standing, unchanged from the room this replaced. The strip sits above
    all three and never changes with the period toggle — the nut is monthly. */
 const FIN = { period:"month", view:"floor", group:"all", pick:null, drag:null, ask:null,
-              catFilter:null, shotAcct:"pnc" };
+              catFilter:null, shotAcct:"pnc", pileOpen:false };
 
 function ledgerRoom(){
   return whyBar() + `<div class="fin">
@@ -1654,7 +1662,16 @@ function finFloor(){
   const tier = t => t.accounted ? 2
     : (t.trip_direct && !t.personal) ? 0
     : (t.undraggable_because || "").startsWith("month-level") ? 2 : 1;
-  const all = pile.slice().sort((a,b) => tier(a) - tier(b));
+  /* THE FOLD (Bryan, 2026-08-04: "collapse transactions for the month that
+     have already been placed"). The 08-02 ruling stands — worked rows never
+     vanish, the pile is a checklist — but the checked-off lines now tuck
+     behind one line wearing their count and their dollars, one tap from
+     visible. The work stays on top, bare. */
+  const doneRow = t => (t.placements || []).length || t.accounted;
+  const work = pile.filter(t => !doneRow(t)).sort((a,b) => tier(a) - tier(b));
+  const folded = pile.filter(doneRow).sort((a,b) => tier(a) - tier(b));
+  const foldSum = folded.reduce((s,t) => s + Math.abs(t.amount || 0), 0);
+  const all = work;
   const stale = l.mirror_stale_hours;
   const m0 = (State.fin.summary && State.fin.summary.the_month) || {};
   return `<div class="finscroll">
@@ -1669,7 +1686,12 @@ function finFloor(){
         </div>
         <div class="exp" style="margin-top:7px">${
           all.length ? all.map(finLine).join("")
-            : `<p class="nodata">nothing in the window</p>`}</div>
+            : folded.length ? "" : `<p class="nodata">nothing in the window</p>`}${
+          folded.length ? `<div class="fold" id="pileFold" title="${
+              FIN.pileOpen ? "tap to tuck them back away" : "tap to see every one"}">
+            <span>placed &amp; marked — ${folded.length} row${folded.length===1?"":"s"} · ${
+              money(foldSum)}</span><i>${FIN.pileOpen ? "tuck away" : "open"}</i></div>${
+            FIN.pileOpen ? folded.map(finLine).join("") : ""}` : ""}</div>
         ${e.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
           known through ${esc(e.txn_through||"?")} · ${e.blind_days} day${
           e.blind_days===1?"":"s"} not imported</div>` : ""}
@@ -2730,6 +2752,12 @@ function wireFin(){
   }
   if(FIN.view !== "floor") return;
 
+  /* the fold answers his tap — placed & marked rows tuck behind their count */
+  const fold = R.querySelector("#pileFold");
+  fold && fold.addEventListener("click", () => {
+    FIN.pileOpen = !FIN.pileOpen;
+    renderRoom();
+  });
   /* the drag: one expense line, one load box, one write */
   R.querySelectorAll(".eline[draggable]").forEach(c => {
     c.addEventListener("dragstart", ev => {
