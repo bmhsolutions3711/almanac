@@ -742,6 +742,12 @@ body.hot .act .h .n{color:var(--hot)}
 .sxl span{flex:1 1 0;font:600 7px/1 var(--mono);letter-spacing:.06em;color:var(--etch);
   text-align:center;text-transform:uppercase}
 .sfoot{margin-top:9px;font:400 9.5px/1.6 var(--mono);color:var(--etch)}
+.acctpick{display:flex;gap:5px;justify-content:center;margin-top:7px}
+.acctpick button{font:700 8px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  padding:5px 9px;border-radius:11px;border:1px solid var(--line);background:transparent;
+  color:var(--dim);cursor:pointer;transition:all .25s}
+.acctpick button.on{color:var(--amber);border-color:rgba(var(--key),.55);
+  background:rgba(var(--key),.09)}
 
 /* THE BUDGET — a reference wall, not a workbench: every standing obligation
    detailed, cards in HIS kill order, loans wearing their paydown. Paying
@@ -1412,7 +1418,7 @@ function radioRoom(){
    is standing, unchanged from the room this replaced. The strip sits above
    all three and never changes with the period toggle — the nut is monthly. */
 const FIN = { period:"month", view:"floor", group:"all", pick:null, drag:null, ask:null,
-              catFilter:null };
+              catFilter:null, shotAcct:"pnc" };
 
 function ledgerRoom(){
   return whyBar() + `<div class="fin">
@@ -2254,7 +2260,10 @@ function finBooks(){
       <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
     <div class="drop" id="dropShot" tabindex="0" style="margin:0">
       <div class="dl">balances &amp; statements</div>
-      <div class="ds">click then &#8984;V, or drop an image</div></div>
+      <div class="ds">click then &#8984;V, or drop an image</div>
+      <div class="acctpick" title="whose transactions are in this image — pendings ride in under the right account">${
+        ["pnc","loadpay"].map(a => `<button data-acct="${a}" class="${
+          (FIN.shotAcct||"pnc")===a ? "on" : ""}">${a}</button>`).join("")}</div></div>
   </div>`;
   return `<div class="finscroll">${intake}${faultStrip}<div class="floor" style="grid-template-columns:minmax(280px,380px) 1fr">
     <div class="panel"><div class="cap">cash — the tanks${
@@ -3088,6 +3097,18 @@ function wireIntake(){
     });
   }
   if(shot){
+    /* WHOSE IMAGE IS THIS — his hand names the account before the paste
+       (2026-08-04: "we will need to pull all pending in the future" — LoadPay
+       pendings ride the same paste lane, and a pending mislabeled pnc would
+       settle under the wrong account forever). The picker's tap must not
+       reach the well's click-to-listen. */
+    shot.querySelectorAll(".acctpick button").forEach(b =>
+      b.addEventListener("click", ev => {
+        ev.stopPropagation();
+        FIN.shotAcct = b.dataset.acct;
+        shot.querySelectorAll(".acctpick button").forEach(x =>
+          x.classList.toggle("on", x === b));
+      }));
     shot.addEventListener("click", () => shot.classList.add("listening"));
     shot.addEventListener("dragover", e => { e.preventDefault(); shot.classList.add("over"); });
     shot.addEventListener("dragleave", () => shot.classList.remove("over"));
@@ -3172,7 +3193,7 @@ async function sendShot(dataUrl){
     }
     r = await fetch(url("/api/fin/intake/screenshot"), {
       method:"POST", headers:{...hdr(), "Content-Type":"application/json"},
-      body: JSON.stringify({image:dataUrl})});
+      body: JSON.stringify({image:dataUrl, account: FIN.shotAcct || "pnc"})});
     o = await r.json().catch(() => ({}));
     const txns = o.transactions || [];
     if(!r.ok || !txns.length){
