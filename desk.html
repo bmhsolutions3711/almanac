@@ -632,10 +632,18 @@ body.hot .tmin{color:var(--hot)}
 .qsc .qlane{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .qsc .qlane .nm{font:700 11px/1.3 var(--mono);letter-spacing:.08em;color:var(--ink);cursor:pointer}
 .qsc .modes{display:flex;gap:6px;margin-left:auto}
-.qsc .mchip{background:none;border:1px solid var(--line);border-radius:3px;color:var(--dim);
+.qsc .mchip,.qsc .cchip{background:none;border:1px solid var(--line);border-radius:3px;color:var(--dim);
   font:700 8px/1 var(--mono);letter-spacing:.14em;padding:6px 10px;cursor:pointer}
-.qsc .mchip.on{color:#fff;border-color:rgba(var(--key),.9);background:rgba(var(--key),.14)}
-body.hot .qsc .mchip.on{border-color:rgba(255,59,24,.7);background:rgba(255,59,24,.12)}
+.qsc .mchip.on,.qsc .cchip.on{color:#fff;border-color:rgba(var(--key),.9);background:rgba(var(--key),.14)}
+body.hot .qsc .mchip.on,body.hot .qsc .cchip.on{border-color:rgba(255,59,24,.7);background:rgba(255,59,24,.12)}
+.qsc .cchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.qsc .cchip.add{border-style:dashed;letter-spacing:0}
+.qsc .cchips input{background:rgba(0,0,0,.5);border:1px solid rgba(var(--key),.7);border-radius:3px;
+  color:#fff;font:700 10px var(--mono);padding:5px 8px;outline:none;width:150px}
+.qsc .route{display:flex;gap:6px;flex-wrap:wrap}
+.qsc .route .qchip{flex:1 1 45%;min-width:150px}
+.qsc .route .qchip .v{white-space:normal;word-break:break-word;line-height:1.35}
+.qsc .route .qchip input{width:100%}
 .qsc .chips{display:flex;flex-wrap:wrap;gap:6px}
 .qsc .qchip{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:4px;
   padding:6px 9px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:64px}
@@ -1414,16 +1422,18 @@ function actsHTML(){
    hand, remembered per mode (650/400 ruled for the Albany Steel lane).
    Renders only its own body on answer — never the room (his inputs, his
    scroll). stopPropagation is law on everything that opens or edits. */
-const QTRIP_KEY = "almanac_quote_trip";
+const QTRIP_KEY = "almanac_quote_trip2";
 /* The shell ships GENERIC — no lane, no customer, no prices. The first real
    lane is SERVED by the authed spine (trip_default on GET /api/quote) and
    seeded once; from then on the trip is the device's own. Customer names do
-   not belong in public shell source. */
-const QDEF = { lane:"tap to name the lane",
+   not belong in public shell source. FROM and TO are separate at his QA word
+   (2026-08-04): full address when known, city and/or ZIP is enough. The
+   direct book (customers) is SERVED and only grows by his hand. */
+const QDEF = { customer:"", origin:"tap to set", dest:"tap to set",
   mode:"dedicated", miles_loaded:0, pos_dedicated:0, pos_partial:0,
   weight_lbs:0, tolls_trip:0, hut_dollars:0, lodging_nights:0,
   lodging_rate:0, fuel_price:0, ask_dedicated:0, ask_partial:0 };
-let QT = null, QANS = null, QTMR = 0;
+let QT = null, QANS = null, QTMR = 0, QCUST = [];
 function qTrip(){
   if(!QT){
     try{ QT = Object.assign({}, QDEF, JSON.parse(localStorage.getItem(QTRIP_KEY) || "{}")); }
@@ -1432,12 +1442,17 @@ function qTrip(){
   return QT;
 }
 async function qSeed(){
-  if(qTrip()._seeded) return;
   try{
     const g = await grab("/api/quote");
-    if(g && g.trip_default) QT = Object.assign({}, QT, g.trip_default);
+    if(g && g.customers) QCUST = g.customers;
+    if(!qTrip()._seeded && g && g.trip_default)
+      QT = Object.assign({}, QT, g.trip_default);
   }catch(e){}
   QT._seeded = 1; qSave(); qRender(); qWeigh();
+}
+async function qBook(){
+  try{ const g = await grab("/api/quote/customers"); if(g.customers) QCUST = g.customers; }
+  catch(e){}
 }
 function qSave(){ try{ localStorage.setItem(QTRIP_KEY, JSON.stringify(QT)); }catch(e){} }
 function qAskKey(){ return qTrip().mode === "partial" ? "ask_partial" : "ask_dedicated"; }
@@ -1522,11 +1537,17 @@ function qRender(){
       `<div class="basis">${esc(a.cost_basis.basis)} · window ${esc(a.cost_basis.windows[0].from)} → ${esc(a.cost_basis.windows[a.cost_basis.windows.length-1].to)}, ${a.cost_basis.miles_measured.toLocaleString()} mi measured</div></div>` : ""}`;
   }
   box.innerHTML = `
-    <div class="qlane"><span class="nm" id="qLane" title="tap to rename the lane">${esc(t.lane)}</span>
+    <div class="qlane"><div class="cchips" id="qCust">` +
+      QCUST.map(c => `<button class="cchip${t.customer === c.name ? " on" : ""}" data-cust="${esc(c.name)}">${esc(c.name.toUpperCase())}</button>`).join("") +
+      `<button class="cchip add" id="qCustAdd" title="add a direct customer">+ NEW</button></div>
       <div class="modes">
         <button class="mchip${t.mode === "dedicated" ? " on" : ""}" data-mode="dedicated">DEDICATED</button>
         <button class="mchip${t.mode === "partial" ? " on" : ""}" data-mode="partial">PARTIAL</button>
       </div></div>
+    <div class="route">
+      <div class="qchip" data-k="origin" data-text="1"><span class="k">from · address or city/zip</span><span class="v">${esc(t.origin)}</span></div>
+      <div class="qchip" data-k="dest" data-text="1"><span class="k">to · address or city/zip</span><span class="v">${esc(t.dest)}</span></div>
+    </div>
     <div class="chips">` + chips.map(([k, lab, v]) =>
       `<div class="qchip" data-k="${k}"><span class="k">${lab}</span><span class="v">${v}</span></div>`).join("") + `</div>
     ${mid}`;
@@ -1560,14 +1581,45 @@ function qEdit(chip, k, isText){
 
 function qWire(){
   const box = $("qsc"); if(!box) return;
-  box.querySelectorAll(".mchip").forEach(b => b.addEventListener("click", e => {
+  box.querySelectorAll(".mchip[data-mode]").forEach(b => b.addEventListener("click", e => {
     e.stopPropagation(); QT.mode = b.dataset.mode; qSave(); qRender(); qWeigh();
   }));
-  box.querySelectorAll(".qchip").forEach(c => c.addEventListener("click", e => {
-    e.stopPropagation(); qEdit(c, c.dataset.k, false);
+  box.querySelectorAll(".cchip[data-cust]").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation(); QT.customer = b.dataset.cust; qSave(); qRender();
   }));
-  const lane = $("qLane");
-  if(lane) lane.addEventListener("click", e => { e.stopPropagation(); qEdit(lane, "lane", true); });
+  const add = $("qCustAdd");
+  if(add) add.addEventListener("click", e => {
+    e.stopPropagation();
+    const inp = document.createElement("input");
+    inp.placeholder = "customer name · enter";
+    add.replaceWith(inp); inp.focus();
+    let done = false;
+    const commit = async ok => {
+      if(done) return; done = true;
+      const name = inp.value.trim();
+      if(ok && name){
+        try{
+          const r = await fetch(url("/api/quote/customers"), { method:"POST",
+            headers: hdr({"Content-Type":"application/json"}),
+            body: JSON.stringify({name}) });
+          const g = await r.json();
+          if(g.customers) QCUST = g.customers;
+          if(r.ok) QT.customer = name;
+          else toast(g.error || "the book refused it");
+        }catch(e){ toast("the spine did not answer"); }
+        qSave();
+      }
+      qRender();
+    };
+    inp.addEventListener("keydown", ev => { ev.stopPropagation();
+      if(ev.key === "Enter") commit(true);
+      if(ev.key === "Escape") commit(false); });
+    inp.addEventListener("blur", () => commit(true));
+    inp.addEventListener("click", ev => ev.stopPropagation());
+  });
+  box.querySelectorAll(".qchip").forEach(c => c.addEventListener("click", e => {
+    e.stopPropagation(); qEdit(c, c.dataset.k, !!c.dataset.text);
+  }));
   const askN = $("qAskNum");
   if(askN) askN.addEventListener("click", e => { e.stopPropagation(); qEdit(askN, qAskKey(), false); });
   box.querySelectorAll(".step").forEach(b => b.addEventListener("click", e => {
@@ -1581,7 +1633,11 @@ function qWire(){
   });
 }
 
-function wireScale(){ qTrip(); qRender(); if(!QT._seeded){ qSeed(); } else { qWeigh(); } }
+function wireScale(){
+  qTrip(); qRender();
+  if(!QT._seeded){ qSeed(); }
+  else { qBook().then(qRender); qWeigh(); }
+}
 
 /* the arc — drawn from served figures, synchronously (a hidden document
    never runs rAF, and a deferred first paint ships a blank instrument) */
