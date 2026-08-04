@@ -622,7 +622,66 @@ body.hot .tmin{color:var(--hot)}
 .brow i{font:400 10.5px/1.4 var(--mono);color:var(--etch);font-style:normal}
 .brow.tot{margin-top:5px;padding-top:6px;border-top:3px double rgba(255,255,255,.14);color:var(--ink)}
 
-.acts{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.acts{grid-column:1/-1;grid-row:4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+
+/* ── THE SCALE — every price gets weighed before it gets named. The quote
+   instrument: the trip goes on the deck, the beam settles at what it truly
+   costs, his ask rides above it, and the margin is the daylight between. The
+   first instrument in this room his hand can drive. ── */
+.qsc{display:flex;flex-direction:column;gap:10px}
+.qsc .qlane{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.qsc .qlane .nm{font:700 11px/1.3 var(--mono);letter-spacing:.08em;color:var(--ink);cursor:pointer}
+.qsc .modes{display:flex;gap:6px;margin-left:auto}
+.qsc .mchip{background:none;border:1px solid var(--line);border-radius:3px;color:var(--dim);
+  font:700 8px/1 var(--mono);letter-spacing:.14em;padding:6px 10px;cursor:pointer}
+.qsc .mchip.on{color:#fff;border-color:rgba(var(--key),.9);background:rgba(var(--key),.14)}
+body.hot .qsc .mchip.on{border-color:rgba(255,59,24,.7);background:rgba(255,59,24,.12)}
+.qsc .chips{display:flex;flex-wrap:wrap;gap:6px}
+.qsc .qchip{background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:4px;
+  padding:6px 9px;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:64px}
+.qsc .qchip .k{font:600 6.5px/1 var(--mono);letter-spacing:.13em;color:var(--dim);text-transform:uppercase}
+.qsc .qchip .v{font:700 11px/1 var(--mono);color:var(--ink)}
+.qsc .qchip input{width:76px;background:rgba(0,0,0,.5);border:1px solid rgba(var(--key),.7);
+  border-radius:3px;color:#fff;font:700 11px var(--mono);padding:2px 4px;outline:none}
+.qsc .beamwrap{padding:16px 6px 4px}
+.qsc .rail{position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,.07)}
+.qsc .seg{position:absolute;top:0;height:5px;border-radius:3px;transition:left .8s cubic-bezier(.2,1.3,.35,1),width .8s cubic-bezier(.2,1.3,.35,1)}
+.qsc .seg.cost{background:rgba(255,255,255,.2)}
+.qsc .seg.day{background:linear-gradient(90deg,rgba(var(--key),.55),rgba(var(--key),1));
+  box-shadow:0 0 14px -2px rgba(var(--key),.9)}
+body.hot .qsc .seg.day{background:linear-gradient(90deg,rgba(255,164,25,.55),rgba(255,164,25,1));box-shadow:0 0 14px -2px rgba(255,164,25,.9)}
+.qsc .seg.day.neg{background:linear-gradient(90deg,rgba(255,59,24,.55),rgba(255,59,24,1));box-shadow:0 0 14px -2px rgba(255,59,24,.95)}
+.qsc .mark{position:absolute;top:-5px;width:2px;height:15px;background:var(--ink);
+  transition:left .8s cubic-bezier(.2,1.3,.35,1)}
+.qsc .mark i{position:absolute;top:17px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  font:600 6.5px/1.3 var(--mono);letter-spacing:.11em;color:var(--dim);font-style:normal;text-transform:uppercase}
+.qsc .mark b{position:absolute;top:26px;left:50%;transform:translateX(-50%);white-space:nowrap;
+  font:700 9px/1 var(--mono);color:var(--mid)}
+.qsc .mark.ask{background:rgba(var(--key),1);box-shadow:0 0 10px rgba(var(--key),.9)}
+body.hot .qsc .mark.ask{background:var(--hot);box-shadow:0 0 10px rgba(255,59,24,.9)}
+.qsc .askrow{display:flex;align-items:center;gap:10px;margin-top:26px;flex-wrap:wrap}
+.qsc .askrow .lbl{font:700 8px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
+.qsc .step{background:none;border:1px solid var(--line);border-radius:3px;color:var(--mid);
+  font:700 12px/1 var(--mono);width:30px;height:30px;cursor:pointer}
+.qsc .step:hover{color:rgba(var(--key),1);border-color:rgba(var(--key),.6)}
+.qsc .asknum{font:700 22px/1 var(--mono);color:#fff;cursor:pointer}
+.qsc .permile{font:600 9.5px/1.4 var(--mono);color:var(--dim)}
+.qsc .verdict{margin-left:auto;text-align:right;font:600 10px/1.5 var(--sans);color:var(--dim)}
+.qsc .verdict b{font:700 11px var(--mono);color:rgba(var(--key),1)}
+body.hot .qsc .verdict b{color:var(--amber)}
+.qsc .verdict.neg b{color:var(--hot)}
+.qsc .fold{border-top:1px double var(--line);padding-top:7px;cursor:pointer;
+  font:600 8.5px/1 var(--mono);letter-spacing:.13em;color:var(--dim);text-transform:uppercase}
+.qsc .fold:hover{color:var(--mid)}
+.qsc .ticket .tr{display:flex;justify-content:space-between;gap:12px;padding:3px 0;
+  border-bottom:1px dotted rgba(255,255,255,.07);font:400 10.5px/1.5 var(--sans);color:var(--mid)}
+.qsc .ticket .tr b{font:600 10.5px var(--mono);color:var(--ink)}
+.qsc .ticket .how{font:400 8.5px/1.4 var(--sans);color:var(--dim)}
+.qsc .ticket .basis{margin-top:6px;font:600 7.5px/1.5 var(--mono);letter-spacing:.09em;
+  color:var(--etch);text-transform:uppercase}
+.qsc .capnote{font:600 9px/1.5 var(--mono);color:var(--dim)}
+.qsc .unk{color:var(--dim);font:400 11px/1.6 var(--sans)}
+@media (prefers-reduced-motion: reduce){ .qsc .seg,.qsc .mark{transition:none} }
 .act{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:11px 13px;
   display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px);transition:border-color .6s}
 body.hot .act{border-color:rgba(255,59,24,.26)}
@@ -1283,7 +1342,7 @@ function standingRoom(){
           p.earned ? Math.min(100, Math.round(100*(p.still_out||0)/p.earned)) : 0}%"></i></span>
           <span class="v">${p.still_out==null?"——":money(p.still_out)}</span></div>
       </div>
-    </div>` + pulseHTML() + actsHTML() + `</div>`;
+    </div>` + pulseHTML() + quoteHTML() + actsHTML() + `</div>`;
 }
 /* THE ROAD PULSE — served whole by /api/hotshot; the page computes nothing.
    rpm renders UNKNOWN with the reason in words until two anchors cover the
@@ -1340,6 +1399,182 @@ function actsHTML(){
      <div class="t">${esc(a.t)}</div><div class="w">${a.w}</div>
      <button class="go" data-go="${a.i}">${a.go}</button></div>`).join("") + `</div>`;
 }
+/* ── THE SCALE — every price gets weighed before it gets named. ──────
+   The quote lane, his kickoff word 2026-08-04: the trip goes on the deck as
+   editable chips, POST /api/quote weighs it against his own books, the beam
+   settles at breakeven, and his ask rides above it — the daylight between the
+   two marks IS the margin, visible. The engine serves floors; the ASK is his
+   hand, remembered per mode (650/400 ruled for the Albany Steel lane).
+   Renders only its own body on answer — never the room (his inputs, his
+   scroll). stopPropagation is law on everything that opens or edits. */
+const QTRIP_KEY = "almanac_quote_trip";
+/* The shell ships GENERIC — no lane, no customer, no prices. The first real
+   lane is SERVED by the authed spine (trip_default on GET /api/quote) and
+   seeded once; from then on the trip is the device's own. Customer names do
+   not belong in public shell source. */
+const QDEF = { lane:"tap to name the lane",
+  mode:"dedicated", miles_loaded:0, pos_dedicated:0, pos_partial:0,
+  weight_lbs:0, tolls_trip:0, hut_dollars:0, lodging_nights:0,
+  lodging_rate:0, fuel_price:0, ask_dedicated:0, ask_partial:0 };
+let QT = null, QANS = null, QTMR = 0;
+function qTrip(){
+  if(!QT){
+    try{ QT = Object.assign({}, QDEF, JSON.parse(localStorage.getItem(QTRIP_KEY) || "{}")); }
+    catch(e){ QT = Object.assign({}, QDEF); }
+  }
+  return QT;
+}
+async function qSeed(){
+  if(qTrip()._seeded) return;
+  try{
+    const g = await grab("/api/quote");
+    if(g && g.trip_default) QT = Object.assign({}, QT, g.trip_default);
+  }catch(e){}
+  QT._seeded = 1; qSave(); qRender(); qWeigh();
+}
+function qSave(){ try{ localStorage.setItem(QTRIP_KEY, JSON.stringify(QT)); }catch(e){} }
+function qAskKey(){ return qTrip().mode === "partial" ? "ask_partial" : "ask_dedicated"; }
+function qPosKey(){ return qTrip().mode === "partial" ? "pos_partial" : "pos_dedicated"; }
+
+function quoteHTML(){
+  return `<div class="panel" style="grid-column:1 / -1;grid-row:3">
+    <div class="cap">the scale · every price gets weighed before it gets named</div>
+    <div class="qsc" id="qsc"><div class="unk">putting the load on the scale…</div></div>
+  </div>`;
+}
+
+function qWeigh(){
+  clearTimeout(QTMR);
+  QTMR = setTimeout(async () => {
+    const t = qTrip();
+    const body = { mode: t.mode, miles_loaded: t.miles_loaded,
+      miles_positioning: t[qPosKey()], weight_lbs: t.weight_lbs,
+      tolls_trip: t.tolls_trip, hut_dollars: t.hut_dollars,
+      lodging_nights: t.lodging_nights, lodging_rate: t.lodging_rate,
+      fuel_price: t.fuel_price };
+    try{
+      const r = await fetch(url("/api/quote"), { method:"POST",
+        headers: hdr({"Content-Type":"application/json"}), body: JSON.stringify(body) });
+      QANS = await r.json();
+    }catch(e){ QANS = { error: "the spine has not answered with the weight" }; }
+    qRender();
+  }, 250);
+}
+
+function qRender(){
+  const box = $("qsc"); if(!box) return;
+  const t = qTrip(), a = QANS;
+  const ask = Number(t[qAskKey()]) || 0;
+  const chips = [
+    ["miles_loaded", "loaded mi", t.miles_loaded],
+    [qPosKey(), t.mode === "partial" ? "extra mi" : "return mi", t[qPosKey()]],
+    ["weight_lbs", "lbs", t.weight_lbs],
+    ["fuel_price", "diesel $/gal", t.fuel_price],
+    ["tolls_trip", "tolls $", t.tolls_trip],
+    ["hut_dollars", "ny hut $", t.hut_dollars],
+    ["lodging_nights", "nights", t.lodging_nights],
+    ["lodging_rate", "$/night", t.lodging_rate],
+  ];
+  let mid;
+  if(!a) mid = `<div class="unk">putting the load on the scale…</div>`;
+  else if(a.error) mid = `<div class="unk">${esc(a.error)}</div>`;
+  else{
+    const floor = a.cash_floor.dollars, be = a.breakeven.dollars;
+    const max = Math.max(ask, be, 1) * 1.12;
+    const L = v => Math.min(97.5, v / max * 100);
+    const dayL = Math.min(L(be), L(ask)), dayW = Math.abs(L(ask) - L(be));
+    const neg = ask < be, belowCash = ask < floor;
+    const margin = ask - be, pct = be ? Math.round(margin / be * 100) : 0;
+    const pm = t.miles_loaded ? (ask / t.miles_loaded) : null;
+    const verdict = belowCash
+      ? `<b>${money(margin)}</b> — BELOW CASH OUT OF POCKET`
+      : neg ? `<b>${money(margin)}</b> below the month's share`
+      : `<b>${money(margin)}</b> above breakeven · +${pct}%`;
+    mid = `
+    <div class="beamwrap"><div class="rail">
+      <div class="seg cost" style="left:0;width:${L(be)}%"></div>
+      <div class="seg day${neg ? " neg" : ""}" style="left:${dayL}%;width:${dayW}%"></div>
+      <div class="mark" style="left:${L(floor)}%"><i>cash floor</i><b>${money(floor)}</b></div>
+      <div class="mark" style="left:${L(be)}%"><i>breakeven</i><b>${money(be)}</b></div>
+      <div class="mark ask" style="left:${L(ask)}%"><i>the ask</i><b>${money(ask)}</b></div>
+    </div></div>
+    <div class="askrow">
+      <span class="lbl">THE ASK</span>
+      <button class="step" data-step="-25">−</button>
+      <span class="asknum" id="qAskNum">${money(ask)}</span>
+      <button class="step" data-step="25">+</button>
+      <span class="permile">${pm == null ? "" : money(pm) + " / loaded mi"}</span>
+      <span class="verdict${neg ? " neg" : ""}">${verdict}</span>
+    </div>
+    ${t.mode === "partial" && a.capacity ? `<div class="capnote">rides at ${Math.round((a.share||0)*100)}% of the deck · ${esc(a.capacity)}</div>` : ""}
+    <div class="fold" id="qFold">${QTICKET ? "close the ticket" : "the ticket · " + (a.cost_lines.length + 1) + " lines · open"}</div>
+    ${QTICKET ? `<div class="ticket">` + a.cost_lines.map(l =>
+        `<div class="tr"><span>${esc(l.line)}<div class="how">${esc(l.how)}</div></span><b>${money(l.dollars)}</b></div>`).join("") +
+      `<div class="tr"><span>${esc("share of the month's nut")}<div class="how">${esc(a.nut_share.how)}</div></span><b>${money(a.nut_share.dollars)}</b></div>` +
+      `<div class="basis">${esc(a.cost_basis.basis)} · window ${esc(a.cost_basis.windows[0].from)} → ${esc(a.cost_basis.windows[a.cost_basis.windows.length-1].to)}, ${a.cost_basis.miles_measured.toLocaleString()} mi measured</div></div>` : ""}`;
+  }
+  box.innerHTML = `
+    <div class="qlane"><span class="nm" id="qLane" title="tap to rename the lane">${esc(t.lane)}</span>
+      <div class="modes">
+        <button class="mchip${t.mode === "dedicated" ? " on" : ""}" data-mode="dedicated">DEDICATED</button>
+        <button class="mchip${t.mode === "partial" ? " on" : ""}" data-mode="partial">PARTIAL</button>
+      </div></div>
+    <div class="chips">` + chips.map(([k, lab, v]) =>
+      `<div class="qchip" data-k="${k}"><span class="k">${lab}</span><span class="v">${v}</span></div>`).join("") + `</div>
+    ${mid}`;
+  qWire();
+}
+let QTICKET = false;
+
+function qEdit(chip, k, isText){
+  const vEl = chip.querySelector(".v") || chip;
+  const old = qTrip()[k];
+  const inp = document.createElement("input");
+  inp.type = isText ? "text" : "number"; inp.step = "any"; inp.value = old;
+  vEl.replaceWith(inp); inp.focus(); inp.select();
+  let done = false;
+  const commit = ok => {
+    if(done) return; done = true;
+    if(ok){
+      const v = isText ? inp.value.trim() : parseFloat(inp.value);
+      if(isText ? v : Number.isFinite(v)) QT[k] = v;
+    }
+    qSave(); qRender(); if(!isText) qWeigh();
+  };
+  inp.addEventListener("keydown", e => {
+    e.stopPropagation();
+    if(e.key === "Enter") commit(true);
+    if(e.key === "Escape") commit(false);
+  });
+  inp.addEventListener("blur", () => commit(true));
+  inp.addEventListener("click", e => e.stopPropagation());
+}
+
+function qWire(){
+  const box = $("qsc"); if(!box) return;
+  box.querySelectorAll(".mchip").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation(); QT.mode = b.dataset.mode; qSave(); qRender(); qWeigh();
+  }));
+  box.querySelectorAll(".qchip").forEach(c => c.addEventListener("click", e => {
+    e.stopPropagation(); qEdit(c, c.dataset.k, false);
+  }));
+  const lane = $("qLane");
+  if(lane) lane.addEventListener("click", e => { e.stopPropagation(); qEdit(lane, "lane", true); });
+  const askN = $("qAskNum");
+  if(askN) askN.addEventListener("click", e => { e.stopPropagation(); qEdit(askN, qAskKey(), false); });
+  box.querySelectorAll(".step").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation();
+    QT[qAskKey()] = Math.max(0, (Number(QT[qAskKey()]) || 0) + Number(b.dataset.step));
+    qSave(); qRender();
+  }));
+  const fold = $("qFold");
+  if(fold) fold.addEventListener("click", e => {
+    e.stopPropagation(); QTICKET = !QTICKET; qRender();
+  });
+}
+
+function wireScale(){ qTrip(); qRender(); if(!QT._seeded){ qSeed(); } else { qWeigh(); } }
+
 /* the arc — drawn from served figures, synchronously (a hidden document
    never runs rAF, and a deferred first paint ships a blank instrument) */
 function paintGauge(){
@@ -2620,7 +2855,7 @@ function renderRoom(){
     const el = R.querySelector("." + cls.split(" ")[0]);
     if(el){ el.scrollTop = top; el.scrollLeft = left; }
   });
-  if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); wireSnap(); }
+  if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); wireSnap(); wireScale(); }
   if(o.room === "work"){ wireCards(); }
   if(o.room === "ledger"){ wireFin(); }
   if(o.room === "radio"){ wireKeyup(); markRead(); }
