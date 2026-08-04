@@ -1622,8 +1622,10 @@ function finFloor(){
      cap says where the bill rows went, because a row that leaves a list
      silently reads as lost. The books' record still carries every row. */
   const billBound = t => t.monthly_candidate || (t.monthly_pay || []).length;
-  const pile = (e.transactions || []).filter(t => !billBound(t));
-  const trayN = (e.transactions || []).length - pile.length;
+  /* transfers are money MOVED, not work — no workbench at all; the books'
+     record is their one home (Bryan, 2026-08-04) */
+  const pile = (e.transactions || []).filter(t => !billBound(t) && !t.transfer);
+  const trayN = (e.transactions || []).filter(billBound).length;
   const tier = t => t.accounted ? 2
     : (t.trip_direct && !t.personal) ? 0
     : (t.undraggable_because || "").startsWith("month-level") ? 2 : 1;
@@ -2168,6 +2170,7 @@ function finBooks(){
     : t.expired ? "the bank never settled it — held out"
     : t.credit ? "credit — place it on the load it belongs to"
     : t.personal ? "tagged personal"
+    : t.transfer ? "money moved between your accounts — not spend"
     : "unplaced";
   const bank = t => t.expired ? "expired" : t.pending ? "pending" : "posted";
   /* the ask lives here too now — a MONTHLY answer begun from the record must
