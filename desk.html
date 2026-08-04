@@ -151,8 +151,15 @@ body.hot .big{color:var(--hot);text-shadow:0 0 30px rgba(255,59,24,.5)}
 /* COMPACTED (his ask 2026-08-04: "these are too big...take up too much room")
    — the row hugs its content instead of stretching, and the reading lives in
    the OPEN CENTER OF THE DIAL, not below the hub. */
+/* THE ROOM SCROLLS (his catch 2026-08-04, "scrolling issue again"): html/body
+   are overflow:hidden by design, so any room taller than the viewport must be
+   its own scroller — the scale's row was the first content to ever push the
+   standing room past the fold, and it was unreachable by wheel or thumb.
+   Scoped here; the money room's .fin/.exp/.lanes scrollers are their own. */
 .rgrid{flex:1 1 auto;min-height:0;display:grid;gap:10px;align-content:start;
-  grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);grid-template-rows:auto auto}
+  grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);grid-template-rows:auto auto;
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding-bottom:6px}
 .gwrap{flex:0 0 auto;height:172px;min-height:0;position:relative;margin-top:4px}
 .gwrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .gread{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
@@ -2904,7 +2911,7 @@ function renderRoom(){
      on the eleventh load and the answer arrives at the top of the page. The
      scroll position is his, not the render's. */
   const keep = [];
-  R.querySelectorAll(".fin,.finbody,.exp,.lanes,.scroll").forEach(el => {
+  R.querySelectorAll(".fin,.finbody,.exp,.lanes,.scroll,.rgrid").forEach(el => {
     if(el.scrollTop || el.scrollLeft)
       keep.push([el.className, el.scrollTop, el.scrollLeft]);
   });
