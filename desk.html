@@ -783,6 +783,13 @@ body.hot .act .h .n{color:var(--hot)}
   border-radius:5px;color:var(--ink);font:600 12.5px var(--mono);padding:7px 9px;outline:none}
 .minput:focus{border-color:rgba(var(--key),.55)}
 .minrow .mi{flex:0 0 auto;width:auto}
+.srow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:9px;align-items:center;
+  padding:8px 10px;border-bottom:1px dotted var(--line);cursor:pointer}
+.srow:hover{background:rgba(var(--key),.06)}
+.srow input{accent-color:var(--amber);width:15px;height:15px;flex:0 0 auto;cursor:pointer}
+.srow span{font:600 11.5px/1.35 var(--sans);color:var(--ink)}
+.srow span i{display:block;font:400 9.5px/1.3 var(--mono);color:var(--etch);font-style:normal}
+.srow .samt{font:700 11.5px var(--mono);color:var(--amber);white-space:nowrap}
 .scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
 .scroll::-webkit-scrollbar{width:0}
 .creed{padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer}
@@ -2924,7 +2931,7 @@ async function openAcct(ev, t){
       headers:{...hdr(), "Content-Type":"application/json"},
       body: JSON.stringify({txn_id: t.id})});
     const d = await r.json().catch(() => ({}));
-    if(r.ok) loads = (d.loads || []).slice(0, 4);
+    if(r.ok) loads = (d.loads || []).slice(0, 5);
   }catch(e){ /* the menu still offers the mark — loads just stay absent */ }
   m.innerHTML =
     `<div class="mh">${esc(t.merchant || t.description || "this")} · ${money(t.amount)}
@@ -2938,6 +2945,9 @@ async function openAcct(ev, t){
         <i>${l.days_away === 0 ? "same day" :
             l.days_away === 1 ? "1 day away" : l.days_away + " days away"} · ${
             esc(l.delivery_date || "")}${l.broker ? " · " + esc(l.broker) : ""}</i></button>`).join("") : "") +
+    (t.trip_direct && loads.length >= 2
+      ? `<button class="mi" data-act="split">split across these loads
+          <i>one draft, several fill-ups — checkboxes decide, equal shares to the penny</i></button>` : "") +
     (t.accounted
       ? `<button class="mi" data-act="off">take it back into the pile<i>it will count as work again</i></button>`
       : `<button class="mi" data-act="on">already accounted for<i>a card covers it — it stays in the record, marked</i></button>`) +
@@ -2946,8 +2956,15 @@ async function openAcct(ev, t){
       : `<button class="mi" data-act="dep-on">deposit — wait for the refund<i>parked with the hotel; it comes back and the pair cancels</i></button>`) +
     `<button class="mi off" data-act="x">never mind</button>`;
   place();
-  m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", async () => {
+  m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", async ev => {
     const act = b.dataset.act, row = b.dataset.row;
+    if(act === "split"){
+      /* the menu LIVES ON as the checkbox panel — this click must not reach
+         the window's menu-closer (the picker died as it was born, third time) */
+      ev.stopPropagation();
+      splitPanel(m, t, loads, place);
+      return;
+    }
     closeMove();
     if(act === "x") return;
     if(act === "monthly") return payMonthly(t.id, null, null, null);
@@ -2978,6 +2995,66 @@ async function openAcct(ev, t){
         : `${out.merchant || "row"} is back in the pile`, false);
     }catch(e){ finSay("the spine did not answer — nothing was written: " + (e.message||e), true); }
   }));
+}
+
+/* THE SPLIT PANEL — Bryan, 2026-08-04: "i have a deal with pilot to pay for my
+   fill ups twice a week... be presented with the last 5 loads and have check
+   boxes to split between." One draft, several loads' fuel: check the loads it
+   fueled and the whole divides in equal shares to the penny — the last share
+   absorbs the rounding, so the parts always sum to exactly what left the
+   account. The writer (split_manual) refuses invented money regardless. */
+function splitPanel(m, t, loads, place){
+  const whole = Math.abs(t.amount);
+  m.innerHTML = `<div class="mh">${esc(t.merchant || t.description || "this")} · ${money(whole)}
+      <span>check the loads this draft fueled — equal shares, to the penny</span></div>
+    ${loads.map(l => `<label class="srow">
+      <input type="checkbox" data-row="${l.sheet_row}">
+      <span>${esc(l.pickup_city || "?")} &rarr; ${esc(l.delivery_city || "?")}${
+        l.delivery_state ? ", " + esc(l.delivery_state) : ""}
+        <i>${esc(l.delivery_date || "")}${l.broker ? " · " + esc(l.broker) : ""}</i></span>
+      <b class="samt">—</b></label>`).join("")}
+    <button class="mi msplit" disabled>check at least two loads</button>
+    <button class="mi off" data-act="x">never mind</button>`;
+  place();
+  m.querySelector('[data-act="x"]').addEventListener("click", closeMove);
+  const boxes = [...m.querySelectorAll('input[type="checkbox"]')];
+  const btn = m.querySelector(".msplit");
+  const shares = () => {
+    const on = boxes.filter(b => b.checked), n = on.length;
+    const base = n ? Math.floor(whole / n * 100) / 100 : 0;
+    return {on, n, base, last: n ? Math.round((whole - base * (n - 1)) * 100) / 100 : 0};
+  };
+  const recalc = () => {
+    const {on, n, base, last} = shares();
+    boxes.forEach(b => {
+      const el = b.closest(".srow").querySelector(".samt");
+      el.textContent = b.checked
+        ? money(on.indexOf(b) === n - 1 ? last : base) : "—";
+    });
+    btn.disabled = n < 2;
+    btn.textContent = n < 2 ? "check at least two loads"
+      : `split ${money(whole)} across ${n} loads`;
+  };
+  boxes.forEach(b => b.addEventListener("change", recalc));
+  recalc();
+  btn.addEventListener("click", async () => {
+    const {on, n, base, last} = shares();
+    if(n < 2) return;
+    const parts = on.map((b, i) => ({sheet_row: Number(b.dataset.row),
+                                     amount: i === n - 1 ? last : base}));
+    closeMove();
+    try{
+      const r = await fetch(url("/api/fin/split"), {method:"POST",
+        headers:{...hdr(), "Content-Type":"application/json"},
+        body: JSON.stringify({txn_id: t.id, parts})});
+      const out = await r.json().catch(() => ({}));
+      if(!r.ok){ finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true); return; }
+      await loadFin(); renderRoom();
+      finSay(`${t.merchant || "the draft"} split ${n} ways — ${money(whole)} across the loads`, false);
+    }catch(e){
+      finSay("the spine did not answer — nothing was written: " + (e.message||e), true);
+    }
+  });
 }
 
 async function openMove(ev, txn_id, from_row){
