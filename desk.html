@@ -767,6 +767,11 @@ body.hot .act .h .n{color:var(--hot)}
 .tx.op .vo{color:rgba(var(--key),1)}
 .tx.bry{color:var(--ink)} .tx.bry .vo{color:var(--dim)}
 .tx .mk{color:rgba(var(--key),1);font-weight:700}
+.tx.capm{cursor:pointer}
+.tx.capm:hover span:last-child{text-decoration:underline dotted}
+.capview{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.82);display:flex;
+  align-items:center;justify-content:center;cursor:pointer}
+.capview img{max-width:92vw;max-height:92vh;border:1px solid var(--line);border-radius:4px}
 .tx.held{opacity:.55;font-style:italic}
 .sqline{flex:0 0 auto;position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin:12px 0 4px}
 .sqline::after{content:"SQUELCH · " attr(data-held) " HELD BELOW";position:absolute;right:0;top:-13px;
@@ -1810,10 +1815,12 @@ function radioRoom(){
   const held = msgs.filter(m => m.kind === "held");
   const line = m => {
     const op = m.sender === "operation";
+    const cap = m.kind === "capture"; // 🕶 road captures keyed up from the glasses
     const mark = op ? (m.kind === "undelivered" ? '<span class="mk">△</span> '
                     : m.kind === "held" ? "" : '<span class="mk">▲</span> ') : "";
-    const title = op && m.title && m.title !== m.body ? `<b>${esc(m.title)}</b> — ` : "";
-    return `<div class="tx ${op?"op":"bry"}${m.kind==="held"?" held":""}">
+    const title = (op || cap) && m.title && m.title !== m.body ? `<b>${esc(m.title)}</b> — ` : "";
+    const media = cap && m.url;
+    return `<div class="tx ${op?"op":"bry"}${m.kind==="held"?" held":""}${media?" capm":""}"${media?` data-url="${esc(m.url)}"`:""}>
       <span class="st">${esc(rel(m.at))}</span><span class="vo">${op?"OP":"BRY"}</span>
       <span>${mark}${title}${esc(m.body)}</span></div>`;
   };
@@ -2957,7 +2964,7 @@ function renderRoom(){
   if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); wireSnap(); wireScale(); }
   if(o.room === "work"){ wireCards(); }
   if(o.room === "ledger"){ wireFin(); }
-  if(o.room === "radio"){ wireKeyup(); markRead(); }
+  if(o.room === "radio"){ wireKeyup(); markRead(); wireCapMedia(); }
   if(o.room === "soul"){
     /* stopPropagation is law on anything that opens/closes (ruled 08-03 after
        three bites of the menu-closer class) */
@@ -3111,6 +3118,29 @@ function wireCards(){
     }));
   });
 }
+function wireCapMedia(){
+  /* 🕶 capture rows carrying media open it full-screen. Fetch with the Bearer,
+     never a bare link — the token must not ride a URL, and the Pages origin
+     holds no spine cookie. Tap anywhere on the overlay to dismiss. */
+  const chan = document.querySelector(".chan");
+  if(!chan || chan.dataset.capwired) return;
+  chan.dataset.capwired = "1";
+  chan.addEventListener("click", async e => {
+    const row = e.target.closest(".capm");
+    if(!row || !row.dataset.url) return;
+    try{
+      const res = await fetch(url(row.dataset.url), { headers: hdr() });
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const obj = URL.createObjectURL(await res.blob());
+      const ov = document.createElement("div");
+      ov.className = "capview";
+      ov.innerHTML = `<img src="${obj}" alt="road capture">`;
+      ov.addEventListener("click", () => { URL.revokeObjectURL(obj); ov.remove(); });
+      document.body.appendChild(ov);
+    }catch(err){ toast("couldn't fetch the capture — " + err.message); }
+  });
+}
+
 function wireKeyup(){
   const btn = $("hold"), mic = $("mic"); if(!btn) return;
   let t = 0, anim = null;
