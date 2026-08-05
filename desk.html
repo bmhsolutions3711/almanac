@@ -776,6 +776,17 @@ body.hot .act .h .n{color:var(--hot)}
 .sqline{flex:0 0 auto;position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin:12px 0 4px}
 .sqline::after{content:"SQUELCH · " attr(data-held) " HELD BELOW";position:absolute;right:0;top:-13px;
   font:700 7.5px/1 var(--mono);letter-spacing:.16em;color:var(--etch)}
+.lane{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:8px;
+  border:1px solid var(--line);border-radius:4px;background:rgba(0,0,0,.35);font-size:11.5px}
+.lane .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:#666}
+.lane.on .dot{background:rgb(120,220,140);box-shadow:0 0 8px rgba(120,220,140,.8)}
+.lane.off .dot{background:rgb(230,110,90);box-shadow:0 0 6px rgba(230,110,90,.6)}
+.lane .lw{letter-spacing:.09em;font-weight:700}
+.lane .ld{opacity:.62}
+.lane .lsp{flex:1}
+.lane button{background:rgba(var(--key),.14);border:1px solid rgba(var(--key),.5);color:var(--ink);
+  border-radius:4px;padding:5px 11px;font:inherit;letter-spacing:.08em;cursor:pointer}
+.lane button:disabled{opacity:.5;cursor:default}
 .keyup{flex:0 0 auto;display:flex;gap:9px;margin-top:10px}
 .keyup input{flex:1;background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:4px;color:var(--ink);
   font:400 13px/1.3 var(--sans);padding:11px 13px;user-select:text;-webkit-user-select:text}
@@ -1039,7 +1050,7 @@ const short = v => v == null ? "——" :
   "$" + Math.round(Number(v)).toLocaleString("en-US");
 
 const State = { standing:null, standings:null, board:null, radio:null, learn:null,
-                soul:null, held:null, watch:null, at:null, err:null,
+                soul:null, held:null, watch:null, at:null, err:null, glasses:null,
                 fin:{ summary:null, loads:null, expenses:null, rollup:null,
                       summaryErr:null, err:null, stones:[], placed:[] } };
 let ACTIVE = null, HOT = false;
@@ -1806,6 +1817,53 @@ function rel(at){
   if(d < 86400) return RTF.format(-Math.round(d/3600),"hour");
   return RTF.format(-Math.round(d/86400),"day");
 }
+/* 🕶 THE REPEATER — the glasses lane (Funnel + bik bridge + core), seen and
+   armed from the room. Dark tower, dead mic: the Funnel idles itself down
+   ~15min after the last glasses session by design, so the strip's one control
+   puts it back on the air without a terminal (Bryan's ask, 08-04). */
+function laneStrip(){
+  const g = State.glasses;
+  if(!g) return `<div class="lane" id="lane"><span class="dot"></span>
+    <span class="lw">🕶 REPEATER</span><span class="ld">asking the tower…</span></div>`;
+  const legs = [];
+  if(g.funnel === false) legs.push("tower dark");
+  if(g.funnel === null)  legs.push("tower unknown");
+  if(!g.bridge) legs.push("bridge down");
+  if(!g.core)   legs.push("core down");
+  const last = g.last_capture ? `last capture ${rel(g.last_capture.at)}` : "no captures yet";
+  const on = g.armed;
+  return `<div class="lane ${on?"on":"off"}" id="lane"><span class="dot"></span>
+    <span class="lw">🕶 REPEATER</span>
+    <span class="ld">${on ? `on the air · ${g.sessions ?? 0} session${g.sessions===1?"":"s"} · ${esc(last)}`
+                         : esc(legs.join(" · ") || "dark")}</span>
+    <span class="lsp"></span>
+    ${on ? "" : `<button id="lanearm">PUT ON AIR</button>`}</div>`;
+}
+function paintLane(){
+  const el = $("lane"); if(!el) return;
+  el.outerHTML = laneStrip(); wireLaneBtn();
+}
+function wireLaneBtn(){
+  const b = $("lanearm"); if(!b) return;
+  b.addEventListener("click", async e => {
+    e.stopPropagation();
+    b.disabled = true; b.textContent = "RAISING…";
+    try{
+      const r = await fetch(url("/api/glasses/arm"), { method:"POST", headers: hdr() });
+      if(!r.ok) throw new Error("the spine answered " + r.status);
+      State.glasses = await r.json();
+      const bad = (State.glasses.steps || []).filter(s => !s.ok);
+      toast(State.glasses.armed ? "REPEATER ON AIR — the glasses can reach us"
+            : "still dark — " + (bad.map(s => s.step).join(", ") || "see the spine log"));
+    }catch(err){ toast("NOT RAISED — " + (err.message || err)); }
+    paintLane();
+  });
+}
+function wireLane(){
+  wireLaneBtn();
+  grab("/api/glasses").then(g => { State.glasses = g; paintLane(); })
+    .catch(()=>{ /* strip stays at 'asking' — the room must not fail over the lane */ });
+}
 function radioRoom(){
   const r = State.radio;
   if(!r) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
@@ -1825,6 +1883,7 @@ function radioRoom(){
       <span>${mark}${title}${esc(m.body)}</span></div>`;
   };
   return whyBar() + `<div class="panel" style="flex:1;min-height:0">
+    ${laneStrip()}
     <div class="cap">ch 19 · one channel · the operation may key up once a day</div>
     <div class="chan">` +
       (spoken.length ? spoken.slice().reverse().map(line).join("")
@@ -2964,7 +3023,7 @@ function renderRoom(){
   if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); wireSnap(); wireScale(); }
   if(o.room === "work"){ wireCards(); }
   if(o.room === "ledger"){ wireFin(); }
-  if(o.room === "radio"){ wireKeyup(); markRead(); wireCapMedia(); }
+  if(o.room === "radio"){ wireKeyup(); markRead(); wireCapMedia(); wireLane(); }
   if(o.room === "soul"){
     /* stopPropagation is law on anything that opens/closes (ruled 08-03 after
        three bites of the menu-closer class) */
