@@ -1986,11 +1986,13 @@ async function loadStops(q){
     const b = await grab("/api/stops" + (q ? "?q=" + encodeURIComponent(q) : ""));
     if(seq !== HS._seq) return;
     HS.book = b; HS.err = null; HS.readAt = Date.now();
-    /* the book is a list AND a map (his word 2026-08-09) — the picture rides
-       every book read; the spine redraws only when the book changed */
-    if(b.book_map && b.book_map.pinned) await fetchBookMap();
-    else { if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
-           HS.bookMapObj = null; HS.bookMapWhy = ""; }
+    /* the book is a list AND a map (his word 2026-08-09) — but the list never
+       waits on image bytes (review catch): the map fetch rides behind, only
+       when the book room is the one showing, and repaints on settle */
+    if(b.book_map && b.book_map.pinned){
+      if(HS.view === "book") fetchBookMap().then(() => renderRoom()).catch(() => {});
+    } else { if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
+             HS.bookMapObj = null; HS.bookMapWhy = ""; }
   }catch(e){
     if(seq !== HS._seq) return;
     /* the book on screen is his last read — never cleared on failure */
@@ -2028,20 +2030,27 @@ function stopGps(){
 
 async function fetchBookMap(){
   /* authed bytes like the corridor's picture; a refusal arrives as words
-     (budget spent, no pins yet) and renders as words — never a broken img */
+     (budget spent, no pins yet) and renders as words — never a broken img.
+     Seq-guarded (review catch): a stale resolve may not overwrite a newer
+     map nor revoke its live URL — the last FETCH wins, not the last to
+     arrive (loadFin's law, applied to the picture too). */
+  const seq = HS._mseq = (HS._mseq || 0) + 1;
   try{
     const r = await fetch(url("/api/stops/bookmap"), { headers: hdr(), cache: "no-store" });
     if(!r.ok){
       const out = await r.json().catch(() => ({}));
+      if(seq !== HS._mseq) return;
       if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
       HS.bookMapObj = null;
       HS.bookMapWhy = out.error || ("the spine answered " + r.status);
       return;
     }
     const blob = await r.blob();
+    if(seq !== HS._mseq) return;
     if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
     HS.bookMapObj = URL.createObjectURL(blob); HS.bookMapWhy = "";
   }catch(e){
+    if(seq !== HS._mseq) return;
     if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
     HS.bookMapObj = null;
     HS.bookMapWhy = "the spine has not answered with the map";
@@ -2049,15 +2058,19 @@ async function fetchBookMap(){
 }
 
 async function fetchRouteMap(ref){
-  /* the map arrives as authed bytes, never as a keyed URL */
+  /* the map arrives as authed bytes, never as a keyed URL. Same seq law as
+     the book map — a stale corridor picture may not beat a fresh one. */
+  const seq = HS._rseq = (HS._rseq || 0) + 1;
   try{
     const r = await fetch(url("/api/stops/map?ref=" + encodeURIComponent(ref)),
                           { headers: hdr(), cache: "no-store" });
     if(!r.ok) throw new Error(r.status);
     const blob = await r.blob();
+    if(seq !== HS._rseq) return;
     if(HS.mapObj) URL.revokeObjectURL(HS.mapObj);
     HS.mapObj = URL.createObjectURL(blob);
   }catch(e){
+    if(seq !== HS._rseq) return;
     if(HS.mapObj) URL.revokeObjectURL(HS.mapObj);   /* no orphaned blobs */
     HS.mapObj = null;
   }
@@ -2095,7 +2108,9 @@ async function stopJudge(id, verdict, btn){
     const out = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(out.error || ("the spine answered " + r.status));
     if(HS.ans && HS.ans.candidates)
-      HS.ans.candidates = HS.ans.candidates.map(s => s.id === out.stop.id ? out.stop : s);
+      /* MERGE, never replace: the judge answer is a bare DB row — the served
+         pin and mile marks must survive the verdict (review catch) */
+      HS.ans.candidates = HS.ans.candidates.map(s => s.id === out.stop.id ? {...s, ...out.stop} : s);
     await loadStops(HS.bookq);
     toast(verdict === "keep" ? "PROVEN — in the book"
       : verdict === "no" ? "DISMISSED" : "BACK ON THE FENCE — judge it again");
@@ -2114,7 +2129,9 @@ async function stopHandAdd(){
       body: JSON.stringify(HS.sa) });
     const out = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(out.error || ("the spine answered " + r.status));
-    HS.addOpen = false; HS.sa = { name:"", link:"", note:"", kind:"hotel" };
+    /* the kind survives the reset — the second pump in a row must not land
+       as a hotel because the seg silently snapped back (review catch) */
+    HS.addOpen = false; HS.sa = { name:"", link:"", note:"", kind: HS.sa.kind };
     await loadStops(HS.bookq);
     toast("IN THE BOOK — born proven");
   }catch(err){
@@ -2222,7 +2239,7 @@ function stopsHTML(){
     ${a && a.ok && a.route ? `<div class="panel" style="flex:0 0 auto">
       <div class="cap">the corridor · ${a.route.miles} mi to ${esc(a.route.dest)}</div>
       ${HS.mapObj ? `<div class="smap"><img src="${HS.mapObj}" alt="route map"></div>
-      <div class="sub">red unjudged · green proven hotels · orange proven gas — your book rides every corridor</div>`
+      <div class="sub">red unjudged · green proven hotels · orange proven gas — colors as of the draw; the rows below are the truth</div>`
         : `<div class="gen"><span class="nodata">${esc((a.route.map_note || "the map is on its way"))}</span></div>`}
     </div>` : ""}
     <div class="panel" style="flex:0 0 auto">${results}</div>
@@ -2276,6 +2293,11 @@ function wireHsTabs(){
       if((HS.view === "stops" || HS.view === "book") && !HS.loaded){
         HS.loaded = true;
         loadStops().then(renderRoom).catch(() => {});
+      } else if(HS.view === "book" && HS.book && HS.book.book_map
+                && HS.book.book_map.pinned){
+        /* entering the book: the picture fetch is view-scoped now, so a KEEP
+           made from the find room shows here on arrival, not a session late */
+        fetchBookMap().then(() => renderRoom()).catch(() => {});
       }
       renderRoom();
     }));
