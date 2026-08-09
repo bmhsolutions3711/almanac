@@ -930,6 +930,49 @@ body.hot .act .h .n{color:var(--hot)}
   color:var(--amber);font-style:normal;flex:0 0 auto}
 .scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px}
 .scroll::-webkit-scrollbar{width:0}
+/* ── THE STOPS BOOK (hotshot · stops tab) ─────────────────────────────
+   Rows are their own markup — .ltab is a table and was not built for this.
+   Thumb law: every tap ≥44px (judged from the Fold at highway speed). The
+   dog flag paints the SERVED field only; UNKNOWN never reads as no. */
+.stops{display:flex;flex-direction:column;gap:10px}
+.stopbar{display:flex;gap:9px;margin:6px 0 8px}
+.stopbar input,.handadd input{flex:1;background:rgba(0,0,0,.4);border:1px solid var(--line);
+  border-radius:4px;color:var(--ink);font:400 13px/1.3 var(--sans);padding:11px 13px;min-height:44px;
+  user-select:text;-webkit-user-select:text}
+.stopbar input:focus-visible,.handadd input:focus-visible{outline:2px solid rgba(var(--key),.6);outline-offset:1px}
+.sgo{flex:0 0 auto;min-height:44px;padding:0 18px;border-radius:4px;border:1px solid rgba(var(--key),.5);
+  background:rgba(var(--key),.14);color:rgba(var(--key),1);font:700 9.5px/1 var(--mono);
+  letter-spacing:.16em;cursor:pointer}
+.sgo:disabled{opacity:.5;cursor:default}
+.stoprow{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin-top:8px;
+  display:flex;flex-direction:column;gap:6px;background:rgba(0,0,0,.25)}
+.sr1{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.snm{font:700 12px/1.35 var(--mono)}
+.srt{color:var(--dim);font:700 10px/1 var(--mono)}
+.srt.unk{color:var(--unknown);font-weight:400}
+.sdog{font:700 8px/1 var(--mono);letter-spacing:.14em;padding:4px 8px;border-radius:3px}
+.sdog.ok{color:rgba(var(--key),1);background:rgba(var(--key),.14)}
+.sdog.no{color:var(--hot);background:rgba(255,59,24,.12)}
+.sdog.unk{color:var(--unknown);background:rgba(110,110,110,.14)}
+.sr2{color:var(--mid);font:400 10.5px/1.5 var(--sans)}
+.snote{color:var(--dim);font-style:italic}
+.smaybe{color:var(--amber);font:400 9.5px/1.5 var(--mono)}
+.sr3{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px}
+.sr3 .lsp{flex:1}
+.slink{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--line);
+  border-radius:5px;color:var(--ink);text-decoration:none;font:700 9px/1 var(--mono);letter-spacing:.14em}
+.slink:hover{border-color:rgba(var(--key),.6);color:rgba(var(--key),1)}
+.slink.big{margin-top:8px;justify-content:center}
+.nonum{color:var(--unknown);font:400 9px/44px var(--mono);letter-spacing:.1em}
+.skeep,.sno,.sre{min-height:44px;border-radius:5px;cursor:pointer;
+  font:700 9px/1 var(--mono);letter-spacing:.14em;padding:0 16px}
+.skeep{background:rgba(var(--key),.16);color:rgba(var(--key),1);border:1px solid rgba(var(--key),.5)}
+.sno{background:none;color:var(--dim);border:1px solid var(--line)}
+.sre{background:none;color:var(--unknown);border:1px dashed var(--line);
+  font:400 9.5px/1 var(--mono);letter-spacing:.04em}
+.sbadge{color:rgba(var(--key),1);font:700 9px/1.6 var(--mono);letter-spacing:.14em}
+.handadd{display:flex;flex-direction:column;gap:8px;padding-top:8px}
+@media(max-width:520px){.stopbar{flex-direction:column}.sr3 .lsp{flex-basis:100%}}
 .creed{padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer}
 .creed .ct{font:600 14px/1.4 var(--sans);display:flex;gap:12px;align-items:baseline}
 .creed .ct .cf{margin-left:auto;font:700 8px/1 var(--mono);letter-spacing:.13em;color:var(--dim)}
@@ -1354,7 +1397,14 @@ function standingRoom(){
   ];
   const reading = p.to_go == null ? `<span class="big unk">——</span>`
     : p.to_go > 0 ? money(p.to_go) : money(-p.to_go);
-  return whyBar() + `<div class="rgrid">
+  /* the room's tab bar — the money room's seg, worn by the hotshot orb.
+     A room-level tab is not a new domain (the orb constitution governs
+     ORBS); the stops book is hotshot's road tool, ruled 2026-08-08. */
+  const hsBar = `<div class="finbar"><div class="seg" id="hsView">${
+    [["standing","the standing"],["stops","the stops book"]].map(([k,l]) =>
+      `<button data-v="${k}" class="${HS.view === k ? "on" : ""}">${l}</button>`).join("")}</div></div>`;
+  if(HS.view === "stops") return whyBar() + hsBar + stopsHTML();
+  return whyBar() + hsBar + `<div class="rgrid">
     <div class="panel" style="grid-column:1;grid-row:1">
       <div class="cap">the standing · contribution against the nut</div>
       <div class="gwrap"><canvas id="g"></canvas>
@@ -1895,6 +1945,215 @@ function radioRoom(){
       <button class="hold" id="hold"><span class="r3"></span>
         <span style="position:relative;z-index:2" id="holdcap">HOLD TO KEY UP</span></button>
     </div></div>`;
+}
+
+/* ══ THE STOPS BOOK (hotshot · stops tab) ═══════════════════════════════
+   His duesey 2026-08-08, from the road: a night's stop needs TWO filters no
+   booking site combines — takes Rosie AND a lot that fits the 55' combo. The
+   spine's producer serves candidates with the satellite link already built;
+   the parking judgment is HIS EYE on the photo, never an algorithm. KEEP
+   stamps a stop PROVEN into the permanent book. This tab paints served
+   fields only — the dog flag renders the spine's 1/0/NULL and UNKNOWN never
+   reads as no. Fetches fire on open and on his tap, never on a tick. */
+const HS = { view:"standing", q:"", bookq:"", ans:null, book:null, err:null,
+             busy:false, loaded:false, addOpen:false,
+             sa:{ name:"", link:"", note:"" } };
+
+async function loadStops(q){
+  /* the last fetch wins, not the last to arrive (loadFin's law) */
+  const seq = HS._seq = (HS._seq || 0) + 1;
+  try{
+    const b = await grab("/api/stops" + (q ? "?q=" + encodeURIComponent(q) : ""));
+    if(seq !== HS._seq) return;
+    HS.book = b; HS.err = null; HS.readAt = Date.now();
+  }catch(e){
+    if(seq !== HS._seq) return;
+    /* the book on screen is his last read — never cleared on failure */
+    HS.err = String(e.message || e);
+  }
+}
+
+async function doStopsSearch(){
+  if(HS.busy) return;
+  HS.q = (HS.q || "").trim();
+  if(!HS.q){ toast("a search needs a place"); return; }
+  HS.busy = true; renderRoom();
+  try{
+    const a = await grab("/api/stops/search?q=" + encodeURIComponent(HS.q));
+    HS.ans = a; HS.err = null; HS.readAt = Date.now();
+    await loadStops(HS.bookq);   /* the book carries the new rows too */
+  }catch(e){
+    HS.err = String(e.message || e);
+    toast("the spine has not answered — the book below is your last read");
+  }
+  HS.busy = false; renderRoom();
+}
+
+async function stopJudge(id, verdict, btn){
+  /* the PUT ON AIR trace: disable, POST, parse even on !ok, never optimistic */
+  if(btn) btn.disabled = true;
+  try{
+    const r = await fetch(url("/api/stops/" + id + "/judge"), { method:"POST",
+      headers: hdr({"Content-Type":"application/json"}),
+      body: JSON.stringify({ verdict }) });
+    const out = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(out.error || ("the spine answered " + r.status));
+    if(HS.ans && HS.ans.candidates)
+      HS.ans.candidates = HS.ans.candidates.map(s => s.id === out.stop.id ? out.stop : s);
+    await loadStops(HS.bookq);
+    toast(verdict === "keep" ? "PROVEN — in the book" : "DISMISSED");
+  }catch(err){
+    if(btn) btn.disabled = false;
+    toast("NOT SAVED — " + (err.message || err));
+  }
+  renderRoom();   /* scroll-keep holds his place through the repaint */
+}
+
+async function stopHandAdd(){
+  const b = $("sa_go"); if(b) b.disabled = true;
+  try{
+    const r = await fetch(url("/api/stops/hand"), { method:"POST",
+      headers: hdr({"Content-Type":"application/json"}),
+      body: JSON.stringify(HS.sa) });
+    const out = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(out.error || ("the spine answered " + r.status));
+    HS.addOpen = false; HS.sa = { name:"", link:"", note:"" };
+    await loadStops(HS.bookq);
+    toast("IN THE BOOK — born proven");
+  }catch(err){
+    if(b) b.disabled = false;
+    toast("NOT ADDED — " + (err.message || err));
+    return;
+  }
+  renderRoom();
+}
+
+function stopRow(s){
+  const dogs = s.allows_dogs === 1 ? `<b class="sdog ok">DOGS OK</b>`
+    : s.allows_dogs === 0 ? `<b class="sdog no">NO DOGS</b>`
+    : `<b class="sdog unk" title="Google does not know — a call settles it">DOGS ——</b>`;
+  const rate = s.rating == null ? `<span class="srt unk">——</span>`
+    : `<span class="srt">${s.rating.toFixed(1)}★</span>`;
+  const links =
+    (s.maps_uri ? `<a class="slink" href="${esc(s.maps_uri)}" target="_blank" rel="noopener">LISTING</a>` : "") +
+    (s.satellite_uri ? `<a class="slink" href="${esc(s.satellite_uri)}" target="_blank" rel="noopener">SATELLITE</a>` : "") +
+    (s.tel ? `<a class="slink" href="tel:${esc(s.tel)}">CALL</a>` : `<i class="nonum">no number</i>`);
+  const judged = s.kept
+    ? `<b class="sbadge">IN THE BOOK · PROVEN ${esc((s.proven_at || "").slice(0,10))}</b>`
+    : s.dismissed
+      ? `<button class="sre" data-keep="${s.id}">you said NO — reconsider?</button>`
+      : `<button class="skeep" data-keep="${s.id}">KEEP</button>
+         <button class="sno" data-no="${s.id}">NO</button>`;
+  return `<div class="stoprow" data-sid="${s.id}">
+    <div class="sr1"><b class="snm">${esc(s.name)}</b>${rate}${dogs}</div>
+    ${s.address ? `<div class="sr2">${esc(s.address)}</div>` : ""}
+    ${s.maybe_book ? `<div class="smaybe">possibly already in the book — “${esc(s.maybe_book)}”. Check before re-proving.</div>` : ""}
+    ${s.note ? `<div class="sr2 snote">${esc(s.note)}</div>` : ""}
+    <div class="sr3">${links}<span class="lsp"></span>${judged}</div>
+  </div>`;
+}
+
+function stopsHTML(){
+  const a = HS.ans, b = HS.book;
+  const budget = (a && a.budget) || (b && b.budget) || null;
+  const stamp = HS.readAt ? new Date(HS.readAt).toTimeString().slice(0,5) : null;
+  let results;
+  if(HS.busy){
+    results = `<div class="gen"><span class="nodata">asking Google Places…</span></div>`;
+  } else if(a && a.ok){
+    results = `<div class="cap">tonight's candidates · ${esc(a.basis || "")}</div>` +
+      (a.candidates || []).map(stopRow).join("");
+  } else if(a){
+    /* a refusal is a rendered state, not an error page — the spine's why
+       verbatim, its links tappable (the ruled links-only fallback) */
+    results = `<div class="gen"><span class="nodata">${esc(a.why || "no answer")}</span></div>` +
+      (a.links || []).map(l =>
+        `<a class="slink big" href="${esc(l.uri)}" target="_blank" rel="noopener">${esc(l.label).toUpperCase()}</a>`).join("");
+  } else if(b && (b.candidates || []).length){
+    results = `<div class="cap">riding from the last search — unjudged</div>` +
+      b.candidates.map(stopRow).join("");
+  } else {
+    results = `<div class="gen"><span class="nodata">no candidates yet — name a town and search</span></div>`;
+  }
+  const proven = (b && b.proven) || [];
+  const dismissed = (b && b.dismissed) || [];
+  return `<div class="scroll stops">
+    <div class="panel" style="flex:0 0 auto">
+      <div class="cap">the stops book · a lot that fits the rig, a door that opens for Rosie</div>
+      <div class="stopbar">
+        <input type="search" id="stopq" enterkeyhint="search"
+          placeholder="where are you landing tonight? — town, exit, ZIP" value="${esc(HS.q)}">
+        <button class="sgo" id="stopgo"${HS.busy ? " disabled" : ""}>${HS.busy ? "SEARCHING…" : "SEARCH"}</button>
+      </div>
+      <div class="sub">${budget ? `${budget.used} of ${budget.ceiling} Places calls this month`
+          : "the spine has not answered with the budget"}${stamp ? ` · READ ${stamp}` : ""}${
+          HS.err ? ` · <span class="hotline">${esc(HS.err)}</span>` : ""}</div>
+    </div>
+    <div class="panel" style="flex:0 0 auto">${results}</div>
+    <div class="panel" style="flex:0 0 auto">
+      <div class="cap">the proven book · ${proven.length || "no"} stop${proven.length === 1 ? "" : "s"} — his eye ruled every one</div>
+      <div class="stopbar">
+        <input type="search" id="stopbq" enterkeyhint="search"
+          placeholder="search the book — name or town" value="${esc(HS.bookq)}">
+      </div>
+      ${proven.length ? proven.map(stopRow).join("")
+        : `<div class="gen"><span class="nodata">nothing proven yet — the first KEEP starts the book</span></div>`}
+      ${dismissed.length ? `<div class="cap" style="margin-top:10px">said no to</div>`
+        + dismissed.map(stopRow).join("") : ""}
+      <div class="fold" id="saFold"><span>ADD A STOP BY HAND</span><i>known-good · born proven</i></div>
+      <div class="handadd" id="saForm"${HS.addOpen ? "" : " hidden"}>
+        <input class="stopbar-input" id="sa_name" placeholder="name — Red Roof Inn, Tyler TX" value="${esc(HS.sa.name)}">
+        <input class="stopbar-input" id="sa_link" placeholder="paste its Maps link (optional — brings the pin)" value="${esc(HS.sa.link)}">
+        <input class="stopbar-input" id="sa_note" placeholder="note — gravel in back, tuck in by the fence" value="${esc(HS.sa.note)}">
+        <button class="sgo" id="sa_go">ADD — BORN PROVEN</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function wireHsTabs(){
+  $("room").querySelectorAll("#hsView button").forEach(b =>
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      HS.view = b.dataset.v;
+      if(HS.view === "stops" && !HS.loaded){
+        HS.loaded = true;
+        loadStops().then(renderRoom).catch(() => {});
+      }
+      renderRoom();
+    }));
+}
+
+function wireStops(){
+  const R = $("room");
+  const go = $("stopgo");
+  if(go) go.addEventListener("click", e => { e.stopPropagation(); doStopsSearch(); });
+  const q = $("stopq");
+  if(q){
+    q.addEventListener("input", () => { HS.q = q.value; });
+    q.addEventListener("keydown", e => {
+      if(e.key === "Enter"){ e.preventDefault(); doStopsSearch(); } });
+  }
+  const bq = $("stopbq");
+  if(bq){
+    bq.addEventListener("input", () => { HS.bookq = bq.value; });
+    bq.addEventListener("keydown", e => {
+      if(e.key === "Enter"){ e.preventDefault();
+        loadStops(HS.bookq.trim()).then(renderRoom); } });
+  }
+  ["sa_name","sa_link","sa_note"].forEach(id => {
+    const el = $(id);
+    if(el) el.addEventListener("input", () => { HS.sa[id.slice(3)] = el.value; });
+  });
+  R.querySelectorAll("[data-keep]").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation(); stopJudge(+b.dataset.keep, "keep", b); }));
+  R.querySelectorAll("[data-no]").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation(); stopJudge(+b.dataset.no, "no", b); }));
+  const f = $("saFold");
+  if(f) f.addEventListener("click", e => { e.stopPropagation();
+    HS.addOpen = !HS.addOpen; renderRoom(); });
+  const sg = $("sa_go");
+  if(sg) sg.addEventListener("click", e => { e.stopPropagation(); stopHandAdd(); });
 }
 
 /* ── LEDGER · LEARN · SOUL ────────────────────────────────────────── */
@@ -3020,7 +3279,11 @@ function renderRoom(){
     const el = R.querySelector("." + cls.split(" ")[0]);
     if(el){ el.scrollTop = top; el.scrollLeft = left; }
   });
-  if(o.room === "standing"){ paintGauge(); wireFigs(); wireActs(); wireSnap(); wireScale(); }
+  if(o.room === "standing"){
+    wireHsTabs();
+    if(HS.view === "stops"){ wireStops(); }
+    else { paintGauge(); wireFigs(); wireActs(); wireSnap(); wireScale(); }
+  }
   if(o.room === "work"){ wireCards(); }
   if(o.room === "ledger"){ wireFin(); }
   if(o.room === "radio"){ wireKeyup(); markRead(); wireCapMedia(); wireLane(); }
