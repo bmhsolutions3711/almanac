@@ -972,6 +972,7 @@ body.hot .act .h .n{color:var(--hot)}
   font:400 9.5px/1 var(--mono);letter-spacing:.04em}
 .sbadge{color:rgba(var(--key),1);font:700 9px/1.6 var(--mono);letter-spacing:.14em}
 .handadd{display:flex;flex-direction:column;gap:8px;padding-top:8px}
+.stops .sub{margin-top:2px;font:400 10.5px/1.5 var(--sans);color:var(--dim)}
 @media(max-width:520px){.stopbar{flex-direction:column}.sr3 .lsp{flex-basis:100%}}
 .creed{padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer}
 .creed .ct{font:600 14px/1.4 var(--sans);display:flex;gap:12px;align-items:baseline}
@@ -2001,7 +2002,8 @@ async function stopJudge(id, verdict, btn){
     if(HS.ans && HS.ans.candidates)
       HS.ans.candidates = HS.ans.candidates.map(s => s.id === out.stop.id ? out.stop : s);
     await loadStops(HS.bookq);
-    toast(verdict === "keep" ? "PROVEN — in the book" : "DISMISSED");
+    toast(verdict === "keep" ? "PROVEN — in the book"
+      : verdict === "no" ? "DISMISSED" : "BACK ON THE FENCE — judge it again");
   }catch(err){
     if(btn) btn.disabled = false;
     toast("NOT SAVED — " + (err.message || err));
@@ -2037,11 +2039,15 @@ function stopRow(s){
   const links =
     (s.maps_uri ? `<a class="slink" href="${esc(s.maps_uri)}" target="_blank" rel="noopener">LISTING</a>` : "") +
     (s.satellite_uri ? `<a class="slink" href="${esc(s.satellite_uri)}" target="_blank" rel="noopener">SATELLITE</a>` : "") +
-    (s.tel ? `<a class="slink" href="tel:${esc(s.tel)}">CALL</a>` : `<i class="nonum">no number</i>`);
+    (s.tel ? `<a class="slink" href="tel:${esc(s.tel)}">CALL</a>`
+           : `<i class="nonum">phone ——</i>`);
+  /* every verdict reversible from the thumb — AGAIN reopens judgment
+     (back to KEEP/NO) instead of silently flipping the other way */
   const judged = s.kept
-    ? `<b class="sbadge">IN THE BOOK · PROVEN ${esc((s.proven_at || "").slice(0,10))}</b>`
+    ? `<b class="sbadge">IN THE BOOK · PROVEN ${esc((s.proven_at || "").slice(0,10))}</b>
+       <button class="sre" data-again="${s.id}">reconsider?</button>`
     : s.dismissed
-      ? `<button class="sre" data-keep="${s.id}">you said NO — reconsider?</button>`
+      ? `<button class="sre" data-again="${s.id}">you said NO — reconsider?</button>`
       : `<button class="skeep" data-keep="${s.id}">KEEP</button>
          <button class="sno" data-no="${s.id}">NO</button>`;
   return `<div class="stoprow" data-sid="${s.id}">
@@ -2075,6 +2081,12 @@ function stopsHTML(){
   } else {
     results = `<div class="gen"><span class="nodata">no candidates yet — name a town and search</span></div>`;
   }
+  /* a refusal must not hide what the road already had — the unjudged
+     candidates keep riding under it (review catch, 2026-08-08) */
+  if(a && !a.ok && b && (b.candidates || []).length){
+    results += `<div class="cap" style="margin-top:10px">riding from the last search — unjudged</div>` +
+      b.candidates.map(stopRow).join("");
+  }
   const proven = (b && b.proven) || [];
   const dismissed = (b && b.dismissed) || [];
   return `<div class="scroll stops">
@@ -2102,9 +2114,9 @@ function stopsHTML(){
         + dismissed.map(stopRow).join("") : ""}
       <div class="fold" id="saFold"><span>ADD A STOP BY HAND</span><i>known-good · born proven</i></div>
       <div class="handadd" id="saForm"${HS.addOpen ? "" : " hidden"}>
-        <input class="stopbar-input" id="sa_name" placeholder="name — Red Roof Inn, Tyler TX" value="${esc(HS.sa.name)}">
-        <input class="stopbar-input" id="sa_link" placeholder="paste its Maps link (optional — brings the pin)" value="${esc(HS.sa.link)}">
-        <input class="stopbar-input" id="sa_note" placeholder="note — gravel in back, tuck in by the fence" value="${esc(HS.sa.note)}">
+        <input id="sa_name" placeholder="name — Red Roof Inn, Tyler TX" value="${esc(HS.sa.name)}">
+        <input id="sa_link" placeholder="paste its Maps link (optional — brings the pin)" value="${esc(HS.sa.link)}">
+        <input id="sa_note" placeholder="note — gravel in back, tuck in by the fence" value="${esc(HS.sa.note)}">
         <button class="sgo" id="sa_go">ADD — BORN PROVEN</button>
       </div>
     </div>
@@ -2149,6 +2161,11 @@ function wireStops(){
     e.stopPropagation(); stopJudge(+b.dataset.keep, "keep", b); }));
   R.querySelectorAll("[data-no]").forEach(b => b.addEventListener("click", e => {
     e.stopPropagation(); stopJudge(+b.dataset.no, "no", b); }));
+  R.querySelectorAll("[data-again]").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation(); stopJudge(+b.dataset.again, "again", b); }));
+  /* stopPropagation is law on row interactives — anchors included */
+  R.querySelectorAll(".stoprow a").forEach(a =>
+    a.addEventListener("click", e => e.stopPropagation()));
   const f = $("saFold");
   if(f) f.addEventListener("click", e => { e.stopPropagation();
     HS.addOpen = !HS.addOpen; renderRoom(); });
@@ -3268,6 +3285,13 @@ function renderRoom(){
     if(el.scrollTop || el.scrollLeft)
       keep.push([el.className, el.scrollTop, el.scrollLeft]);
   });
+  /* KEEP HIS HANDS TOO. An async render landing mid-type steals the focus
+     and drops the Fold's keyboard — the caret is his, not the render's.
+     Only inputs with ids can be handed back (2026-08-08, stops review). */
+  const fo = document.activeElement;
+  const foId = fo && R.contains(fo) && fo.id ? fo.id : null;
+  const foSel = foId && fo.selectionStart != null
+    ? [fo.selectionStart, fo.selectionEnd] : null;
 
   R.innerHTML = o.room === "standing" ? standingRoom()
     : o.room === "work" ? workRoom()
@@ -3279,6 +3303,14 @@ function renderRoom(){
     const el = R.querySelector("." + cls.split(" ")[0]);
     if(el){ el.scrollTop = top; el.scrollLeft = left; }
   });
+  if(foId){
+    const el = $(foId);
+    if(el){
+      el.focus({preventScroll: true});
+      if(foSel && el.setSelectionRange)
+        try{ el.setSelectionRange(foSel[0], foSel[1]); }catch(e){}
+    }
+  }
   if(o.room === "standing"){
     wireHsTabs();
     if(HS.view === "stops"){ wireStops(); }
