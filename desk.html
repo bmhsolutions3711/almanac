@@ -973,6 +973,16 @@ body.hot .act .h .n{color:var(--hot)}
 .sbadge{color:rgba(var(--key),1);font:700 9px/1.6 var(--mono);letter-spacing:.14em}
 .handadd{display:flex;flex-direction:column;gap:8px;padding-top:8px}
 .stops .sub{margin-top:2px;font:400 10.5px/1.5 var(--sans);color:var(--dim)}
+/* the corridor's dress */
+.sgps{flex:0 0 auto;min-height:44px;padding:0 14px;border-radius:4px;border:1px solid var(--line);
+  background:none;color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.14em;cursor:pointer}
+.sgps.on{color:rgba(var(--key),1);border-color:rgba(var(--key),.5);background:rgba(var(--key),.1)}
+.spin{flex:0 0 auto;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;
+  justify-content:center;background:rgba(var(--key),.16);color:rgba(var(--key),1);
+  font:700 10px/1 var(--mono)}
+.smile{color:var(--mid);font:700 9px/1 var(--mono);letter-spacing:.08em}
+.smap img{width:100%;height:auto;display:block;border-radius:6px;border:1px solid var(--line)}
+@media(max-width:520px){.sgps{width:100%}}
 @media(max-width:520px){.stopbar{flex-direction:column}.sr3 .lsp{flex-basis:100%}}
 .creed{padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer}
 .creed .ct{font:600 14px/1.4 var(--sans);display:flex;gap:12px;align-items:baseline}
@@ -1958,6 +1968,7 @@ function radioRoom(){
    reads as no. Fetches fire on open and on his tap, never on a tick. */
 const HS = { view:"standing", q:"", bookq:"", ans:null, book:null, err:null,
              busy:false, loaded:false, addOpen:false,
+             mode:"route", dest:"", gps:null, mapObj:null,
              sa:{ name:"", link:"", note:"" } };
 
 async function loadStops(q){
@@ -1983,6 +1994,54 @@ async function doStopsSearch(){
     const a = await grab("/api/stops/search?q=" + encodeURIComponent(HS.q));
     HS.ans = a; HS.err = null; HS.readAt = Date.now();
     await loadStops(HS.bookq);   /* the book carries the new rows too */
+  }catch(e){
+    HS.err = String(e.message || e);
+    toast("the spine has not answered — the book below is your last read");
+  }
+  HS.busy = false; renderRoom();
+}
+
+function stopGps(){
+  /* the Fold's fix — asked once per tap, never in the background */
+  if(!navigator.geolocation){ toast("this device offers no location"); return; }
+  toast("asking the device for its fix…");
+  navigator.geolocation.getCurrentPosition(
+    pos => { HS.gps = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+             renderRoom(); },
+    err => toast("no fix — " + (err.message || "the device refused")),
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 });
+}
+
+async function fetchRouteMap(ref){
+  /* the map arrives as authed bytes, never as a keyed URL */
+  try{
+    const r = await fetch(url("/api/stops/map?ref=" + encodeURIComponent(ref)),
+                          { headers: hdr(), cache: "no-store" });
+    if(!r.ok) throw new Error(r.status);
+    const blob = await r.blob();
+    if(HS.mapObj) URL.revokeObjectURL(HS.mapObj);
+    HS.mapObj = URL.createObjectURL(blob);
+  }catch(e){
+    if(HS.mapObj) URL.revokeObjectURL(HS.mapObj);   /* no orphaned blobs */
+    HS.mapObj = null;
+  }
+}
+
+async function doRouteSearch(){
+  if(HS.busy) return;
+  HS.dest = (HS.dest || "").trim();
+  if(!HS.gps){ toast("tap USE MY LOCATION first — the corridor starts where you are"); return; }
+  if(!HS.dest){ toast("the corridor needs a destination"); return; }
+  HS.busy = true; renderRoom();
+  try{
+    const r = await fetch(url("/api/stops/route"), { method:"POST",
+      headers: hdr({"Content-Type":"application/json"}),
+      body: JSON.stringify({ origin: HS.gps, dest: HS.dest }) });
+    const a = await r.json();
+    HS.ans = a; HS.err = null; HS.readAt = Date.now();
+    if(a.ok && a.route && a.route.map) await fetchRouteMap(a.route.map);
+    else { if(HS.mapObj) URL.revokeObjectURL(HS.mapObj); HS.mapObj = null; }
+    await loadStops(HS.bookq);
   }catch(e){
     HS.err = String(e.message || e);
     toast("the spine has not answered — the book below is your last read");
@@ -2030,12 +2089,18 @@ async function stopHandAdd(){
   renderRoom();
 }
 
-function stopRow(s){
+function stopRow(s, n){
   const dogs = s.allows_dogs === 1 ? `<b class="sdog ok">DOGS OK</b>`
     : s.allows_dogs === 0 ? `<b class="sdog no">NO DOGS</b>`
     : `<b class="sdog unk" title="Google does not know — a call settles it">DOGS ——</b>`;
   const rate = s.rating == null ? `<span class="srt unk">——</span>`
     : `<span class="srt">${s.rating.toFixed(1)}★</span>`;
+  /* corridor dress: the pin label matches the map's marker; the mile mark
+     answers 'when tonight?' — both SERVED, never derived here */
+  const pin = s.pin ? `<b class="spin">${esc(s.pin)}</b>` : "";
+  const mile = s.mile != null
+    ? `<span class="smile">mile ${s.mile}${s.off_route_mi != null
+        ? ` · ${s.off_route_mi} mi off` : ""}</span>` : "";
   const links =
     (s.maps_uri ? `<a class="slink" href="${esc(s.maps_uri)}" target="_blank" rel="noopener">LISTING</a>` : "") +
     (s.satellite_uri ? `<a class="slink" href="${esc(s.satellite_uri)}" target="_blank" rel="noopener">SATELLITE</a>` : "") +
@@ -2051,7 +2116,7 @@ function stopRow(s){
       : `<button class="skeep" data-keep="${s.id}">KEEP</button>
          <button class="sno" data-no="${s.id}">NO</button>`;
   return `<div class="stoprow" data-sid="${s.id}">
-    <div class="sr1"><b class="snm">${esc(s.name)}</b>${rate}${dogs}</div>
+    <div class="sr1">${pin}<b class="snm">${esc(s.name)}</b>${mile}${rate}${dogs}</div>
     ${s.address ? `<div class="sr2">${esc(s.address)}</div>` : ""}
     ${s.maybe_book ? `<div class="smaybe">possibly already in the book — “${esc(s.maybe_book)}”. Check before re-proving.</div>` : ""}
     ${s.note ? `<div class="sr2 snote">${esc(s.note)}</div>` : ""}
@@ -2067,8 +2132,10 @@ function stopsHTML(){
   if(HS.busy){
     results = `<div class="gen"><span class="nodata">asking Google Places…</span></div>`;
   } else if(a && a.ok){
-    results = `<div class="cap">tonight's candidates · ${esc(a.basis || "")}</div>` +
-      (a.candidates || []).map(stopRow).join("");
+    /* pin labels arrive SERVED on each corridor candidate — the shell never
+       numbers anything itself */
+    results = `<div class="cap">${a.route ? "along the corridor" : "tonight's candidates"} · ${esc(a.basis || "")}</div>` +
+      (a.candidates || []).map(s => stopRow(s)).join("");
   } else if(a){
     /* a refusal is a rendered state, not an error page — the spine's why
        verbatim, its links tappable (the ruled links-only fallback) */
@@ -2077,7 +2144,7 @@ function stopsHTML(){
         `<a class="slink big" href="${esc(l.uri)}" target="_blank" rel="noopener">${esc(l.label).toUpperCase()}</a>`).join("");
   } else if(b && (b.candidates || []).length){
     results = `<div class="cap">riding from the last search — unjudged</div>` +
-      b.candidates.map(stopRow).join("");
+      b.candidates.map(s => stopRow(s)).join("");
   } else {
     results = `<div class="gen"><span class="nodata">no candidates yet — name a town and search</span></div>`;
   }
@@ -2085,22 +2152,36 @@ function stopsHTML(){
      candidates keep riding under it (review catch, 2026-08-08) */
   if(a && !a.ok && b && (b.candidates || []).length){
     results += `<div class="cap" style="margin-top:10px">riding from the last search — unjudged</div>` +
-      b.candidates.map(stopRow).join("");
+      b.candidates.map(s => stopRow(s)).join("");
   }
   const proven = (b && b.proven) || [];
   const dismissed = (b && b.dismissed) || [];
   return `<div class="scroll stops">
     <div class="panel" style="flex:0 0 auto">
       <div class="cap">the stops book · a lot that fits the rig, a door that opens for Rosie</div>
-      <div class="stopbar">
+      <div class="finbar" style="padding:0 0 6px"><div class="seg" id="stopMode">${
+        [["route","the corridor"],["town","tonight's town"]].map(([k,l]) =>
+          `<button data-m="${k}" class="${HS.mode === k ? "on" : ""}">${l}</button>`).join("")}</div></div>
+      ${HS.mode === "route" ? `<div class="stopbar">
+        <button class="sgps${HS.gps ? " on" : ""}" id="stopgps">${
+          HS.gps ? "◉ LOCATION LOCKED" : "◎ USE MY LOCATION"}</button>
+        <input type="search" id="stopdest" enterkeyhint="search"
+          placeholder="destination — where the load lands" value="${esc(HS.dest)}">
+        <button class="sgo" id="stoprgo"${HS.busy ? " disabled" : ""}>${HS.busy ? "ROUTING…" : "RUN THE ROUTE"}</button>
+      </div>` : `<div class="stopbar">
         <input type="search" id="stopq" enterkeyhint="search"
           placeholder="where are you landing tonight? — town, exit, ZIP" value="${esc(HS.q)}">
         <button class="sgo" id="stopgo"${HS.busy ? " disabled" : ""}>${HS.busy ? "SEARCHING…" : "SEARCH"}</button>
-      </div>
+      </div>`}
       <div class="sub">${budget ? `${budget.used} of ${budget.ceiling} Places calls this month`
           : "the spine has not answered with the budget"}${stamp ? ` · READ ${stamp}` : ""}${
           HS.err ? ` · <span class="hotline">${esc(HS.err)}</span>` : ""}</div>
     </div>
+    ${a && a.ok && a.route ? `<div class="panel" style="flex:0 0 auto">
+      <div class="cap">the corridor · ${a.route.miles} mi to ${esc(a.route.dest)}</div>
+      ${HS.mapObj ? `<div class="smap"><img src="${HS.mapObj}" alt="route map"></div>`
+        : `<div class="gen"><span class="nodata">${esc((a.route.map_note || "the map is on its way"))}</span></div>`}
+    </div>` : ""}
     <div class="panel" style="flex:0 0 auto">${results}</div>
     <div class="panel" style="flex:0 0 auto">
       <div class="cap">the proven book · ${proven.length || "no"} stop${proven.length === 1 ? "" : "s"} — his eye ruled every one</div>
@@ -2108,10 +2189,10 @@ function stopsHTML(){
         <input type="search" id="stopbq" enterkeyhint="search"
           placeholder="search the book — name or town" value="${esc(HS.bookq)}">
       </div>
-      ${proven.length ? proven.map(stopRow).join("")
+      ${proven.length ? proven.map(s => stopRow(s)).join("")
         : `<div class="gen"><span class="nodata">nothing proven yet — the first KEEP starts the book</span></div>`}
       ${dismissed.length ? `<div class="cap" style="margin-top:10px">said no to</div>`
-        + dismissed.map(stopRow).join("") : ""}
+        + dismissed.map(s => stopRow(s)).join("") : ""}
       <div class="fold" id="saFold"><span>ADD A STOP BY HAND</span><i>known-good · born proven</i></div>
       <div class="handadd" id="saForm"${HS.addOpen ? "" : " hidden"}>
         <input id="sa_name" placeholder="name — Red Roof Inn, Tyler TX" value="${esc(HS.sa.name)}">
@@ -2138,6 +2219,19 @@ function wireHsTabs(){
 
 function wireStops(){
   const R = $("room");
+  R.querySelectorAll("#stopMode button").forEach(b =>
+    b.addEventListener("click", e => {
+      e.stopPropagation(); HS.mode = b.dataset.m; renderRoom(); }));
+  const gps = $("stopgps");
+  if(gps) gps.addEventListener("click", e => { e.stopPropagation(); stopGps(); });
+  const rgo = $("stoprgo");
+  if(rgo) rgo.addEventListener("click", e => { e.stopPropagation(); doRouteSearch(); });
+  const dest = $("stopdest");
+  if(dest){
+    dest.addEventListener("input", () => { HS.dest = dest.value; });
+    dest.addEventListener("keydown", e => {
+      if(e.key === "Enter"){ e.preventDefault(); doRouteSearch(); } });
+  }
   const go = $("stopgo");
   if(go) go.addEventListener("click", e => { e.stopPropagation(); doStopsSearch(); });
   const q = $("stopq");
