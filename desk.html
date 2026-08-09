@@ -982,6 +982,12 @@ body.hot .act .h .n{color:var(--hot)}
   font:700 10px/1 var(--mono)}
 .smile{color:var(--mid);font:700 9px/1 var(--mono);letter-spacing:.08em}
 .smap img{width:100%;height:auto;display:block;border-radius:6px;border:1px solid var(--line)}
+/* the book's two chapters: proven roof pins go solid green, proven pump pins
+   amber — the same law the spine's maps speak in marker color */
+.sfuel{font:700 8px/1 var(--mono);letter-spacing:.14em;padding:4px 8px;border-radius:3px;
+  color:var(--amber);background:rgba(255,170,40,.12)}
+.spin.pbook{background:#2E9E5B;color:#04140b}
+.spin.pfuel{background:var(--amber);color:#171000}
 @media(max-width:520px){.sgps{width:100%}}
 @media(max-width:520px){.stopbar{flex-direction:column}.sr3 .lsp{flex-basis:100%}}
 .creed{padding:10px 0;border-bottom:1px dotted var(--line);cursor:pointer}
@@ -1968,8 +1974,9 @@ function radioRoom(){
    reads as no. Fetches fire on open and on his tap, never on a tick. */
 const HS = { view:"standing", q:"", bookq:"", ans:null, book:null, err:null,
              busy:false, loaded:false, addOpen:false,
-             mode:"route", dest:"", gps:null, mapObj:null,
-             sa:{ name:"", link:"", note:"" } };
+             mode:"route", kind:"hotel", dest:"", gps:null, mapObj:null,
+             bookMapObj:null, bookMapWhy:"",
+             sa:{ name:"", link:"", note:"", kind:"hotel" } };
 
 async function loadStops(q){
   /* the last fetch wins, not the last to arrive (loadFin's law) */
@@ -1978,6 +1985,11 @@ async function loadStops(q){
     const b = await grab("/api/stops" + (q ? "?q=" + encodeURIComponent(q) : ""));
     if(seq !== HS._seq) return;
     HS.book = b; HS.err = null; HS.readAt = Date.now();
+    /* the book is a list AND a map (his word 2026-08-09) — the picture rides
+       every book read; the spine redraws only when the book changed */
+    if(b.book_map && b.book_map.pinned) await fetchBookMap();
+    else { if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
+           HS.bookMapObj = null; HS.bookMapWhy = ""; }
   }catch(e){
     if(seq !== HS._seq) return;
     /* the book on screen is his last read — never cleared on failure */
@@ -1991,7 +2003,8 @@ async function doStopsSearch(){
   if(!HS.q){ toast("a search needs a place"); return; }
   HS.busy = true; renderRoom();
   try{
-    const a = await grab("/api/stops/search?q=" + encodeURIComponent(HS.q));
+    const a = await grab("/api/stops/search?q=" + encodeURIComponent(HS.q)
+                         + "&kind=" + encodeURIComponent(HS.kind));
     HS.ans = a; HS.err = null; HS.readAt = Date.now();
     await loadStops(HS.bookq);   /* the book carries the new rows too */
   }catch(e){
@@ -2010,6 +2023,28 @@ function stopGps(){
              renderRoom(); },
     err => toast("no fix — " + (err.message || "the device refused")),
     { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 });
+}
+
+async function fetchBookMap(){
+  /* authed bytes like the corridor's picture; a refusal arrives as words
+     (budget spent, no pins yet) and renders as words — never a broken img */
+  try{
+    const r = await fetch(url("/api/stops/bookmap"), { headers: hdr(), cache: "no-store" });
+    if(!r.ok){
+      const out = await r.json().catch(() => ({}));
+      if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
+      HS.bookMapObj = null;
+      HS.bookMapWhy = out.error || ("the spine answered " + r.status);
+      return;
+    }
+    const blob = await r.blob();
+    if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
+    HS.bookMapObj = URL.createObjectURL(blob); HS.bookMapWhy = "";
+  }catch(e){
+    if(HS.bookMapObj) URL.revokeObjectURL(HS.bookMapObj);
+    HS.bookMapObj = null;
+    HS.bookMapWhy = "the spine has not answered with the map";
+  }
 }
 
 async function fetchRouteMap(ref){
@@ -2036,7 +2071,7 @@ async function doRouteSearch(){
   try{
     const r = await fetch(url("/api/stops/route"), { method:"POST",
       headers: hdr({"Content-Type":"application/json"}),
-      body: JSON.stringify({ origin: HS.gps, dest: HS.dest }) });
+      body: JSON.stringify({ origin: HS.gps, dest: HS.dest, kind: HS.kind }) });
     const a = await r.json();
     HS.ans = a; HS.err = null; HS.readAt = Date.now();
     if(a.ok && a.route && a.route.map) await fetchRouteMap(a.route.map);
@@ -2078,7 +2113,7 @@ async function stopHandAdd(){
       body: JSON.stringify(HS.sa) });
     const out = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(out.error || ("the spine answered " + r.status));
-    HS.addOpen = false; HS.sa = { name:"", link:"", note:"" };
+    HS.addOpen = false; HS.sa = { name:"", link:"", note:"", kind:"hotel" };
     await loadStops(HS.bookq);
     toast("IN THE BOOK — born proven");
   }catch(err){
@@ -2090,14 +2125,19 @@ async function stopHandAdd(){
 }
 
 function stopRow(s, n){
-  const dogs = s.allows_dogs === 1 ? `<b class="sdog ok">DOGS OK</b>`
+  /* a pump has no door to open for Rosie — the dog flag is a ROOF fact and
+     renders only there; FUEL rows wear the chapter badge instead */
+  const dogs = s.kind === "fuel" ? ""
+    : s.allows_dogs === 1 ? `<b class="sdog ok">DOGS OK</b>`
     : s.allows_dogs === 0 ? `<b class="sdog no">NO DOGS</b>`
     : `<b class="sdog unk" title="Google does not know — a call settles it">DOGS ——</b>`;
+  const fuel = s.kind === "fuel" ? `<b class="sfuel">FUEL</b>` : "";
   const rate = s.rating == null ? `<span class="srt unk">——</span>`
     : `<span class="srt">${s.rating.toFixed(1)}★</span>`;
   /* corridor dress: the pin label matches the map's marker; the mile mark
-     answers 'when tonight?' — both SERVED, never derived here */
-  const pin = s.pin ? `<b class="spin">${esc(s.pin)}</b>` : "";
+     answers 'when tonight?' — both SERVED, never derived here. Pin color
+     speaks the map's law: proven roof green, proven pump orange. */
+  const pin = s.pin ? `<b class="spin${s.kept ? (s.kind === "fuel" ? " pfuel" : " pbook") : ""}">${esc(s.pin)}</b>` : "";
   const mile = s.mile != null
     ? `<span class="smile">mile ${s.mile}${s.off_route_mi != null
         ? ` · ${s.off_route_mi} mi off` : ""}</span>` : "";
@@ -2116,7 +2156,7 @@ function stopRow(s, n){
       : `<button class="skeep" data-keep="${s.id}">KEEP</button>
          <button class="sno" data-no="${s.id}">NO</button>`;
   return `<div class="stoprow" data-sid="${s.id}">
-    <div class="sr1">${pin}<b class="snm">${esc(s.name)}</b>${mile}${rate}${dogs}</div>
+    <div class="sr1">${pin}<b class="snm">${esc(s.name)}</b>${fuel}${mile}${rate}${dogs}</div>
     ${s.address ? `<div class="sr2">${esc(s.address)}</div>` : ""}
     ${s.maybe_book ? `<div class="smaybe">possibly already in the book — “${esc(s.maybe_book)}”. Check before re-proving.</div>` : ""}
     ${s.note ? `<div class="sr2 snote">${esc(s.note)}</div>` : ""}
@@ -2134,7 +2174,8 @@ function stopsHTML(){
   } else if(a && a.ok){
     /* pin labels arrive SERVED on each corridor candidate — the shell never
        numbers anything itself */
-    results = `<div class="cap">${a.route ? "along the corridor" : "tonight's candidates"} · ${esc(a.basis || "")}</div>` +
+    const anoun = a.kind === "fuel" ? "pumps" : "candidates";
+    results = `<div class="cap">${a.route ? anoun + " along the corridor" : "tonight's " + anoun} · ${esc(a.basis || "")}</div>` +
       (a.candidates || []).map(s => stopRow(s)).join("");
   } else if(a){
     /* a refusal is a rendered state, not an error page — the spine's why
@@ -2159,9 +2200,11 @@ function stopsHTML(){
   return `<div class="scroll stops">
     <div class="panel" style="flex:0 0 auto">
       <div class="cap">the stops book · a lot that fits the rig, a door that opens for Rosie</div>
-      <div class="finbar" style="padding:0 0 6px"><div class="seg" id="stopMode">${
+      <div class="finbar" style="padding:0 0 6px;display:flex;gap:8px;flex-wrap:wrap"><div class="seg" id="stopMode">${
         [["route","the corridor"],["town","tonight's town"]].map(([k,l]) =>
-          `<button data-m="${k}" class="${HS.mode === k ? "on" : ""}">${l}</button>`).join("")}</div></div>
+          `<button data-m="${k}" class="${HS.mode === k ? "on" : ""}">${l}</button>`).join("")}</div><div class="seg" id="stopKind">${
+        [["hotel","roofs"],["fuel","pumps"]].map(([k,l]) =>
+          `<button data-k="${k}" class="${HS.kind === k ? "on" : ""}">${l}</button>`).join("")}</div></div>
       ${HS.mode === "route" ? `<div class="stopbar">
         <button class="sgps${HS.gps ? " on" : ""}" id="stopgps">${
           HS.gps ? "◉ LOCATION LOCKED" : "◎ USE MY LOCATION"}</button>
@@ -2179,12 +2222,17 @@ function stopsHTML(){
     </div>
     ${a && a.ok && a.route ? `<div class="panel" style="flex:0 0 auto">
       <div class="cap">the corridor · ${a.route.miles} mi to ${esc(a.route.dest)}</div>
-      ${HS.mapObj ? `<div class="smap"><img src="${HS.mapObj}" alt="route map"></div>`
+      ${HS.mapObj ? `<div class="smap"><img src="${HS.mapObj}" alt="route map"></div>
+      <div class="sub">red unjudged · green proven roofs · orange proven pumps — your book rides every corridor</div>`
         : `<div class="gen"><span class="nodata">${esc((a.route.map_note || "the map is on its way"))}</span></div>`}
     </div>` : ""}
     <div class="panel" style="flex:0 0 auto">${results}</div>
     <div class="panel" style="flex:0 0 auto">
       <div class="cap">the proven book · ${proven.length || "no"} stop${proven.length === 1 ? "" : "s"} — his eye ruled every one</div>
+      ${HS.bookMapObj ? `<div class="smap"><img src="${HS.bookMapObj}" alt="the book, plotted"></div>
+      <div class="sub">the book, plotted — green roofs · orange pumps · labels match the list</div>`
+        : (b && b.book_map && b.book_map.pinned
+           ? `<div class="gen"><span class="nodata">${esc(HS.bookMapWhy || "the map is on its way")}</span></div>` : "")}
       <div class="stopbar">
         <input type="search" id="stopbq" enterkeyhint="search"
           placeholder="search the book — name or town" value="${esc(HS.bookq)}">
@@ -2195,9 +2243,14 @@ function stopsHTML(){
         + dismissed.map(s => stopRow(s)).join("") : ""}
       <div class="fold" id="saFold"><span>ADD A STOP BY HAND</span><i>known-good · born proven</i></div>
       <div class="handadd" id="saForm"${HS.addOpen ? "" : " hidden"}>
-        <input id="sa_name" placeholder="name — Red Roof Inn, Tyler TX" value="${esc(HS.sa.name)}">
+        <div class="finbar" style="padding:0"><div class="seg" id="saKind">${
+          [["hotel","a roof"],["fuel","a pump"]].map(([k,l]) =>
+            `<button data-k="${k}" class="${HS.sa.kind === k ? "on" : ""}">${l}</button>`).join("")}</div></div>
+        <input id="sa_name" placeholder="${HS.sa.kind === "fuel"
+          ? "name — Pilot, Cambridge OH" : "name — Red Roof Inn, Tyler TX"}" value="${esc(HS.sa.name)}">
         <input id="sa_link" placeholder="paste its Maps link (optional — brings the pin)" value="${esc(HS.sa.link)}">
-        <input id="sa_note" placeholder="note — gravel in back, tuck in by the fence" value="${esc(HS.sa.note)}">
+        <input id="sa_note" placeholder="${HS.sa.kind === "fuel"
+          ? "note — easy pull-through, diesel lanes in back" : "note — gravel in back, tuck in by the fence"}" value="${esc(HS.sa.note)}">
         <button class="sgo" id="sa_go">ADD — BORN PROVEN</button>
       </div>
     </div>
@@ -2222,6 +2275,12 @@ function wireStops(){
   R.querySelectorAll("#stopMode button").forEach(b =>
     b.addEventListener("click", e => {
       e.stopPropagation(); HS.mode = b.dataset.m; renderRoom(); }));
+  R.querySelectorAll("#stopKind button").forEach(b =>
+    b.addEventListener("click", e => {
+      e.stopPropagation(); HS.kind = b.dataset.k; renderRoom(); }));
+  R.querySelectorAll("#saKind button").forEach(b =>
+    b.addEventListener("click", e => {
+      e.stopPropagation(); HS.sa.kind = b.dataset.k; renderRoom(); }));
   const gps = $("stopgps");
   if(gps) gps.addEventListener("click", e => { e.stopPropagation(); stopGps(); });
   const rgo = $("stoprgo");
