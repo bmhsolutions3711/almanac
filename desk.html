@@ -67,7 +67,46 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .stage.entered .why{padding:6px 12px;font-size:11.5px}
 .wm{font:700 14px/1 var(--mono);letter-spacing:.38em}
 .bar .d{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
-.bar .hand{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--amber)}
+.bar .hand{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--amber);cursor:pointer}
+.bar .hand:hover{text-decoration:underline;text-underline-offset:3px}
+.bar .hand.unk{color:var(--hot)}
+/* ══ THE DOCKET — the clipboard at the dock ═══════════════════════════ */
+.dockwrap{position:fixed;inset:0;z-index:60}
+.dockback{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
+.docket{position:absolute;top:0;right:0;bottom:0;width:min(430px,94vw);
+  background:linear-gradient(200deg,rgba(30,26,20,.99),rgba(14,13,11,.99));
+  border-left:1px solid rgba(255,164,25,.35);box-shadow:-18px 0 48px rgba(0,0,0,.55);
+  overflow-y:auto;padding:16px 14px 24px;display:flex;flex-direction:column;gap:10px}
+.docket .dhead{display:flex;align-items:baseline;gap:10px}
+.docket .dhead .t{font:700 13px/1 var(--mono);letter-spacing:.22em;color:var(--amber)}
+.docket .dhead .n{font:400 10px/1 var(--mono);color:var(--dim)}
+.docket .dhead .x{margin-left:auto;font:700 11px/1 var(--mono);color:var(--dim);
+  background:none;border:1px solid var(--line);border-radius:6px;padding:11px 14px;
+  min-height:40px;cursor:pointer}
+.docket .tierlab{font:700 9.5px/1 var(--mono);letter-spacing:.2em;color:var(--dim);
+  margin-top:6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+/* dchip/dwhy/t-front, NOT chip/why/front — the desk styles those names
+   globally and the collision uppercased every fold row (review of #84) */
+.docket .drow{display:flex;align-items:center;gap:10px;padding:8px 2px;
+  border-bottom:1px dashed rgba(255,255,255,.07)}
+.docket .drow .dchip{flex:0 0 auto;font:700 8.5px/1 var(--mono);letter-spacing:.08em;
+  color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:3px 5px}
+.docket .drow.t-front .dchip{color:var(--hot);border-color:rgba(255,80,60,.5)}
+.docket .drow.t-done{opacity:.55}
+.docket .drow .body{flex:1 1 auto;min-width:0}
+.docket .drow .ti{font:400 11.5px/1.35 var(--sans,system-ui);color:var(--ink);
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.docket .drow .dwhy{font:400 9.5px/1.3 var(--mono);color:var(--dim);margin-top:2px}
+/* thumb law: a write button half thumb-size beside a nav button is a misfire
+   waiting for a bump in the truck — 40px minimum, and daylight between them */
+.docket .drow .go,.docket .drow .dact{flex:0 0 auto;font:700 9.5px/1 var(--mono);
+  letter-spacing:.1em;padding:12px 13px;min-height:40px;border-radius:6px;cursor:pointer}
+.docket .drow .go{border:1px solid var(--line);background:transparent;color:var(--dim);margin-left:8px}
+.docket .drow .go:hover{border-color:rgba(var(--key),.7);color:var(--ink)}
+.docket .drow .dact{border:1px solid rgba(var(--key),.7);background:rgba(var(--key),.14);color:var(--ink)}
+.docket .drow .dact:disabled{opacity:.4;cursor:wait}
+.docket .dempty{font:400 11px/1.5 var(--mono);color:var(--dim);padding:18px 4px}
+.docket .dunknown{font:400 9.5px/1.4 var(--mono);color:var(--hot);padding-top:6px}
 .bar .right{margin-left:auto;display:flex;align-items:center;gap:9px}
 .readstamp{font:700 8px/1 var(--mono);letter-spacing:.15em;color:var(--etch);
   white-space:nowrap;transition:color .4s;background:none;border:0;cursor:pointer;
@@ -1053,6 +1092,15 @@ body.hot .act .h .n{color:var(--hot)}
     </span>
   </div>
 
+  <!-- THE DOCKET (card #84) — the clipboard at the dock: everything awaiting
+       his hand, listed and linked. A queue of doorknobs, never a room: the
+       one inline act is the reversible ack; everything else walks him to the
+       door that already owns the ceremony. -->
+  <div class="dockwrap" id="dockWrap" hidden>
+    <div class="dockback" id="dockBack"></div>
+    <aside class="docket" id="docket" role="dialog" aria-label="the docket"></aside>
+  </div>
+
   <div class="field" id="field">
     <div class="core"><div><div class="t">THE SPINE</div>
       <div class="s">one service &middot; one database<br>everything above is served</div></div></div>
@@ -1125,6 +1173,7 @@ const short = v => v == null ? "——" :
 
 const State = { standing:null, standings:null, board:null, radio:null, learn:null,
                 soul:null, held:null, watch:null, at:null, err:null, glasses:null,
+                hand:null,
                 fin:{ summary:null, loads:null, expenses:null, rollup:null,
                       followups:null,
                       summaryErr:null, err:null, stones:[], placed:[] } };
@@ -1333,14 +1382,20 @@ function paintField(){
   const b = State.board, s = State.standings, r = State.radio, l = State.learn, d = State.soul;
   const qa = b ? b.cards.filter(c => c.column_name === "qa").length : null;
   const open = b ? b.cards.filter(c => c.column_name !== "done").length : null;
-  const needs = s && s.counts ? s.counts.standing : null;
+  /* settleables ONLY — counts.standing lumps in rulings and down services,
+     and 14 rulings wearing "TO SETTLE" is the partial-count lie again
+     (review of #84). settleable is explicitly false on those; bills carry
+     no flag at all, so the test is "not false". */
+  const needs = s && s.standings
+    ? s.standings.filter(x => x.settleable !== false).length
+    : null;
   const sig = [
     p.to_go == null ? ["——","",'<span style="color:var(--unknown)">not enough is known</span>']
       : p.to_go > 0 ? [short(p.to_go),"TO GO",`<b class="h">${money(p.to_go)}</b> TO GO`]
                     : [short(-p.to_go),"CLEAR",`<b>${money(-p.to_go)}</b> CLEAR`],
     [qa==null?"—":String(qa),"IN QA", qa==null?"spine unavailable":`<b>${qa}</b> IN QA · ${open} OPEN`],
     [r==null?"—":String(r.unread),"UNREAD", r==null?"spine unavailable":`<b>${r.unread}</b> UNREAD · CH 19`],
-    [needs==null?"—":String(needs),"STANDING", needs==null?"spine unavailable":`<b>${needs}</b> NEED YOUR HAND`],
+    [needs==null?"—":String(needs),"STANDING", needs==null?"spine unavailable":`<b>${needs}</b> STANDING TO SETTLE`],
     [l==null?"—":String((l.open||[]).length),"OPEN", l==null?"spine unavailable":`<b>${(l.open||[]).length}</b> OPEN QUESTION`],
     [d==null?"—":String(d.confirmed),d==null?"":"OF "+d.total, d==null?"spine unavailable":`<b>${d.confirmed}</b>/${d.total} CONFIRMED`]
   ];
@@ -1349,7 +1404,22 @@ function paintField(){
     o.el.querySelector(".fig .u").textContent = sig[i][1];
     o.el.querySelector(".sig").innerHTML = sig[i][2];
   });
-  $("hand").textContent = needs != null && needs > 0 ? needs + " NEED YOUR HAND" : "";
+  /* THE DOCKET wears the masthead (card #84): the count is the docket's
+     FRONT — what blocks the flow — never again one room's slice wearing the
+     aggregate's name. Tap opens the drawer. Null and unknowns-present must
+     never render the same blank as a clean docket (review of #84): a blank
+     that means "unreadable" is the exact calm lie the docket exists to end. */
+  const hd = State.hand;
+  const unk = hd ? (hd.unknowns || []).length : 0;
+  $("hand").textContent = hd == null ? "DOCKET —"
+    : hd.count_front > 0 ? hd.count_front + " NEED YOUR HAND"
+    : hd.count_total > 0 ? "DOCKET · " + hd.count_total + (unk ? " ?" : "")
+    : unk ? "DOCKET · ?" : "";
+  $("hand").classList.toggle("unk", hd == null || unk > 0);
+  $("hand").title = hd == null ? "the spine has not answered with the docket — tap to see"
+    : `${hd.count_front} on the front · ${hd.count_total} in all`
+      + (unk ? ` · ${unk} producer${unk === 1 ? "" : "s"} unreadable` : "")
+      + " — tap to open the docket";
   /* Consider FIRST, then settle. The signal lines just changed WIDTH
      ("$199.53 TO GO" is wider than the "…" they were seeded with, and wider
      again than "——") and the consider card just changed HEIGHT — a two-line
@@ -1410,6 +1480,113 @@ $("home").addEventListener("click", () => {
   document.documentElement.style.setProperty("--key","255,164,25");
   ACTIVE = null; layout(); $("room").innerHTML = "";
   history.replaceState(null, "", location.pathname + location.search);
+});
+
+/* ══ THE DOCKET — wiring (card #84) ═══════════════════════════════════
+   A queue of doorknobs. The ONE inline act is the reversible ack the
+   producer explicitly served; every other row walks him to the room that
+   owns the ceremony — the hold stays in THE WORK, the confirm stays in
+   SOUL. Never optimistic: a refusal renders in the spine's words. */
+const DOCK_ROOM = {work:"work", money:"ledger", learn:"learn",
+                   soul:"soul", hotshot:"standing", radio:"radio"};
+function docketHTML(h){
+  const head = n => `<div class="dhead"><span class="t">THE DOCKET</span>
+    <span class="n">${n}</span><button class="x" id="dockX">CLOSE</button></div>`;
+  if(!h) return head("") + `<div class="dempty">the spine has not answered with the docket</div>`;
+  const row = o => `<div class="drow t-${esc(o.i.tier)}">
+    <span class="dchip">${esc(o.i.kind.replace("_"," "))}</span>
+    <span class="body"><span class="ti">${esc(o.i.ref)} · ${esc(o.i.title)}</span>
+      <span class="dwhy">${esc(o.i.why)}</span></span>
+    ${o.i.act ? `<button class="dact" data-di="${o.x}">${esc(o.i.act.label || "DO IT")}</button>` : ""}
+    <button class="go" data-dgo="${esc(o.i.room)}">GO</button>
+  </div>`;
+  const tag = h.items.map((i, x) => ({i, x}));
+  const front = tag.filter(o => o.i.tier === "front");
+  const fold = tag.filter(o => o.i.tier === "fold");
+  /* the quiet is only claimable when every producer ANSWERED — an empty list
+     over unknowns is a calm lie (review of #84) */
+  return head(`${h.count_front} on the front · ${h.count_total} in all`)
+    + (h.count_total === 0 && !(h.unknowns || []).length
+        ? `<div class="dempty">Nothing asks for your hand. The field is yours.</div>` : "")
+    + (front.length ? `<div class="tierlab">ON THE FRONT — BLOCKS THE FLOW</div>`
+        + front.map(row).join("") : "")
+    + (fold.length ? `<div class="tierlab">THE LONG TAIL — LISTED, NEVER SHOUTED</div>`
+        + fold.map(row).join("") : "")
+    + (h.unknowns || []).map(u => `<div class="dunknown">UNKNOWN — ${esc(u)}</div>`).join("");
+}
+function openDocket(){
+  /* a capture image shares the overlay plane — dismiss it or the docket
+     paints invisibly beneath (review of #84) */
+  const cv = document.querySelector(".capview"); cv && cv.click();
+  $("dockWrap").hidden = false; renderDocket();
+}
+function closeDocket(){ $("dockWrap").hidden = true; }
+function renderDocket(){
+  const el = $("docket");
+  /* SNAPSHOT BINDING (review of #84): taps resolve against the array this
+     DOM was rendered from — a background load() swapping State.hand under
+     an open drawer must never redirect an ack to a different row. */
+  const snap = State.hand;
+  el.innerHTML = docketHTML(snap);
+  const x = el.querySelector("#dockX");
+  x && (x.onclick = closeDocket);
+  el.querySelectorAll("[data-dgo]").forEach(b => b.onclick = () => {
+    const idx = D.findIndex(o => o.room === (DOCK_ROOM[b.dataset.dgo] || b.dataset.dgo));
+    closeDocket();
+    if(idx >= 0) enter(idx);
+  });
+  el.querySelectorAll(".dact").forEach(b => b.onclick = async () => {
+    const item = snap && snap.items[+b.dataset.di];
+    if(!item || !item.act) return;
+    const spec = b.dataset.mode === "undo" ? item.act.undo : item.act;
+    if(!spec) return;
+    const row = b.closest(".drow");
+    b.disabled = true; b.textContent = "writing…";
+    try{
+      const r = await fetch(url(spec.path), {method: spec.method || "POST",
+        headers: hdr({"Content-Type": "application/json"}),
+        body: JSON.stringify(spec.payload || {})});
+      const out = await r.json().catch(() => ({}));
+      if(!r.ok) throw new Error(out.error || ("HTTP " + r.status));
+    }catch(err){
+      /* the WRITE failed — and the reason renders in the row, because a
+         tooltip does not exist under a thumb (review of #84) */
+      b.disabled = false; b.textContent = "REFUSED";
+      if(row && !row.querySelector(".dact-err"))
+        row.insertAdjacentHTML("beforeend",
+          `<div class="dunknown dact-err">${esc(String(err.message || err))}</div>`);
+      return;
+    }
+    /* the write LANDED — nothing past this line may claim otherwise; the
+       refreshes degrade quietly, they never repaint success as refusal */
+    row && row.querySelector(".dact-err") && row.querySelector(".dact-err").remove();
+    try{ State.hand = await grab("/api/hand"); }catch(_){}
+    try{ State.fin.followups = await grab("/api/fin/followups"); }catch(_){}
+    if(b.dataset.mode !== "undo" && item.act.undo){
+      /* the act carries its reverse: the row stays, dimmed, one tap from undone */
+      b.disabled = false; b.textContent = "UNDO"; b.dataset.mode = "undo";
+      row && row.classList.add("t-done");
+    } else {
+      renderDocket();
+    }
+    paintField();
+  });
+}
+$("hand").addEventListener("click", openDocket);
+/* warm path: the desk is already open when a push's #hand arrives — a hash
+   change reloads nothing, so the listener is the door (cold path lives at
+   the end of load()). Refetch FIRST: the drawer a push opens must show the
+   docket the push was about, not the morning's (review of #84). */
+addEventListener("hashchange", async () => {
+  if(location.hash === "#hand"){
+    history.replaceState(null, "", location.pathname + location.search);
+    try{ State.hand = await grab("/api/hand"); paintField(); }catch(_){}
+    openDocket();
+  }
+});
+$("dockBack").addEventListener("click", closeDocket);
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && !$("dockWrap").hidden) closeDocket();
 });
 
 /* ── THE STANDING (hotshot) ───────────────────────────────────────── */
@@ -4659,13 +4836,20 @@ async function load(keep){
     /* the rest are not worth failing the desk over */
     const rest = [
       ["radio","/api/messages"], ["learn","/api/learning"], ["soul","/api/doctrine"],
-      ["held","/api/push/held"], ["watch","/api/watch"], ["hotshot","/api/hotshot"]
+      ["held","/api/push/held"], ["watch","/api/watch"], ["hotshot","/api/hotshot"],
+      ["hand","/api/hand"]
     ];
     await Promise.all(rest.map(([k,p]) =>
       grab(p).then(v => { State[k] = v; }).catch(() => {})));
     /* the money room's own reads — never allowed to fail the desk */
     await loadFin().catch(() => {});
     deriveTemp(); paintField(); stampRead();
+    /* an ask-shaped push deep-links here (#hand) — open the docket once,
+       then clear the hash so a reload lands on the field */
+    if(location.hash === "#hand"){
+      history.replaceState(null, "", location.pathname + location.search);
+      openDocket();
+    }
     if(ACTIVE !== null) renderRoom();
   }catch(e){
     State.err = String(e.message || e);
