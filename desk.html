@@ -409,6 +409,20 @@ body.hot .tmin{color:var(--hot)}
 .stab button:hover:not(:disabled){background:rgba(var(--key),.26)}
 .stab button:disabled{opacity:.4;cursor:wait}
 .stab button.ghost{flex:0 0 auto;border-color:var(--line);background:transparent;color:var(--dim)}
+/* the chase clock — due rows burn, the next one waits in the dim */
+.fua{margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.fua .fur{display:flex;align-items:center;gap:8px;padding:4px 2px;
+  font:400 11px/1.35 var(--mono);color:var(--dim)}
+.fua .fur.due{color:var(--ink)}
+.fua .fur .who{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fua .fur .amt{font-weight:700}
+.fua .fur.due .amt{color:var(--hot)}
+.fua .fur .when{flex:0 1 auto;font-size:10px;color:var(--dim);white-space:nowrap}
+.fua .ack{flex:0 0 auto;font:700 9.5px/1 var(--mono);letter-spacing:.1em;padding:5px 9px;
+  border:1px solid rgba(var(--key),.7);border-radius:5px;background:rgba(var(--key),.14);
+  color:var(--ink);cursor:pointer}
+.fua .ack:hover:not(:disabled){background:rgba(var(--key),.26)}
+.fua .ack:disabled{opacity:.4;cursor:wait}
 .drop-in.auto{border-style:dashed;opacity:.85}
 .pt{font-style:normal;font-size:8.5px;letter-spacing:.1em;color:var(--etch);
   border:1px solid var(--line);border-radius:2px;padding:0 3px;margin-left:3px}
@@ -1112,6 +1126,7 @@ const short = v => v == null ? "——" :
 const State = { standing:null, standings:null, board:null, radio:null, learn:null,
                 soul:null, held:null, watch:null, at:null, err:null, glasses:null,
                 fin:{ summary:null, loads:null, expenses:null, rollup:null,
+                      followups:null,
                       summaryErr:null, err:null, stones:[], placed:[] } };
 let ACTIVE = null, HOT = false;
 
@@ -2553,6 +2568,35 @@ function swingGauge(){
   GAUGE_AT = { m: nd && +nd.dataset.rot, p: gh && +gh.dataset.rot };
 }
 
+/* THE CHASE CLOCK — chase emails on a clock (his ask, 2026-08-10): due =
+   delivery + 1 calendar month, re-anchored to his last ack; the paid column
+   is the mirror's truth. The FOLLOWED UP tap is "a way to tell Atlas that I
+   completed" — his hand, recorded, and the clock re-arms a month out. */
+function followupStrip(){
+  const f = State.fin.followups;
+  if(!f) return "";
+  const due = (f.followups||[]).filter(r => r.state === "due");
+  const next = (f.followups||[]).find(r => r.state === "upcoming");
+  if(!due.length && !next) return "";
+  return `<div class="fua">
+    <div class="cap">the chase clock — ${due.length
+      ? `<span style="color:var(--hot)">${due.length} chase email${due.length===1?"":"s"} due</span>`
+      : "nothing due"} · ${money(f.outstanding_total||0)} outstanding</div>
+    ${due.map(r => `<div class="fur due">
+      <span class="who">${esc(r.broker)} · inv ${esc(String(r.invoice))}</span>
+      <span class="amt">${money(r.rate)}</span>
+      <span class="when">due ${esc(r.due_date)} · ${r.days_over}d over${
+        r.last_ack ? ` · last chased ${esc(r.last_ack.slice(0,10))}` : ""}</span>
+      <button class="ack" data-fua="${r.sheet_row}">FOLLOWED UP</button>
+    </div>`).join("")}
+    ${next ? `<div class="fur">
+      <span class="who">${esc(next.broker)} · inv ${esc(String(next.invoice))}</span>
+      <span class="amt">${money(next.rate)}</span>
+      <span class="when">next — due ${esc(next.due_date)} (in ${next.days_until}d)</span>
+    </div>` : ""}
+  </div>`;
+}
+
 /* ── THE FLOOR: cards, loads, and the drag between them ────────────── */
 function finFloor(){
   const e = State.fin.expenses, l = State.fin.loads, ro = State.fin.rollup;
@@ -2619,6 +2663,7 @@ function finFloor(){
         <div style="margin-top:9px">${finNutList(m0)}</div>
       </div>
       <div class="panel">
+        ${followupStrip()}
         <div class="cap">the loads — ${(l.loads||[]).length} in ${esc(FIN.period)} · ${
           money(l.revenue || 0)} earned${stale != null && stale > 6
             ? ` · <span style="color:var(--hot)">mirror ${stale}h old</span>` : ""}</div>
@@ -3934,6 +3979,21 @@ function wireFin(){
   pa && pa.addEventListener("click", () => stab("/api/fin/place", "placed"));
   ca && ca.addEventListener("click", () => stab("/api/fin/place/clear", "cleared"));
 
+  /* the chase clock's ack — his hand, one tap, never optimistic */
+  R.querySelectorAll(".fua .ack").forEach(b =>
+    b.addEventListener("click", async () => {
+      b.disabled = true; b.textContent = "writing…";
+      try{
+        const r = await fetch(url("/api/fin/followup/ack"), {method:"POST",
+          headers: hdr({"Content-Type":"application/json"}),
+          body: JSON.stringify({sheet_row: Number(b.dataset.fua)})});
+        const out = await r.json().catch(() => ({}));
+        if(!r.ok) throw new Error(out.error || ("HTTP " + r.status));
+        State.fin.followups = await grab("/api/fin/followups");
+      }catch(err){ finSay("the ack was not written: " + (err.message||err), true); }
+      renderRoom();
+    }));
+
   /* an arrived bank row at the top of the bucket — his tap asks which bill */
   R.querySelectorAll(".lane.monthly .drop-in.arr").forEach(p =>
     p.addEventListener("click", () =>
@@ -4553,11 +4613,11 @@ async function loadFin(){
      overwrite the fresh one (panel finding, 2026-08-02) */
   const seq = FIN._seq = (FIN._seq || 0) + 1;
   const q = `?period=${FIN.period}`;
-  const [sum, ld, ex, ro, ac, sp, bd] = await Promise.allSettled([
+  const [sum, ld, ex, ro, ac, sp, bd, fw] = await Promise.allSettled([
     grab("/api/fin/summary"), grab("/api/fin/loads"+q),
     grab("/api/fin/expenses"+q), grab("/api/fin/rollup"+q),
     grab("/api/fin/accounts"), grab("/api/fin/spend"+q),
-    grab("/api/fin/budget")]);
+    grab("/api/fin/budget"), grab("/api/fin/followups")]);
   if(seq !== FIN._seq) return;               // a newer fetch superseded this one
   State.fin.spend = sp.status === "fulfilled" ? sp.value : null;
   State.fin.budget = bd.status === "fulfilled" ? bd.value : null;
@@ -4566,6 +4626,7 @@ async function loadFin(){
   State.fin.loads = ld.status === "fulfilled" ? ld.value : null;
   State.fin.expenses = ex.status === "fulfilled" ? ex.value : null;
   State.fin.rollup = ro.status === "fulfilled" ? ro.value : null;
+  State.fin.followups = fw.status === "fulfilled" ? fw.value : null;
   State.fin.accounts = ac.status === "fulfilled" ? ac.value : null;
   State.fin.acctErr = ac.status === "rejected" ? String(ac.reason.message||ac.reason) : null;
   State.fin.err = [ld,ex,ro].filter(x => x.status === "rejected")
