@@ -98,9 +98,12 @@ body{
 .sc-row.atl .bd .w.now{color:var(--ink);text-shadow:0 0 12px rgba(var(--key),.38)}
 .sc-row.und .bd{color:var(--dim);font-style:italic}
 .sc-row .mk{color:rgb(var(--key));font-weight:700}
-.sc-row .play{background:none;border:1px solid var(--line);border-radius:3px;color:var(--mid);
-  font:700 9px/1 var(--mono);letter-spacing:.1em;padding:4px 8px;cursor:pointer}
+.sc-row .play{background:rgba(var(--key),.08);border:1px solid var(--line);border-radius:4px;
+  color:rgb(var(--key));font:700 14px/1 var(--mono);min-width:48px;min-height:40px;
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+  touch-action:manipulation}  /* the 40px thumb law — his catch, 08-11 */
 .sc-row .play:hover{color:var(--ink);border-color:rgba(var(--key),.5)}
+.sc-row .play[disabled]{opacity:.6;cursor:default}
 .sc-tape{display:block;margin-top:6px;height:12px;width:min(100%,320px);opacity:.55}
 .sc-pin{width:12px;height:12px;flex:0 0 auto;opacity:.8}
 @starting-style{ .sc-row{opacity:0;translate:0 6px} }
@@ -316,7 +319,9 @@ const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} 
 const S = {
   runs: [], run: null, msgs: [],
   waiting: null,          // {sayId, t0, clockT, followT} — the dead-air watch
-  audio: null, blob: null, beamRaf: 0, playingRow: 0,
+  audio: null, beamRaf: 0, playingRow: 0,
+  gen: 0,                 // playback generation — a stale tap's late fetch is DEAD
+  vox: new Map(),         // msg id -> object URL (voice cache; tune/pagehide sweep)
   peaks: new Map(),       // msg id -> [0..1] buckets (this glass's tape memory)
   rec: null,              // {stream, ctx, proc, analyser, chunks, t0, key}
   vuRaf: 0, holdT: 0,
@@ -462,7 +467,7 @@ async function loadRuns(){
   renderRail();
 }
 async function tune(tid){
-  stopPlayback(); clearWait();
+  stopPlayback(); clearWait(); sweepVox();
   S.run = tid;
   const d = await grab(`/api/threads/${tid}/messages`);
   S.msgs = d.messages || [];
@@ -489,9 +494,18 @@ function heard(){
 
 /* ══ THE BREAK — the hero. tail → 60ms of nothing → the voice, light walking the words ══ */
 async function fetchVoice(id){
+  /* cached per row — a replay over 5G must not refetch 150KB; the cache owns
+     every object URL and tune()/pagehide sweep them */
+  if(S.vox.has(id)) return S.vox.get(id);
   const r = await fetch(url(`/api/voice/${id}`), { headers: hdr() });
   if(!r.ok) return null;
-  return URL.createObjectURL(await r.blob());
+  const obj = URL.createObjectURL(await r.blob());
+  S.vox.set(id, obj);
+  return obj;
+}
+function sweepVox(){
+  S.vox.forEach(o => URL.revokeObjectURL(o));
+  S.vox.clear();
 }
 function wordTimes(el, dur){
   /* char-weighted windows over the clip's REAL duration — Kokoro dwells on
@@ -507,32 +521,43 @@ function wordTimes(el, dur){
 }
 function stopPlayback(){
   if(S.audio){ try{ S.audio.pause(); }catch(e){} }
-  if(S.blob){ URL.revokeObjectURL(S.blob); S.blob = null; }
   cancelAnimationFrame(S.beamRaf); S.beamRaf = 0;
   S.audio = null; S.playingRow = 0;
   arc("arc", false); deadAir(); stateWord();
 }
 async function hearRow(m, el, isArrival){
-  /* three-gate law rides the caller for arrivals; a ▶ tap is the gesture gate */
+  /* three-gate law rides the caller for arrivals; a ▶ tap is the gesture gate.
+     THE GENERATION TOKEN (his first-contact catch, 08-11): every await below
+     is a window for a second tap; a stale invocation must die at each one or
+     two voices play over each other. */
+  const gen = ++S.gen;
   stopPlayback();
+  const pb = el.querySelector(".play");
+  if(pb){ pb.textContent = "…"; pb.disabled = true; }   // a slow fetch must read as WORKING
+  const restore = () => { if(pb){ pb.textContent = "▶"; pb.disabled = false; } };
   let obj = await fetchVoice(m.id);
+  if(gen !== S.gen){ restore(); return; }
   if(!obj && isArrival){
     /* the row lands before the WAV finishes cutting (~5s of synth trails the
        write) — an arrival waits for its voice a few beats before conceding */
     for(let i = 0; i < 4 && !obj; i++){
       await new Promise(res => T.push(setTimeout(res, 2200)));
+      if(gen !== S.gen){ restore(); return; }
       obj = await fetchVoice(m.id);
     }
-    if(!obj){ markDone(el); return; }   // the text stands; no consolation beep
+    if(gen !== S.gen){ restore(); return; }
+    if(!obj){ restore(); markDone(el); return; }   // the text stands; no consolation beep
   }
-  if(!obj){ toast("no voice for this row — the text is the record"); return; }
+  if(!obj){ restore(); toast("no voice for this row — the text is the record"); return; }
   if(isArrival && !muted()){
     const grains = squelchTail();          // the channel opens…
     spikeRun(grains);
     await new Promise(res => T.push(setTimeout(res, 190)));  // tail + the cut
+    if(gen !== S.gen){ restore(); return; }
   }
+  restore();
   const a = new Audio(obj);
-  S.audio = a; S.blob = obj; S.playingRow = m.id;
+  S.audio = a; S.playingRow = m.id;
   try{
     if("mediaSession" in navigator){
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -541,11 +566,13 @@ async function hearRow(m, el, isArrival){
       navigator.mediaSession.setActionHandler("pause", () => a.pause());
     }
   }catch(e){}
-  if(muted()){ settleRow(m, el, a); URL.revokeObjectURL(obj); S.blob=null; return; }
+  if(muted()){ settleRow(m, el, a); return; }
   try{ await a.play(); }catch(e){
     /* autoplay refused (no gesture yet) — the row stands, ▶ is the door */
-    stopPlayback(); markDone(el); return;
+    if(gen === S.gen){ stopPlayback(); markDone(el); }
+    return;
   }
+  if(gen !== S.gen){ try{ a.pause(); }catch(e){} return; }
   arc("arc", true); stateWord("SPEAKING");
   const bd = el.querySelector(".bd");
   const wins = reduce() ? [] : wordTimes(bd, 0);  // filled once duration is known
@@ -566,7 +593,9 @@ async function hearRow(m, el, isArrival){
   };
   S.beamRaf = requestAnimationFrame(paint);
   a.addEventListener("ended", () => {
-    T.push(setTimeout(() => { settleRow(m, el, a); stopPlayback(); }, 240));
+    T.push(setTimeout(() => { settleRow(m, el, a);
+      if(S.audio === a) stopPlayback();   // never tear down a newer playback
+    }, 240));
   }, { once:true });
 }
 function markDone(el){ el.classList.add("done"); el.querySelectorAll(".w").forEach(w => { w.classList.add("lit"); w.classList.remove("now"); }); }
@@ -576,8 +605,9 @@ async function settleRow(m, el, a){
   const dur = a && a.duration;
   if(dur){ const who = el.querySelector(".who"); if(who) who.textContent = stampFor(m, dur); }
   try{
-    if(!S.peaks.has(m.id) && S.blob){
-      const buf = await (await fetch(S.blob)).arrayBuffer();
+    const vox = S.vox.get(m.id);
+    if(!S.peaks.has(m.id) && vox){
+      const buf = await (await fetch(vox)).arrayBuffer();
       const oc = new OfflineAudioContext(1, 16000, 16000);
       const dec = await oc.decodeAudioData(buf.slice(0));
       const ch = dec.getChannelData(0), n = 180, out = new Array(n).fill(0);
@@ -624,9 +654,10 @@ function drawPlayhead(m, a){
 }
 /* peaks may not exist until first decode — kick a decode as soon as playback starts */
 async function primePeaks(m){
-  if(S.peaks.has(m.id) || !S.blob) return;
+  const vox = S.vox.get(m.id);
+  if(S.peaks.has(m.id) || !vox) return;
   try{
-    const buf = await (await fetch(S.blob)).arrayBuffer();
+    const buf = await (await fetch(vox)).arrayBuffer();
     const oc = new OfflineAudioContext(1, 16000, 16000);
     const dec = await oc.decodeAudioData(buf.slice(0));
     const ch = dec.getChannelData(0), n = 180, out = new Array(n).fill(0);
@@ -972,7 +1003,7 @@ document.addEventListener("visibilitychange", () => {
 });
 addEventListener("pagehide", () => {
   T.forEach(clearTimeout); T.length = 0;
-  stopPlayback(); clearWait();
+  stopPlayback(); clearWait(); sweepVox();
   try{ AC && AC.close(); }catch(e){}
 });
 wireKey(); wireTalk(); wireVisor();
