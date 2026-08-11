@@ -206,9 +206,9 @@ body.sc-keyed .sc-wire,body.sc-keyed .sc-rail{opacity:.55;transition:opacity .28
 
   <div class="sc-bench">
     <button class="sc-well" id="talk"><span class="rail" id="vurail"></span>
-      <span class="cap" id="talkcap">HOLD TO TALK</span></button>
+      <span class="cap" id="talkcap">TALK</span></button>
     <textarea class="sc-say" id="say" maxlength="900" enterkeyhint="done"
-      placeholder="say it — or hold to talk and read it back"></textarea>
+      placeholder="say it — or tap TALK and just speak; quiet sends it"></textarea>
     <button class="sc-keybtn" id="key"><span class="rail" id="keyrail"></span>
       <span class="cap" id="keycap">HOLD TO KEY</span></button>
   </div>
@@ -546,7 +546,7 @@ async function hearRow(m, el, isArrival){
       obj = await fetchVoice(m.id);
     }
     if(gen !== S.gen){ restore(); return; }
-    if(!obj){ restore(); markDone(el); return; }   // the text stands; no consolation beep
+    if(!obj){ restore(); markDone(el); S.reopenMic?.(); return; }   // the text stands; no consolation beep
   }
   if(!obj){ restore(); toast("no voice for this row — the text is the record"); return; }
   if(isArrival && !muted()){
@@ -566,11 +566,11 @@ async function hearRow(m, el, isArrival){
       navigator.mediaSession.setActionHandler("pause", () => a.pause());
     }
   }catch(e){}
-  if(muted()){ settleRow(m, el, a); return; }
+  if(muted()){ settleRow(m, el, a); S.reopenMic?.(); return; }
   try{ await a.play(); }catch(e){
     /* autoplay refused (no gesture yet) — the row stands, ▶ is the door */
     if(gen === S.gen){ stopPlayback(); markDone(el); }
-    return;
+    S.reopenMic?.(); return;
   }
   if(gen !== S.gen){ try{ a.pause(); }catch(e){} return; }
   arc("arc", true); stateWord("SPEAKING");
@@ -595,6 +595,7 @@ async function hearRow(m, el, isArrival){
   a.addEventListener("ended", () => {
     T.push(setTimeout(() => { settleRow(m, el, a);
       if(S.audio === a) stopPlayback();   // never tear down a newer playback
+      S.reopenMic?.();                    // the loop: his mic again
     }, 240));
   }, { once:true });
 }
@@ -723,6 +724,28 @@ let WAKE = null;
 async function holdWake(){ try{ WAKE = await navigator.wakeLock?.request("screen"); }catch(e){} }
 function releaseWake(){ try{ WAKE?.release(); }catch(e){} WAKE = null; }
 
+/* ══ the transmission itself — one door for typed and spoken turns ══ */
+async function sendTurn(body, key){
+  const ctrl = new AbortController();
+  const abortT = setTimeout(() => ctrl.abort(), 9000);
+  try{
+    const r = await fetch(url(`/api/threads/${S.run}/say`), { method:"POST",
+      headers: hdr({"Content-Type":"application/json",
+        "Idempotency-Key": key || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()))}),
+      body: JSON.stringify({ body }), signal: ctrl.signal });
+    clearTimeout(abortT);
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
+    rogerBeep(); buzz([14,26,14]);
+    appendTurn({ id: d.id, at: new Date().toISOString(), sender:"bryan",
+                 kind:"say", body, thread_id: S.run });
+    if(d.answering) startWait(d.id);
+    else toast("sent — but ATLAS could not take the mic; the turn stands");
+    loadRuns();
+    return d;
+  }catch(err){ clearTimeout(abortT); throw err; }
+}
+
 /* ══ HOLD TO KEY — the transmission (full latch: idempotent, aborted, wall-clocked) ══ */
 function wireKey(){
   const btn = $("key"), rail = $("keyrail"), say = $("say");
@@ -743,22 +766,9 @@ function wireKey(){
       fired = true;
       $("keycap").textContent = "KEYED";
       const body = say.value.trim();
-      ctrl = new AbortController();
-      const abortT = setTimeout(() => ctrl.abort(), 9000);
       try{
-        const r = await fetch(url(`/api/threads/${S.run}/say`), { method:"POST",
-          headers: hdr({"Content-Type":"application/json", "Idempotency-Key": key}),
-          body: JSON.stringify({ body }), signal: ctrl.signal });
-        clearTimeout(abortT);
-        const d = await r.json().catch(() => ({}));
-        if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
-        rogerBeep(); buzz([14,26,14]);
+        await sendTurn(body, key);
         say.value = "";
-        appendTurn({ id: d.id, at: new Date().toISOString(), sender:"bryan",
-                     kind:"say", body, thread_id: S.run });
-        if(d.answering) startWait(d.id);
-        else toast("sent — but ATLAS could not take the mic; the turn stands");
-        loadRuns();
       }catch(err){
         clearTimeout(abortT);
         btn.dataset.state = "refused"; thud(); buzz([12,70,12]);
@@ -787,9 +797,17 @@ function wireKey(){
   document.addEventListener("visibilitychange", () => { if(document.hidden) drop(); });
 }
 
-/* ══ HOLD TO TALK — his voice fills the rail; release → THE READ-BACK ══ */
+/* ══ TALK — the road loop (his ruling 2026-08-11: "never gonna be able to
+   hold to talk on the road"). One TAP opens the mic; ~2.3s of silence closes
+   the take and SENDS it (a conversation turn is reversible and carries zero
+   directive weight — the signed acts stay held: →19, the visor); when the
+   answer finishes speaking, the mic REOPENS — a hands-free session. The same
+   tap is the panic button the cab needs: mute during a take, silence during
+   an answer, and a Fold call going fullscreen kills the mic automatically.
+   Turn the radio down to key up — the mic hears the cab, same as a CB. ══ */
 function wireTalk(){
   const btn = $("talk"), rail = $("vurail"), say = $("say");
+  const cap = t => { $("talkcap").textContent = t; };
   const stopTracks = () => {
     if(!S.rec) return;
     try{ S.rec.proc.disconnect(); }catch(e){}
@@ -801,18 +819,22 @@ function wireTalk(){
     btn.classList.remove("rec"); arc("you", false);
     S.rec = null;
   };
-  btn.addEventListener("pointerdown", async e => {
-    e.preventDefault();
-    if(S.rec || document.visibilityState !== "visible") return;
-    btn.setPointerCapture?.(e.pointerId);
+  function endLoop(msg){
+    S.loop = false; S.emptyTakes = 0;
+    stopTracks(); cap("TALK");
+    if(msg) toast(msg);
+  }
+  async function startTake(){
+    if(S.rec || document.visibilityState !== "visible" || !S.loop) return;
     let stream;
     try{
       stream = await navigator.mediaDevices.getUserMedia({ audio: {
         channelCount:1, echoCancellation:true, noiseSuppression:true } });
     }catch(err){
-      toast("the mic refused — the keyboard mic is the floor that never breaks");
+      endLoop("the mic refused — the keyboard mic is the floor that never breaks");
       thud(); return;
     }
+    if(!S.loop){ stream.getTracks().forEach(t => t.stop()); return; }  // muted while asking
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
     const src = ctx.createMediaStreamSource(stream);
     const proc = ctx.createScriptProcessor(4096, 1, 1);
@@ -821,14 +843,15 @@ function wireTalk(){
     src.connect(analyser); src.connect(proc); proc.connect(mute).connect(ctx.destination);
     const chunks = [];
     proc.onaudioprocess = ev => chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0)));
-    S.rec = { stream, ctx, src, proc, analyser, chunks, t0: performance.now(), rate: ctx.sampleRate };
-    btn.classList.add("rec"); $("talkcap").textContent = "TAKING";
+    S.rec = { stream, ctx, src, proc, analyser, chunks, t0: performance.now(),
+              rate: ctx.sampleRate, spoke: false, lastVoice: 0 };
+    btn.classList.add("rec"); cap("LISTENING · TAP = MUTE");
     keyThump(); buzz([8]); arc("you", true);
     const data = new Uint8Array(analyser.frequencyBinCount);
     const [g, w, h] = traceCtx(); let x = 0;
     g.clearRect(0,0,w,h);
     const vu = () => {
-      if(!S.rec) return;
+      const rec = S.rec; if(!rec) return;
       analyser.getByteTimeDomainData(data);
       let rms = 0; for(const v of data) rms += (v-128)*(v-128);
       rms = Math.sqrt(rms/data.length)/128;
@@ -837,23 +860,29 @@ function wireTalk(){
       g.fillStyle = "rgba(198,212,228,.6)";
       g.fillRect(x % w, (h-sh)/2, 1.4, sh);
       if(++x % w === 0) g.clearRect(0,0,w,h);
+      /* the companion's own proven cadence: speak, and ~2.3s of quiet sends it */
+      const t = performance.now();
+      if(rms > 0.028){ rec.spoke = true; rec.lastVoice = t; }
+      if(rec.spoke && t - rec.lastVoice > 2300) return finishTake("silence");
+      if(!rec.spoke && t - rec.t0 > 9000)      return finishTake("nothing");
+      if(t - rec.t0 > 60000)                   return finishTake("cap");
       S.vuRaf = requestAnimationFrame(vu);
     };
     S.vuRaf = requestAnimationFrame(vu);
-  });
-  const finish = async () => {
+  }
+  async function finishTake(why){
     const rec = S.rec; if(!rec) return;
-    const held = performance.now() - rec.t0;
-    $("talkcap").textContent = "HOLD TO TALK";
-    if(held < 400){
-      stopTracks();
-      toast("released before it keyed — the mic is held, not tapped.");
+    const { chunks, rate, spoke } = rec;
+    stopTracks();
+    if(!spoke || why === "nothing"){
+      S.emptyTakes = (S.emptyTakes || 0) + 1;
+      if(S.loop && S.emptyTakes < 2){ cap("STILL HERE · TAP = MUTE"); startTake(); }
+      else endLoop("the mic closed — tap TALK when you want me");
       return;
     }
-    const { chunks, rate } = rec;
-    stopTracks();
+    S.emptyTakes = 0;
     const n = chunks.reduce((s,c) => s + c.length, 0);
-    if(!n){ toast("the take carried nothing"); return; }
+    if(!n){ if(S.loop) startTake(); return; }
     /* Float32 → Int16 RIFF WAV, client-side; downsample to 16k for the spine */
     const flat = new Float32Array(n); let off = 0;
     for(const c of chunks){ flat.set(c, off); off += c.length; }
@@ -870,7 +899,7 @@ function wireTalk(){
     dv.setUint32(24,16000,true); dv.setUint32(28,32000,true); dv.setUint16(32,2,true);
     dv.setUint16(34,16,true); ws(36,"data"); dv.setUint32(40, pcm.length*2, true);
     new Int16Array(wav, 44).set(pcm);
-    $("talkcap").textContent = "READING…";
+    cap("READING…");
     try{
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 30000);
@@ -879,26 +908,36 @@ function wireTalk(){
       clearTimeout(t);
       const d = await r.json().catch(() => ({}));
       if(!r.ok || !d.text) throw new Error(d.error || "the spine has not answered with the transcript — your take was not kept");
-      /* THE READ-BACK: his words land selected; his send is a separate signed act */
-      say.value = (say.value ? say.value.replace(/\s*$/, " ") : "") + d.text;
-      say.focus(); say.select();
-      $("keycap").textContent = "READ IT BACK";
-      T.push(setTimeout(() => { $("keycap").textContent = "HOLD TO KEY"; }, 2600));
-      rogerBeep(); buzz([14,26,14]);
+      /* spoken turns SEND — the road cannot review a screen; the words land
+         on the glass as they go, and →19 stays the signed act */
+      cap("SENT");
+      await sendTurn(d.text);
     }catch(err){
       thud(); toast(err.name === "AbortError"
         ? "the transcriber ran past 30s — your take was not kept"
         : (err.message || String(err)));
+      if(S.loop){ cap("LISTENING · TAP = MUTE"); startTake(); return; }
     }finally{
-      $("talkcap").textContent = "HOLD TO TALK";
+      if(!S.rec) cap(S.loop ? "MIC CLOSED · ANSWER COMING" : "TALK");
     }
-  };
-  ["pointerup","pointercancel"].forEach(ev => btn.addEventListener(ev, finish));
-  document.addEventListener("visibilitychange", () => {
-    /* hidden = abort: a held take dies with the screen; the mic pill goes dark */
-    if(document.hidden && S.rec){ stopTracks(); $("talkcap").textContent = "HOLD TO TALK"; }
+  }
+  btn.addEventListener("click", () => {
+    if(document.visibilityState !== "visible") return;
+    if(S.rec){ endLoop("muted — tap TALK to open the mic again"); return; }
+    if(S.audio && !S.audio.paused){ stopPlayback(); endLoop("quiet — tap TALK to open the mic again"); return; }
+    if(S.loop){ endLoop("mic closed — the answer still lands in the run"); return; }
+    if(!S.run){ toast("tune to a run first — or start one"); return; }
+    S.loop = true; S.emptyTakes = 0;
+    startTake();
   });
-  addEventListener("pagehide", stopTracks);
+  document.addEventListener("visibilitychange", () => {
+    /* hidden = abort: a call taking the screen kills the mic and the loop */
+    if(document.hidden && (S.rec || S.loop)) endLoop(null);
+  });
+  addEventListener("pagehide", () => endLoop(null));
+  S.reopenMic = () => {   // the loop's turn-taking: the answer finished — his mic again
+    if(S.loop && !S.rec) T.push(setTimeout(() => startTake(), 350));
+  };
 }
 
 /* ══ the held micro-grammar on rows — visor pin (ATLAS) · →19 (his) ══ */
