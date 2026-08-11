@@ -62,9 +62,21 @@ body{background:var(--void);color:var(--ink);font-family:var(--sans);
 .counts{font:600 11.5px/1.8 var(--mono);letter-spacing:.1em;color:var(--dim);
   text-align:center;font-variant-numeric:tabular-nums slashed-zero}
 .counts b{color:var(--ink);font-weight:600}
-.last{max-width:min(86vw,600px);font:400 13.5px/1.6 var(--sans);color:var(--dim);
-  font-style:italic;text-align:center;min-height:3.2em;overflow-wrap:anywhere}
-.last b{color:var(--mid);font-style:normal}
+/* the trail — what the ear actually wrote down, take by take. Newest rides
+   the bottom edge (column-reverse pins it, zero scroll JS); scroll up for
+   the day. ~5 lines on the glass. */
+.feed{width:min(92vw,640px);max-height:8.2em;overflow-y:auto;display:flex;
+  flex-direction:column-reverse;gap:7px;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 22px),transparent 100%);
+          mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 22px),transparent 100%)}
+.feed::-webkit-scrollbar{display:none}
+/* dash-distance type (his eye, from the mount): big, bright, readable at
+   arm's length in daylight */
+.feed .ln{font:400 17px/1.5 var(--sans);color:var(--ink);overflow-wrap:anywhere;
+  user-select:text;-webkit-user-select:text}
+.feed .ln .t{font:600 11px/1 var(--mono);letter-spacing:.1em;color:var(--dim);
+  margin-right:9px;font-variant-numeric:tabular-nums}
+.feed .none{font:400 14px/1.5 var(--sans);color:var(--etch);font-style:italic;text-align:center}
 .law{font:600 8.5px/1.7 var(--mono);letter-spacing:.16em;color:var(--etch);text-align:center;
   max-width:92vw}
 .toast{position:fixed;left:50%;bottom:24px;translate:-50% 0;background:var(--glass);
@@ -90,7 +102,7 @@ body{background:var(--void);color:var(--ink);font-family:var(--sans);
     <button class="big" id="big"><span class="ring" id="ring"></span>
       <span class="st" id="bst">OFF<br>TAP TO LISTEN</span></button>
     <div class="counts" id="counts">the ear is off — nothing is heard, nothing is kept</div>
-    <div class="last" id="last"></div>
+    <div class="feed" id="feed"><div class="none">the trail prints here — take by take, as words are kept</div></div>
     <div class="law">WORDS ARE KEPT · AUDIO IS DESTROYED ON ARRIVAL · A CALL TAKING THE SCREEN KILLS THE MIC · THE SAME TAP IS THE MUTE</div>
   </div></div>
 </div>
@@ -108,7 +120,8 @@ function toast(m){ const el = $("toast"); el.textContent = m; el.classList.add("
 
 /* ── the ear ── */
 const E = { on:false, stream:null, mr:null, cycleT:0, wake:null,
-            takes:0, kept:0, bytes:0, fails:0, ac:null, an:null, vuRaf:0 };
+            takes:0, kept:0, bytes:0, fails:0, ac:null, an:null, vuRaf:0,
+            lastId:0 };
 const TAKE_MS = 20000;                    // one take = 20s; back-to-back = continuous
 const FLAG = "almanac.sc.ear";            // his standing intent survives a reload
 
@@ -120,6 +133,29 @@ function paint(){
       + (E.fails ? ` · ${E.fails} failed` : "")
     : "the ear is off — nothing is heard, nothing is kept";
 }
+const eesc = s => String(s ?? "").replace(/[&<>"]/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function feedAdd(row){
+  if(row.id <= E.lastId) return;
+  E.lastId = row.id;
+  const f = $("feed");
+  const empty = f.querySelector(".none"); if(empty) empty.remove();
+  const el = document.createElement("div");
+  el.className = "ln";
+  el.innerHTML = `<span class="t">${eesc((row.at || "").slice(11,16))}</span>` +
+    eesc(row.album || row.title || "");
+  f.prepend(el);                     // column-reverse: prepend = the bottom edge
+  while(f.children.length > 200) f.lastChild.remove();
+}
+async function pullTrail(){
+  /* hydrate the day's trail (boot + after every kept take) — the ledger is
+     the truth; the feed only ever shows what was actually written down */
+  try{
+    const d = await fetch(url("/api/listening?days=1"), { headers: hdr() }).then(x => x.json());
+    (d.rows || []).filter(m => m.source === "cab-ear")
+      .sort((a, b) => a.id - b.id).forEach(feedAdd);
+  }catch(e){}
+}
 async function post(blob){
   E.takes++; E.bytes += blob.size;
   try{
@@ -128,14 +164,7 @@ async function post(blob){
       body: blob });
     const d = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
-    if(d.kept){
-      E.kept++;
-      const row = await fetch(url("/api/listening?days=1"), { headers: hdr() })
-        .then(x => x.json()).catch(() => null);
-      const mine = row && (row.rows || []).find(m => m.source === "cab-ear");
-      if(mine) $("last").innerHTML = `<b>last kept:</b> “${(mine.album || mine.title)
-        .replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}”`;
-    }
+    if(d.kept){ E.kept++; pullTrail(); }
   }catch(err){
     E.fails++;
     /* the ear survives a bad POST — count it, keep listening, say it once */
@@ -217,6 +246,7 @@ $("todesk").addEventListener("click", () => { location.href = "desk.html"; });
    comes back on with the page — mounted in the truck, that is the whole job */
 if(localStorage.getItem(FLAG) === "1") arm();
 paint();
+pullTrail();   // the day's trail meets him on open, armed or not
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
