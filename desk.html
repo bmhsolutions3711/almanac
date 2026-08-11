@@ -148,7 +148,8 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .stage.insys .core{opacity:.10}
 .consider.dim{opacity:.08;pointer-events:none;transition:opacity .3s}
 .orb{transition:opacity .3s}
-.sysorb{transition:left .42s cubic-bezier(.22,.61,.36,1), top .42s cubic-bezier(.22,.61,.36,1), opacity .34s;
+.sysorb{transition:left .42s cubic-bezier(.22,.61,.36,1), top .42s cubic-bezier(.22,.61,.36,1),
+  transform .42s cubic-bezier(.22,.61,.36,1), opacity .34s;
   z-index:5}
 .orb.sysparent{transition:left .42s cubic-bezier(.22,.61,.36,1), top .42s cubic-bezier(.22,.61,.36,1), opacity .3s;
   z-index:6}
@@ -1602,8 +1603,7 @@ function openSys(){
   /* seats set SYNCHRONOUSLY — a hidden document never fires rAF (the preview
      pane taught this); the forced reflow lets the transition ride for free */
   void host.offsetWidth;
-  layoutSys();
-  RSYS.forEach(o => { if(o.el) o.el.style.opacity = "1"; });
+  layoutSys();   // owns position, scale, depth-opacity — the fade-in rides it
   $("consider").classList.add("dim");
   wireSpin();
   paintSys();
@@ -1625,31 +1625,34 @@ function closeSys(silent){
 }
 function layoutSys(){
   if(!SYS) return;
-  const c = sysCenter(), R = sysRadius();
+  const c = sysCenter(), R = sysRadius(), Ry = R*0.46;   // the tilted plane
   const P = D[2];
   P.el.style.left = c.x + "px"; P.el.style.top = c.y + "px";
   if(RING){
     RING.style.left = c.x + "px"; RING.style.top = c.y + "px";
-    RING.style.width = RING.style.height = (R*2) + "px";
+    RING.style.width = (R*2) + "px"; RING.style.height = (Ry*2) + "px";
   }
+  /* a 3D axis (his ask): depth = sin(θ). The far arc passes BEHIND the sun —
+     smaller, dimmer, under it; the near arc rides in front, full size. */
   RSYS.forEach((o, i) => { if(!o.el) return;
     const th = SPIN.base + i * (Math.PI*2/RSYS.length);
+    const z = Math.sin(th);                       // -1 back … +1 front
+    const s = 0.66 + 0.34 * ((z + 1) / 2);
     o.el.style.left = (c.x + R*Math.cos(th)) + "px";
-    o.el.style.top  = (c.y + R*Math.sin(th)) + "px"; });
+    o.el.style.top  = (c.y + Ry*Math.sin(th)) + "px";
+    o.el.style.transform = `translate(-50%,-50%) scale(${s.toFixed(3)})`;
+    o.el.style.opacity = String(0.55 + 0.45 * ((z + 1) / 2));
+    o.el.style.zIndex = z < 0 ? 4 : 7;            // behind the sun, then in front
+  });
 }
 /* the spin: drag anywhere on the field while the system is open; the ring
    follows his hand and snaps to the nearest seat on release. A tap is a tap
    — under 10px of travel never becomes a spin. */
 const DRAG = { on:false, id:0, a0:0, b0:0, x0:0, y0:0 };
-function spinAngle(e){
-  const c = sysCenter();
-  const r = field.getBoundingClientRect();
-  return Math.atan2((e.clientY - r.top) - c.y, e.clientX - c.x);
-}
 function spinDown(e){
   if(!SYS) return;
   DRAG.on = true; DRAG.id = e.pointerId;
-  DRAG.a0 = spinAngle(e); DRAG.b0 = SPIN.base;
+  DRAG.b0 = SPIN.base;
   DRAG.x0 = e.clientX; DRAG.y0 = e.clientY;
 }
 function spinMove(e){
@@ -1658,7 +1661,9 @@ function spinMove(e){
   if(moved < 10 && !SPIN.moved) return;
   if(!SPIN.moved){ SPIN.moved = true; host.classList.add("spinning"); }
   SPIN.movedT = performance.now();
-  SPIN.base = DRAG.b0 + (spinAngle(e) - DRAG.a0);
+  /* a tilted ring spins on its vertical axis — his hand slides SIDEWAYS and
+     the carousel turns; one radius of travel ≈ a quarter turn and change */
+  SPIN.base = DRAG.b0 + ((e.clientX - DRAG.x0) / sysRadius()) * 1.35;
   layoutSys();
 }
 function spinUp(e){
@@ -1668,7 +1673,8 @@ function spinUp(e){
     SPIN.movedT = performance.now();
     host.classList.remove("spinning");
     const step = Math.PI*2/RSYS.length;
-    SPIN.base = Math.round((SPIN.base + Math.PI/2)/step)*step - Math.PI/2;  // snap to seats
+    /* snap a child into the FRONT seat (θ = π/2, nearest the hand) */
+    SPIN.base = Math.round((SPIN.base - Math.PI/2)/step)*step + Math.PI/2;
     layoutSys();
     setTimeout(() => { SPIN.moved = false; }, 300);
   }
