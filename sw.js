@@ -14,7 +14,7 @@
  *    network every time; the SW cache is then only ever a genuine offline
  *    fallback.
  */
-const VERSION = 'almanac-shell-v74';
+const VERSION = 'almanac-shell-v75';
 
 // The version gauge that cannot lie (Almanac #8): the page asks, the worker
 // answers — the chip renders what is actually installed, never a hardcoded
@@ -26,6 +26,7 @@ self.addEventListener('message', e => {
 });
 const SHELL = ['./', './index.html', './manifest.json',
                './detent.html', './detent.webmanifest', './desk.html',
+               './companion.html',
                './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {

@@ -826,7 +826,6 @@ body.hot .act .h .n{color:var(--hot)}
   align-items:center;justify-content:center;cursor:pointer}
 .capview img{max-width:92vw;max-height:92vh;border:1px solid var(--line);border-radius:4px}
 .tx.held{opacity:.55;font-style:italic}
-.tx.pend{opacity:.55;font-style:italic}
 .sqline{flex:0 0 auto;position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin:12px 0 4px}
 .sqline::after{content:"SQUELCH · " attr(data-held) " HELD BELOW";position:absolute;right:0;top:-13px;
   font:700 7.5px/1 var(--mono);letter-spacing:.16em;color:var(--etch)}
@@ -1179,7 +1178,7 @@ const short = v => v == null ? "——" :
 
 const State = { standing:null, standings:null, board:null, radio:null, learn:null,
                 soul:null, held:null, watch:null, at:null, err:null, glasses:null,
-                hand:null,
+                hand:null, sidech:null,
                 fin:{ summary:null, loads:null, expenses:null, rollup:null,
                       followups:null,
                       summaryErr:null, err:null, stones:[], placed:[] } };
@@ -1210,7 +1209,11 @@ const D = [
   {k:"RADIO",   hue:"255,164,25",  fx:50, fy:16, r:80,  room:"radio"},
   {k:"MONEY",   hue:"190,160,60",  fx:85, fy:60, r:90,  room:"ledger"},
   {k:"LEARN",   hue:"150,90,220",  fx:18, fy:68, r:84,  room:"learn"},
-  {k:"SOUL",    hue:"120,200,120", fx:73, fy:80, r:72,  room:"soul"}
+  {k:"SOUL",    hue:"120,200,120", fx:73, fy:80, r:72,  room:"soul"},
+  /* THE SIDE CHANNEL (card #90) — the other half of the radio, seated beside
+     it. MOONGLASS: the night cab's own light. Not a room — a DOOR: the tap
+     navigates to companion.html, where the one act that lives there is talk. */
+  {k:"SIDE CH", hue:"198,212,228", fx:33, fy:10, r:62,  room:"sidech"}
 ];
 const field = $("field"), host = $("orbs");
 D.forEach((o,i) => {
@@ -1403,7 +1406,10 @@ function paintField(){
     [r==null?"—":String(r.unread),"UNREAD", r==null?"spine unavailable":`<b>${r.unread}</b> UNREAD · CH 19`],
     [needs==null?"—":String(needs),"STANDING", needs==null?"spine unavailable":`<b>${needs}</b> STANDING TO SETTLE`],
     [l==null?"—":String((l.open||[]).length),"OPEN", l==null?"spine unavailable":`<b>${(l.open||[]).length}</b> OPEN QUESTION`],
-    [d==null?"—":String(d.confirmed),d==null?"":"OF "+d.total, d==null?"spine unavailable":`<b>${d.confirmed}</b>/${d.total} CONFIRMED`]
+    [d==null?"—":String(d.confirmed),d==null?"":"OF "+d.total, d==null?"spine unavailable":`<b>${d.confirmed}</b>/${d.total} CONFIRMED`],
+    (() => { const sc = State.sidech, un = sc ? (sc.runs||[]).reduce((n,t)=>n+(t.unheard||0),0) : null;
+      return [un==null?"—":String(un),"UNHEARD",
+        sc==null?"spine unavailable":`<b>${(sc.runs||[]).length}</b> RUN${(sc.runs||[]).length===1?"":"S"} · CH 21`]; })()
   ];
   D.forEach((o,i) => {
     o.el.querySelector(".fig .n").textContent = sig[i][0];
@@ -1471,6 +1477,7 @@ function paintConsider(){
 
 /* ── entering a domain ────────────────────────────────────────────── */
 function enter(i){
+  if(D[i].room === "sidech"){ location.href = "companion.html"; return; }
   ACTIVE = i;
   document.documentElement.style.setProperty("--key", D[i].hue);
   D.forEach(x => x.el.classList.remove("active"));
@@ -2137,34 +2144,30 @@ function radioRoom(){
   const msgs = r.messages || [];
   const spoken = msgs.filter(m => m.kind !== "held");
   const held = msgs.filter(m => m.kind === "held");
+  /* the split (card #90): conversations live on the side channel now — this
+     room is squelch-born traffic only, and it got SIMPLER the night CH 21
+     landed. Deletion is the currency. */
   const line = m => {
     const op = m.sender === "operation";
     const cap = m.kind === "capture"; // 🕶 road captures keyed up from the glasses
-    const ans = m.kind === "answer";  // ATLAS — the companion, on-channel (card #89)
     const mark = op ? (m.kind === "undelivered" ? '<span class="mk">△</span> '
-                    : m.kind === "held" || ans ? "" : '<span class="mk">▲</span> ') : "";
-    /* answers carry no bold title — the ATL voice tag IS the name */
-    const title = (op || cap) && !ans && m.title && m.title !== m.body ? `<b>${esc(m.title)}</b> — ` : "";
+                    : m.kind === "held" ? "" : '<span class="mk">▲</span> ') : "";
+    const title = (op || cap) && m.title && m.title !== m.body ? `<b>${esc(m.title)}</b> — ` : "";
     const media = cap && m.url;
     return `<div class="tx ${op?"op":"bry"}${m.kind==="held"?" held":""}${media?" capm":""}"${media?` data-url="${esc(m.url)}"`:""}>
-      <span class="st">${esc(rel(m.at))}</span><span class="vo">${ans?"ATL":op?"OP":"BRY"}</span>
+      <span class="st">${esc(rel(m.at))}</span><span class="vo">${op?"OP":"BRY"}</span>
       <span>${mark}${title}${esc(m.body)}</span></div>`;
   };
-  /* the companion has the mic — a TRUE state (the spine confirmed the spawn),
-     rendered dim like held traffic, gone the moment the answer lands */
-  const pending = ANS.until > Date.now()
-    ? `<div class="tx op pend"><span class="st">now</span><span class="vo">ATL</span>
-       <span>has the mic — an answer is coming</span></div>` : "";
   return whyBar() + `<div class="panel" style="flex:1;min-height:0">
     ${laneStrip()}
     <div class="cap">ch 19 · one channel · the operation may key up once a day</div>
-    <div class="chan">` + pending +
+    <div class="chan">` +
       (spoken.length ? spoken.slice().reverse().map(line).join("")
         : `<p class="nodata">a quiet channel — nothing said yet.</p>`) +
       `<div class="sqline" data-held="${held.length}"></div>` +
       held.slice(-4).map(line).join("") + `</div>
     <div class="keyup">
-      <input id="mic" maxlength="500" placeholder="key up — ATLAS answers on the channel; the session reads it at kickoff">
+      <input id="mic" maxlength="500" placeholder="key up — to the next session; a talk belongs on the side channel">
       <button class="khold" id="hold"><span class="r3"></span>
         <span style="position:relative;z-index:2" id="holdcap">HOLD TO KEY UP</span></button>
     </div></div>`;
@@ -3916,36 +3919,11 @@ function wireCapMedia(){
   });
 }
 
-/* THE COMPANION's comeback (card #89): a chain of single timeouts after HIS
-   act — never a standing interval. Dies on room exit, on hidden, on the
-   answer landing, or at the 6-minute cap; failures never break the room.
-   Only the companion's own outcomes (answer/undelivered born after his
-   reply) end the follow — a concurrent held read must not. */
-const ANS = {until:0, maxOp:0, timer:0};
-function followAnswer(){
-  clearTimeout(ANS.timer);
-  ANS.timer = setTimeout(async () => {
-    if(ANS.until <= Date.now() || ACTIVE === null || D[ACTIVE].room !== "radio"
-       || document.visibilityState !== "visible"){ ANS.until = 0; return; }
-    try{
-      const r = await grab("/api/messages");
-      State.radio = r; State.radioAt = Date.now();
-      if((r.messages || []).some(m =>
-          (m.kind === "answer" || m.kind === "undelivered") && m.id > ANS.maxOp)){
-        ANS.until = 0;
-        renderRoom(); markRead();   // his eyes are on the room — the settle is honest
-        return;
-      }
-    }catch(e){ /* next tick retries — the follow never breaks the room */ }
-    followAnswer();
-  }, 7000);
-}
 /* fetch-on-open (the stops-book law): the thread he sees is the thread that
-   IS — an answer that landed while the room was closed must not hide behind
+   IS — a row that landed while the room was closed must not hide behind
    boot-time state. The 15s stamp keeps write-triggered re-renders from
-   looping the fetch; the follow owns its own cadence. */
+   looping the fetch. */
 function freshenRadio(){
-  if(ANS.until > Date.now()) return;
   if(Date.now() - (State.radioAt || 0) < 15000) return;
   grab("/api/messages").then(r => {
     State.radio = r; State.radioAt = Date.now();
@@ -3971,19 +3949,11 @@ function wireKeyup(){
         const res = await fetch(url("/api/messages"), { method:"POST",
           headers: hdr({"Content-Type":"application/json"}), body: JSON.stringify({ body }) });
         if(!res.ok) throw new Error("the spine answered " + res.status);
-        const ack = await res.json().catch(() => ({}));
         mic.value = "";
         State.radio = await grab("/api/messages");
         State.radioAt = Date.now();
-        /* THE COMPANION (card #89): the spine spawned ATLAS on this key-up —
-           follow the channel until the answer lands. ack.id is his reply row;
-           any operation row born after it is the comeback. */
-        if(ack.answering && ack.id){
-          ANS.maxOp = ack.id; ANS.until = Date.now() + 360000;
-          followAnswer();
-        }
         renderRoom();
-        toast(ack.answering ? "SENT — ATLAS has the mic" : "SENT — the spine has it");
+        toast("SENT — the next session reads it at kickoff");
       }catch(err){ toast("NOT SENT — " + (err.message || err)); }
       finally{
         $("holdcap") && ($("holdcap").textContent = "HOLD TO KEY UP");
@@ -4895,7 +4865,7 @@ async function load(keep){
     const rest = [
       ["radio","/api/messages"], ["learn","/api/learning"], ["soul","/api/doctrine"],
       ["held","/api/push/held"], ["watch","/api/watch"], ["hotshot","/api/hotshot"],
-      ["hand","/api/hand"]
+      ["hand","/api/hand"], ["sidech","/api/threads"]
     ];
     await Promise.all(rest.map(([k,p]) =>
       grab(p).then(v => { State[k] = v; }).catch(() => {})));

@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>Almanac — the side channel</title>
+<meta name="theme-color" content="#07080A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon.png" type="image/png">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   CH 21 · THE SIDE CHANNEL — card #90, built to SIDECHANNEL-BUILD-SPEC.md.
+
+   When the working channel is no place for a talk, you take it to the side
+   channel — and there every exchange strikes an arc across the dark between
+   the man and his operation: voice first, the words on the glass lit only
+   where the voice has already passed, and the exchange kept afterward as
+   tape you can see.
+
+   THE ONE-VERB LAW (bearing 18's hatch, filed in DECISIONS.md): this room
+   performs exactly one act — talk. Anything ATLAS names that needs a hand is
+   a deep link to that act's own door. A second verb appearing here means the
+   bearing fires and the room has become a console. Do not let it.
+
+   Every selector .sc- / --sc-*; storage almanac.sc.* — the .hold and
+   .fold/.why collisions are paid-for scars.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --void:#07080A; --glass:rgba(30,36,44,.86); --glass2:rgba(24,29,36,.92);
+  --line:rgba(150,170,190,.15); --ink:#E9EDF0; --mid:#AEB8C0; --dim:#8B96A0;
+  --etch:#5E6870; --amber:#FFA419; --hot:#FF3B18; --unknown:#6E6E6E;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --key:198,212,228; /* MOONGLASS — the night cab's own light; never touches a letter */
+}
+[hidden]{display:none !important}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--void); color:var(--ink); font-family:var(--sans); font-size:15px;
+  line-height:1.5; -webkit-font-smoothing:antialiased; overflow:hidden;
+  user-select:none; -webkit-user-select:none;
+}
+.sc-shell{height:100svh;display:flex;flex-direction:column;max-width:860px;margin:0 auto;
+  padding:max(10px,env(safe-area-inset-top)) 14px max(10px,env(safe-area-inset-bottom))}
+
+/* ── masthead ── */
+.sc-mast{flex:0 0 auto;display:flex;align-items:baseline;gap:12px;padding:4px 0 8px;
+  border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sc-kick{font:700 10px/1 var(--mono);letter-spacing:.24em;color:var(--dim)}
+.sc-head{font:700 21px/1 var(--sans);letter-spacing:.02em;text-transform:uppercase;
+  text-shadow:0 0 28px rgba(var(--key),.45)}
+.sc-state{margin-left:auto;font:700 10px/1 var(--mono);letter-spacing:.18em;color:var(--etch);
+  font-variant-numeric:tabular-nums slashed-zero}
+.sc-arc{width:28px;height:18px;flex:0 0 auto;align-self:center}
+.sc-arc .p,.sc-arc .arc{fill:none;stroke:var(--etch);stroke-width:2;stroke-linecap:round;
+  transition:stroke .3s,filter .3s}
+.sc-arc .p.on{stroke:rgb(var(--key))}
+.sc-arc .arc.on{stroke:rgb(var(--key));filter:drop-shadow(0 0 6px rgba(var(--key),.5))}
+.sc-door,.sc-visorbtn{font:700 10px/1 var(--mono);letter-spacing:.13em;color:var(--mid);
+  background:var(--glass);border:1px solid var(--line);border-radius:4px;padding:7px 11px;
+  cursor:pointer}
+.sc-door:hover,.sc-visorbtn:hover{color:var(--ink)}
+
+/* ── runs rail — tuning ── */
+.sc-rail{flex:0 0 auto;display:flex;gap:7px;overflow-x:auto;padding:9px 0 7px;
+  scroll-snap-type:x proximity;scrollbar-width:none}
+.sc-rail::-webkit-scrollbar{display:none}
+.sc-chip{flex:0 0 auto;scroll-snap-align:start;font:600 11px/1 var(--mono);letter-spacing:.05em;
+  color:var(--mid);background:var(--glass);border:1px solid var(--line);border-radius:4px;
+  padding:8px 11px;cursor:pointer;max-width:230px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.sc-chip.now{color:var(--ink);border-color:rgba(var(--key),.55)}
+.sc-chip .n{color:var(--etch);margin-left:6px;font-variant-numeric:tabular-nums}
+.sc-chip.unheard{box-shadow:0 0 14px -4px rgba(var(--key),.5)}
+
+/* ── the log — runs as tape, never bubbles ── */
+.sc-wire{flex:1 1 auto;min-height:0;display:flex;flex-direction:column-reverse;gap:2px;
+  overflow-y:auto;padding:6px 2px 10px;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 30px),transparent 100%);
+          mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 30px),transparent 100%)}
+.sc-wire::-webkit-scrollbar{display:none}
+.sc-row{padding:9px 10px 9px 12px;border-left:2px solid var(--etch);margin:3px 0;
+  content-visibility:auto;contain-intrinsic-size:auto 64px}
+.sc-row.atl{border-left-color:rgba(var(--key),.65)}
+.sc-row .st{font:600 9.5px/1.6 var(--mono);letter-spacing:.12em;color:var(--etch);
+  display:flex;gap:8px;align-items:baseline;font-variant-numeric:tabular-nums slashed-zero}
+.sc-row .st .sp{flex:1}
+.sc-row .bd{margin-top:3px;font:400 14px/1.55 var(--sans);color:var(--ink);
+  user-select:text;-webkit-user-select:text;overflow-wrap:anywhere}
+.sc-row.atl .bd{color:var(--dim)}                 /* unspoken until the voice reaches it */
+.sc-row.atl.done .bd,.sc-row.atl.heard .bd{color:var(--ink)}
+.sc-row.atl .bd .w{transition:color .28s linear}
+.sc-row.atl .bd .w.lit{color:var(--ink)}
+.sc-row.atl .bd .w.now{color:var(--ink);text-shadow:0 0 12px rgba(var(--key),.38)}
+.sc-row.und .bd{color:var(--dim);font-style:italic}
+.sc-row .mk{color:rgb(var(--key));font-weight:700}
+.sc-row .play{background:none;border:1px solid var(--line);border-radius:3px;color:var(--mid);
+  font:700 9px/1 var(--mono);letter-spacing:.1em;padding:4px 8px;cursor:pointer}
+.sc-row .play:hover{color:var(--ink);border-color:rgba(var(--key),.5)}
+.sc-tape{display:block;margin-top:6px;height:12px;width:min(100%,320px);opacity:.55}
+.sc-pin{width:12px;height:12px;flex:0 0 auto;opacity:.8}
+@starting-style{ .sc-row{opacity:0;translate:0 6px} }
+.sc-row{transition:opacity .28s ease-out,translate .28s ease-out}
+.sc-quiet{font:400 13px/1.6 var(--sans);color:var(--dim);font-style:italic;padding:14px 4px}
+
+/* ── the carrier glass ── */
+.sc-carrier{flex:0 0 auto;height:44px;position:relative;border-radius:3px;overflow:hidden;
+  border:1px solid var(--line);margin:2px 0 8px}
+.sc-carrier canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* ── the bench ── */
+.sc-bench{flex:0 0 auto;border-top:1px solid var(--line);padding-top:9px;display:flex;
+  gap:8px;align-items:stretch}
+.sc-say{flex:1 1 auto;min-height:2.6em;max-height:6lh;field-sizing:content;resize:none;
+  background:rgba(0,0,0,.4);border:1px solid var(--line);border-radius:2px;
+  corner-shape:bevel;color:var(--ink);font:400 14px/1.4 var(--sans);padding:10px 12px;
+  user-select:text;-webkit-user-select:text}
+.sc-say:focus-visible{outline:2px solid var(--mid);outline-offset:1px}
+.sc-well,.sc-keybtn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  white-space:nowrap;padding:0 16px;border-radius:2px;corner-shape:bevel;
+  border:1px solid rgba(var(--key),.5);background:rgba(var(--key),.12);
+  color:rgb(var(--key));font:700 9.5px/1 var(--mono);letter-spacing:.14em;cursor:pointer;
+  position:relative;overflow:hidden;touch-action:none;min-width:86px}
+.sc-well .rail,.sc-keybtn .rail{position:absolute;inset:0;background:rgba(var(--key),.3);
+  transform:scaleX(0);transform-origin:left;pointer-events:none}
+.sc-well .cap,.sc-keybtn .cap{position:relative;z-index:2}
+.sc-well[disabled],.sc-keybtn[disabled]{opacity:.45;cursor:default}
+.sc-well.rec{border-color:rgb(var(--key))}
+.sc-keybtn[data-state="refused"]{border-color:var(--hot);animation:sc-refuse .46s}
+@keyframes sc-refuse{0%,100%{translate:0}25%{translate:-5px}55%{translate:4px}80%{translate:-2px}}
+body.sc-keyed .sc-wire,body.sc-keyed .sc-rail{opacity:.55;transition:opacity .28s}
+.sc-hint{font:600 8.5px/1 var(--mono);letter-spacing:.18em;color:var(--etch);
+  text-align:right;padding:5px 2px 0}
+
+/* ── the visor popover ── */
+.sc-visor{position:fixed;inset:auto 14px 14px auto;max-width:min(420px,calc(100vw - 28px));
+  max-height:60vh;overflow-y:auto;background:var(--glass2);border:1px solid var(--line);
+  border-radius:5px;padding:12px 14px;z-index:40;backdrop-filter:blur(8px)}
+.sc-visor h3{font:700 10px/1 var(--mono);letter-spacing:.2em;color:var(--dim);margin:0 0 9px}
+.sc-visor .pf{display:flex;gap:9px;align-items:baseline;padding:6px 0;
+  border-top:1px dotted var(--line);font:400 13px/1.5 var(--sans);color:var(--ink)}
+.sc-visor .pf button{background:none;border:0;color:var(--etch);font:700 9px/1 var(--mono);
+  letter-spacing:.1em;cursor:pointer;padding:2px 4px}
+.sc-visor .pf button:hover{color:var(--hot)}
+.sc-visor .none{color:var(--dim);font:400 13px/1.5 var(--sans);font-style:italic}
+
+/* ── toast + connect ── */
+.sc-toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));
+  translate:-50% 0;background:var(--glass2);border:1px solid var(--line);border-radius:5px;
+  color:var(--ink);font:600 12px/1.4 var(--sans);padding:10px 16px;opacity:0;
+  pointer-events:none;transition:opacity .25s;z-index:60;max-width:86vw;text-align:center}
+.sc-toast.on{opacity:1}
+.sc-conn{position:fixed;inset:0;display:grid;place-items:center;background:var(--void);z-index:80}
+.sc-conn .card{background:var(--glass);border:1px solid var(--line);border-radius:6px;
+  padding:22px;width:min(360px,90vw)}
+.sc-conn h2{font:700 15px/1 var(--sans);margin:0 0 6px}
+.sc-conn p{font:400 12px/1.5 var(--sans);color:var(--dim);margin:0 0 12px}
+.sc-conn label{display:block;font:700 9px/1 var(--mono);letter-spacing:.16em;color:var(--dim);
+  margin:10px 0 4px}
+.sc-conn input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--line);
+  border-radius:3px;color:var(--ink);font:400 13px/1.3 var(--mono);padding:9px 11px;
+  user-select:text;-webkit-user-select:text}
+.sc-conn button{margin-top:14px;width:100%;padding:11px;background:rgba(var(--key),.14);
+  border:1px solid rgba(var(--key),.5);border-radius:3px;color:rgb(var(--key));
+  font:700 11px/1 var(--mono);letter-spacing:.16em;cursor:pointer}
+
+@media (prefers-reduced-motion: reduce){
+  .sc-row{transition:none}
+  .sc-row.atl .bd .w{transition:none}
+  .sc-row.atl .bd .w.now{text-shadow:none}
+  body.sc-keyed .sc-wire,body.sc-keyed .sc-rail{opacity:1}
+}
+@media (max-width:420px){
+  .sc-head{font-size:17px}
+  .sc-carrier{height:34px}
+  .sc-well,.sc-keybtn{min-width:72px;padding:0 10px}
+}
+</style>
+</head>
+<body>
+<div class="sc-shell">
+  <div class="sc-mast">
+    <div>
+      <div class="sc-kick">CH 21 · TWO SEATS</div>
+      <div class="sc-head">The Side Channel</div>
+    </div>
+    <svg class="sc-arc" viewBox="0 0 28 18" aria-hidden="true" id="arc">
+      <path class="p you" d="M5 15V8"/><path class="p atl" d="M23 15V8"/>
+      <path class="arc" d="M7 9a8.5 8.5 0 0 1 14 0"/>
+    </svg>
+    <span class="sc-state" id="state">QUIET</span>
+    <button class="sc-visorbtn" id="visorbtn" title="the facts his hand clipped">VISOR</button>
+    <button class="sc-door" id="door" title="back to the desk">◂ THE DESK</button>
+  </div>
+
+  <div class="sc-rail" id="rail"></div>
+  <div class="sc-wire" id="wire"></div>
+  <div class="sc-carrier" id="carrier"><canvas id="cglass"></canvas><canvas id="ctrace"></canvas></div>
+
+  <div class="sc-bench">
+    <button class="sc-well" id="talk"><span class="rail" id="vurail"></span>
+      <span class="cap" id="talkcap">HOLD TO TALK</span></button>
+    <textarea class="sc-say" id="say" maxlength="900" enterkeyhint="done"
+      placeholder="say it — or hold to talk and read it back"></textarea>
+    <button class="sc-keybtn" id="key"><span class="rail" id="keyrail"></span>
+      <span class="cap" id="keycap">HOLD TO KEY</span></button>
+  </div>
+  <div class="sc-hint">ONE ACT LIVES HERE — TALK · ACTS HAVE THEIR OWN DOORS · →19 SENDS A TURN TO THE SESSION</div>
+</div>
+
+<div class="sc-visor" id="visor" hidden></div>
+<div class="sc-toast" id="toast"></div>
+<div class="sc-conn" id="conn" hidden>
+  <div class="card">
+    <h2>Connect</h2>
+    <p>Both values stay on this device.</p>
+    <label>backend</label><input id="capi" placeholder="https://…" autocomplete="off">
+    <label>token</label><input id="ctok" type="password" placeholder="ALMANAC_TOKEN">
+    <button id="cgo">CONNECT</button>
+  </div>
+</div>
+
+<script>
+/* ══ plumbing cloned from the desk — one connect, one token, same keys ══ */
+const $ = id => document.getElementById(id);
+let API = localStorage.getItem("almanac_api") || "";
+let TOK = localStorage.getItem("almanac_token") || "";
+(function bootstrap(){
+  const h = location.hash || "";
+  if(h === "#reset" || h === "#nuke"){
+    (async () => {
+      try{
+        const regs = await (navigator.serviceWorker?.getRegistrations?.() ?? []);
+        await Promise.all(regs.map(r => r.unregister()));
+        const ks = await (caches?.keys?.() ?? []);
+        await Promise.all(ks.map(k => caches.delete(k)));
+      }catch(e){}
+      if(h === "#nuke"){ localStorage.removeItem("almanac_api"); localStorage.removeItem("almanac_token"); }
+      location.replace(location.pathname + location.search);
+    })();
+    return;
+  }
+  const m = h.match(/[#&]cfg=([^&]+)/);
+  if(m){
+    try{
+      const cfg = JSON.parse(decodeURIComponent(m[1]));
+      if(cfg.api)   localStorage.setItem("almanac_api",   API = cfg.api.replace(/\/$/, ""));
+      if(cfg.token) localStorage.setItem("almanac_token", TOK = cfg.token);
+      history.replaceState(null, "", location.pathname + location.search);
+    }catch(e){}
+  }
+})();
+const url = p => (API || "") + p;
+const hdr = x => Object.assign({ Authorization: "Bearer " + TOK }, x || {});
+const esc = s => String(s ?? "").replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+async function grab(path){
+  const r = await fetch(url(path), { headers: hdr() });
+  if(!r.ok) throw new Error("the spine answered " + r.status);
+  return r.json();
+}
+let toastT = 0;
+function toast(m){ const el = $("toast"); el.textContent = m; el.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 3400); }
+const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const muted  = () => localStorage.getItem("almanac.mute") === "1";
+const RTF = new Intl.RelativeTimeFormat("en",{numeric:"auto"});
+function rel(at){
+  const d = (Date.now() - new Date(at).getTime())/1000;
+  if(!isFinite(d) || d < 90) return "now";
+  if(d < 3600) return RTF.format(-Math.round(d/60),"minute");
+  if(d < 86400) return RTF.format(-Math.round(d/3600),"hour");
+  return RTF.format(-Math.round(d/86400),"day");
+}
+const mmss = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,"0")}`;
+
+/* ══ the instrument's one voice — tone() + the house phrases ══ */
+let AC = null;
+function ac(){
+  if(muted()) return null;
+  if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(AC.state === "suspended") AC.resume().catch(()=>{});
+  return AC;
+}
+function tone(freq, ms, gain, type, pan){
+  const a = ac(); if(!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type || "sine"; o.frequency.value = freq;
+  g.gain.setValueAtTime(gain, a.currentTime);
+  g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + ms/1000);
+  o.connect(g).connect(a.destination);
+  o.start(); o.stop(a.currentTime + ms/1000 + .02);
+}
+const keyThump  = () => tone(95, 45, .08, "sine");
+const rogerBeep = () => tone(2000, 70, .045, "sine");
+const thud      = () => tone(70, 90, .1, "sine");
+const T = []; // grain timeouts, cleared on pagehide
+function squelchTail(){
+  /* the channel opening — six jittered grains; the SAME array draws the
+     carrier's spike-run (one seed, sound = light) */
+  const grains = [];
+  for(let i = 0; i < 6; i++){
+    const g = { at: i*18 + Math.random()*8, freq: 1400 + Math.random()*1600,
+                ms: 14 + Math.random()*10, gain: .05 * (1 - i/6) };
+    grains.push(g);
+    T.push(setTimeout(() => tone(g.freq, g.ms, g.gain, "sawtooth"), g.at));
+  }
+  return grains;
+}
+const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} };
+
+/* ══ state ══ */
+const S = {
+  runs: [], run: null, msgs: [],
+  waiting: null,          // {sayId, t0, clockT, followT} — the dead-air watch
+  audio: null, blob: null, beamRaf: 0, playingRow: 0,
+  peaks: new Map(),       // msg id -> [0..1] buckets (this glass's tape memory)
+  rec: null,              // {stream, ctx, proc, analyser, chunks, t0, key}
+  vuRaf: 0, holdT: 0,
+};
+
+/* ══ the arc glyph — a state diagram that cannot lie ══ */
+function arc(pole, on){
+  const el = $("arc");
+  if(pole === "you") el.querySelector(".you").classList.toggle("on", on);
+  if(pole === "atl") el.querySelector(".atl").classList.toggle("on", on);
+  if(pole === "arc") el.querySelector(".arc").classList.toggle("on", on);
+}
+
+/* ══ the carrier glass ══ */
+function paintCarrierGlass(){
+  const cv = $("cglass"), w = cv.clientWidth, h = cv.clientHeight;
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = w*dpr; cv.height = h*dpr;
+  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  g.fillStyle = "#0B0D10"; g.fillRect(0,0,w,h);
+  for(let i = 0; i < w*h/38; i++){
+    g.fillStyle = `rgba(150,170,190,${Math.random()*.05})`;
+    g.fillRect(Math.random()*w, Math.random()*h, 1, 1);
+  }
+  const sp = g.createLinearGradient(0, 0, 0, h);
+  sp.addColorStop(.32, "rgba(233,237,240,0)");
+  sp.addColorStop(.4, "rgba(233,237,240,.05)");
+  sp.addColorStop(.48, "rgba(233,237,240,0)");
+  g.fillStyle = sp; g.fillRect(0,0,w,h);
+  sizeTrace();
+}
+function sizeTrace(){
+  const cv = $("ctrace"), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = cv.clientWidth*dpr; cv.height = cv.clientHeight*dpr;
+  cv.getContext("2d").scale(dpr, dpr);
+  deadAir();
+}
+let resizeT = 0;
+addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(paintCarrierGlass, 180); });
+function traceCtx(){
+  const cv = $("ctrace");
+  return [cv.getContext("2d"), cv.clientWidth, cv.clientHeight];
+}
+function deadAir(){
+  /* dead air renders as dead air: one flat etched line, zero rAF running */
+  const [g, w, h] = traceCtx();
+  g.clearRect(0,0,w,h);
+  g.fillStyle = "rgba(94,104,112,.4)";
+  g.fillRect(0, h/2, w, 1);
+}
+function spikeRun(grains){
+  /* the tail's own grains spike the glass — one seed drives sound and light */
+  const [g, w, h] = traceCtx();
+  const span = 150;
+  for(const gr of grains){
+    const x = w*.5 + (gr.at/span)*w*.45;
+    const sh = 3 + gr.gain*260;
+    g.fillStyle = `rgba(198,212,228,${.25 + gr.gain*8})`;
+    g.fillRect(x, (h-sh)/2, 2, sh);
+  }
+  T.push(setTimeout(deadAir, 900));
+}
+
+/* ══ the log ══ */
+function stampFor(m, dur){
+  const who = m.kind === "answer" ? "ATLAS" : m.kind === "undelivered" ? "ATLAS" : "BRYAN";
+  const len = dur ? ` · ${mmss(dur)}` : "";
+  return `${who} · ${esc(rel(m.at))}${len}`;
+}
+function wireRow(m){
+  const el = document.createElement("div");
+  const atl = m.sender === "operation";
+  el.className = "sc-row " + (m.kind === "undelivered" ? "und" :
+                 atl ? ("atl" + (m.read_at ? " heard" : "")) : "bry");
+  el.dataset.id = m.id;
+  const st = document.createElement("div"); st.className = "st";
+  st.innerHTML = `<span class="who">${stampFor(m)}</span><span class="sp"></span>`;
+  const bd = document.createElement("div"); bd.className = "bd";
+  if(m.kind === "answer"){
+    /* every word pre-wrapped ONCE, at render, through esc() — the beam's rails */
+    bd.innerHTML = m.body.split(/(\s+)/).map(t =>
+      /^\s+$/.test(t) ? t : `<span class="w">${esc(t)}</span>`).join("");
+    const play = document.createElement("button");
+    play.className = "play"; play.textContent = "▶";
+    play.title = "hear it again";
+    play.addEventListener("click", e => { e.stopPropagation(); hearRow(m, el, false); });
+    st.insertBefore(play, st.querySelector(".sp").nextSibling);
+    st.appendChild(play);
+  }else if(m.kind === "undelivered"){
+    bd.innerHTML = `<span class="mk">△</span> ${esc(m.body)} — your words hold; promote them if the session should read them.`;
+  }else{
+    bd.textContent = m.body;
+  }
+  el.appendChild(st); el.appendChild(bd);
+  /* the held micro-grammar: remembering is a write (visor), directive weight
+     is a signature (→19) — both are HOLDS, never taps */
+  wireHold(el, m);
+  return el;
+}
+function renderWire(){
+  const w = $("wire"); w.textContent = "";
+  if(!S.msgs.length){
+    const q = document.createElement("div"); q.className = "sc-quiet";
+    q.textContent = "a fresh run — say something into the dark. the operation answers in a voice that knows your numbers.";
+    w.appendChild(q); return;
+  }
+  const rows = S.msgs.slice().reverse();          // column-reverse: first = newest = bottom
+  let stag = 0;
+  for(const m of rows){
+    const el = wireRow(m);
+    if(!reduce() && stag < 8){ el.style.transitionDelay = (stag*28) + "ms"; stag++; }
+    w.appendChild(el);
+  }
+  w.scrollTop = 0;
+}
+function appendTurn(m){
+  const w = $("wire");
+  if(!S.msgs.length) w.textContent = "";
+  S.msgs.push(m);
+  w.prepend(wireRow(m));                          // node-append only, never re-render mid-talk
+  w.scrollTop = 0;
+}
+
+/* ══ the runs rail ══ */
+function renderRail(){
+  const r = $("rail"); r.textContent = "";
+  const plus = document.createElement("button");
+  plus.className = "sc-chip"; plus.textContent = "+ NEW RUN";
+  plus.addEventListener("click", newRun);
+  r.appendChild(plus);
+  for(const t of S.runs){
+    const c = document.createElement("button");
+    c.className = "sc-chip" + (S.run === t.id ? " now" : "") + (t.unheard ? " unheard" : "");
+    c.innerHTML = `${esc(t.name)}<span class="n">${t.turns}</span>`;
+    c.title = "tune to this run";
+    c.addEventListener("click", () => tune(t.id));
+    r.appendChild(c);
+  }
+}
+async function loadRuns(){
+  const d = await grab("/api/threads");
+  S.runs = d.runs || [];
+  renderRail();
+}
+async function tune(tid){
+  stopPlayback(); clearWait();
+  S.run = tid;
+  const d = await grab(`/api/threads/${tid}/messages`);
+  S.msgs = d.messages || [];
+  renderRail(); renderWire();
+  heard();
+}
+async function newRun(){
+  try{
+    const d = await fetch(url("/api/threads"), { method:"POST",
+      headers: hdr({"Content-Type":"application/json"}), body:"{}" }).then(r => r.json());
+    if(!d.id) throw new Error("no id");
+    await loadRuns(); await tune(d.id);
+  }catch(e){ toast("no new run — " + (e.message||e)); }
+}
+function heard(){
+  /* his eyes on the run — only from a visible document; rendered is not heard */
+  if(document.visibilityState !== "visible" || !S.run) return;
+  const had = S.msgs.some(m => m.sender === "operation" && !m.read_at);
+  if(!had) return;
+  fetch(url(`/api/threads/${S.run}/heard`), { method:"POST", headers: hdr({"Content-Type":"application/json"}), body:"{}" })
+    .then(() => { S.msgs.forEach(m => { if(!m.read_at) m.read_at = "now"; }); loadRuns(); })
+    .catch(()=>{});
+}
+
+/* ══ THE BREAK — the hero. tail → 60ms of nothing → the voice, light walking the words ══ */
+async function fetchVoice(id){
+  const r = await fetch(url(`/api/voice/${id}`), { headers: hdr() });
+  if(!r.ok) return null;
+  return URL.createObjectURL(await r.blob());
+}
+function wordTimes(el, dur){
+  /* char-weighted windows over the clip's REAL duration — Kokoro dwells on
+     numbers naturally; the figures become beats without a fabricated ms */
+  const ws = [...el.querySelectorAll(".w")];
+  const total = ws.reduce((n, w) => n + w.textContent.length, 0) || 1;
+  let t = 0;
+  return ws.map(w => {
+    const span = dur * (w.textContent.length / total);
+    const win = { w, from: t, to: t + span };
+    t += span; return win;
+  });
+}
+function stopPlayback(){
+  if(S.audio){ try{ S.audio.pause(); }catch(e){} }
+  if(S.blob){ URL.revokeObjectURL(S.blob); S.blob = null; }
+  cancelAnimationFrame(S.beamRaf); S.beamRaf = 0;
+  S.audio = null; S.playingRow = 0;
+  arc("arc", false); deadAir(); stateWord();
+}
+async function hearRow(m, el, isArrival){
+  /* three-gate law rides the caller for arrivals; a ▶ tap is the gesture gate */
+  stopPlayback();
+  let obj = await fetchVoice(m.id);
+  if(!obj && isArrival){
+    /* the row lands before the WAV finishes cutting (~5s of synth trails the
+       write) — an arrival waits for its voice a few beats before conceding */
+    for(let i = 0; i < 4 && !obj; i++){
+      await new Promise(res => T.push(setTimeout(res, 2200)));
+      obj = await fetchVoice(m.id);
+    }
+    if(!obj){ markDone(el); return; }   // the text stands; no consolation beep
+  }
+  if(!obj){ toast("no voice for this row — the text is the record"); return; }
+  if(isArrival && !muted()){
+    const grains = squelchTail();          // the channel opens…
+    spikeRun(grains);
+    await new Promise(res => T.push(setTimeout(res, 190)));  // tail + the cut
+  }
+  const a = new Audio(obj);
+  S.audio = a; S.blob = obj; S.playingRow = m.id;
+  try{
+    if("mediaSession" in navigator){
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: "ATLAS", artist: "SIDE CHANNEL · ALMANAC" });
+      navigator.mediaSession.setActionHandler("play",  () => a.play());
+      navigator.mediaSession.setActionHandler("pause", () => a.pause());
+    }
+  }catch(e){}
+  if(muted()){ settleRow(m, el, a); URL.revokeObjectURL(obj); S.blob=null; return; }
+  try{ await a.play(); }catch(e){
+    /* autoplay refused (no gesture yet) — the row stands, ▶ is the door */
+    stopPlayback(); markDone(el); return;
+  }
+  arc("arc", true); stateWord("SPEAKING");
+  const bd = el.querySelector(".bd");
+  const wins = reduce() ? [] : wordTimes(bd, 0);  // filled once duration is known
+  const paint = () => {
+    if(!S.audio || S.audio !== a) return;
+    const t = a.currentTime, dur = a.duration || 0;
+    if(dur && !wins.length && !reduce()) wins.push(...wordTimes(bd, dur));
+    if(reduce()){ bd.querySelectorAll(".w").forEach(w => w.classList.add("lit")); }
+    else{
+      for(const win of wins){
+        const on = t >= win.from;
+        win.w.classList.toggle("lit", on);
+        win.w.classList.toggle("now", on && t < win.to);
+      }
+    }
+    drawPlayhead(m, a);
+    if(!a.paused && !a.ended) S.beamRaf = requestAnimationFrame(paint);
+  };
+  S.beamRaf = requestAnimationFrame(paint);
+  a.addEventListener("ended", () => {
+    T.push(setTimeout(() => { settleRow(m, el, a); stopPlayback(); }, 240));
+  }, { once:true });
+}
+function markDone(el){ el.classList.add("done"); el.querySelectorAll(".w").forEach(w => { w.classList.add("lit"); w.classList.remove("now"); }); }
+async function settleRow(m, el, a){
+  /* SETTLE-TO-TAPE: the exchange is now tape you can see */
+  markDone(el);
+  const dur = a && a.duration;
+  if(dur){ const who = el.querySelector(".who"); if(who) who.textContent = stampFor(m, dur); }
+  try{
+    if(!S.peaks.has(m.id) && S.blob){
+      const buf = await (await fetch(S.blob)).arrayBuffer();
+      const oc = new OfflineAudioContext(1, 16000, 16000);
+      const dec = await oc.decodeAudioData(buf.slice(0));
+      const ch = dec.getChannelData(0), n = 180, out = new Array(n).fill(0);
+      const step = Math.max(1, Math.floor(ch.length / n));
+      for(let i = 0; i < n; i++){
+        let mx = 0;
+        for(let j = i*step; j < Math.min(ch.length, (i+1)*step); j += 16)
+          mx = Math.max(mx, Math.abs(ch[j]));
+        out[i] = mx;
+      }
+      S.peaks.set(m.id, out);
+    }
+  }catch(e){}
+  const pk = S.peaks.get(m.id);
+  if(pk && !el.querySelector(".sc-tape")){
+    const cv = document.createElement("canvas");
+    cv.className = "sc-tape"; cv.width = 360; cv.height = 12;
+    const g = cv.getContext("2d"); g.fillStyle = "#5E6870";
+    pk.forEach((v, i) => { const h = 1 + v*10; g.fillRect(i*2, (12-h)/2, 1.4, h); });
+    el.querySelector(".bd").after(cv);
+  }
+  heard();
+}
+function drawPlayhead(m, a){
+  const pk = S.peaks.get(m.id);
+  const [g, w, h] = traceCtx();
+  g.clearRect(0,0,w,h);
+  const dur = a.duration || 1, frac = Math.min(1, a.currentTime / dur);
+  if(pk){
+    /* the answer's real peaks scroll past a fixed playhead */
+    const px = w*.5;
+    pk.forEach((v, i) => {
+      const x = px + (i/pk.length - frac) * w * .9;
+      if(x < 0 || x > w) return;
+      const sh = 2 + v*(h-8);
+      g.fillStyle = i/pk.length <= frac ? "rgba(198,212,228,.7)" : "rgba(94,104,112,.5)";
+      g.fillRect(x, (h-sh)/2, 1.6, sh);
+    });
+    g.fillStyle = "rgba(233,237,240,.9)"; g.fillRect(px, 3, 1, h-6);
+  }else{
+    g.fillStyle = "rgba(198,212,228,.6)";
+    g.fillRect(0, h/2, w*frac, 1.5);
+  }
+}
+/* peaks may not exist until first decode — kick a decode as soon as playback starts */
+async function primePeaks(m){
+  if(S.peaks.has(m.id) || !S.blob) return;
+  try{
+    const buf = await (await fetch(S.blob)).arrayBuffer();
+    const oc = new OfflineAudioContext(1, 16000, 16000);
+    const dec = await oc.decodeAudioData(buf.slice(0));
+    const ch = dec.getChannelData(0), n = 180, out = new Array(n).fill(0);
+    const step = Math.max(1, Math.floor(ch.length / n));
+    for(let i = 0; i < n; i++){
+      let mx = 0;
+      for(let j = i*step; j < Math.min(ch.length, (i+1)*step); j += 16)
+        mx = Math.max(mx, Math.abs(ch[j]));
+      out[i] = mx;
+    }
+    S.peaks.set(m.id, out);
+  }catch(e){}
+}
+
+/* ══ the dead-air watch — the honest clock, the follow, the arrival ══ */
+function stateWord(w){
+  const el = $("state");
+  if(w){ el.textContent = w; return; }
+  if(S.waiting){
+    el.textContent = `ATL HAS THE MIC · ${mmss((Date.now() - S.waiting.t0)/1000)}`;
+  }else el.textContent = "QUIET";
+}
+function clearWait(){
+  if(!S.waiting) return;
+  clearInterval(S.waiting.clockT); clearTimeout(S.waiting.followT);
+  S.waiting = null; arc("atl", false); stateWord();
+  releaseWake();
+}
+function startWait(sayId){
+  clearWait();
+  S.waiting = { sayId, t0: Date.now(), clockT: 0, followT: 0 };
+  arc("atl", true); stateWord(); deadAir();
+  S.waiting.clockT = setInterval(stateWord, 1000);
+  holdWake();
+  follow();
+}
+function follow(){
+  if(!S.waiting) return;
+  if(Date.now() - S.waiting.t0 > 360000){ clearWait(); return; }   // 6-min cap
+  S.waiting.followT = setTimeout(async () => {
+    if(!S.waiting) return;
+    if(document.visibilityState !== "visible"){ follow(); return } // clock keeps true time
+    try{
+      const d = await grab(`/api/threads/${S.run}/messages`);
+      const known = new Set(S.msgs.map(m => m.id));
+      const fresh = (d.messages || []).filter(m => !known.has(m.id));
+      const landed = fresh.find(m => m.sender === "operation" && m.id > S.waiting.sayId);
+      if(landed){
+        const sayId = S.waiting.sayId; clearWait();
+        for(const m of fresh) appendTurn(m);
+        const el = $("wire").querySelector(`[data-id="${landed.id}"]`);
+        if(landed.kind === "answer" && el && document.visibilityState === "visible"){
+          hearRow(landed, el, true).then(() => primePeaks(landed));  // THE BREAK
+        }
+        loadRuns();
+        return;
+      }
+    }catch(e){ /* the follow never breaks the room */ }
+    follow();
+  }, 5000);
+}
+let WAKE = null;
+async function holdWake(){ try{ WAKE = await navigator.wakeLock?.request("screen"); }catch(e){} }
+function releaseWake(){ try{ WAKE?.release(); }catch(e){} WAKE = null; }
+
+/* ══ HOLD TO KEY — the transmission (full latch: idempotent, aborted, wall-clocked) ══ */
+function wireKey(){
+  const btn = $("key"), rail = $("keyrail"), say = $("say");
+  let t0 = 0, T1 = 0, fired = false, key = null, ctrl = null;
+  const arm = e => {
+    e.preventDefault();
+    if(document.visibilityState !== "visible") return;
+    if(!say.value.trim()){ toast("nothing to key — the well is empty"); thud(); return; }
+    if(!S.run){ toast("tune to a run first — or start one"); return; }
+    btn.setPointerCapture?.(e.pointerId);
+    t0 = performance.now(); fired = false;
+    key = crypto.randomUUID ? crypto.randomUUID() : String(Math.random());
+    keyThump(); buzz([8]); document.body.classList.add("sc-keyed");
+    rail.animate({transform:["scaleX(0)","scaleX(1)"]},
+      {duration: reduce() ? 260 : 460, easing:"cubic-bezier(.22,.61,.36,1)", fill:"forwards"});
+    T1 = setTimeout(async () => {
+      if(performance.now() - t0 < (reduce() ? 240 : 440)) return;   // the wall clock decides
+      fired = true;
+      $("keycap").textContent = "KEYED";
+      const body = say.value.trim();
+      ctrl = new AbortController();
+      const abortT = setTimeout(() => ctrl.abort(), 9000);
+      try{
+        const r = await fetch(url(`/api/threads/${S.run}/say`), { method:"POST",
+          headers: hdr({"Content-Type":"application/json", "Idempotency-Key": key}),
+          body: JSON.stringify({ body }), signal: ctrl.signal });
+        clearTimeout(abortT);
+        const d = await r.json().catch(() => ({}));
+        if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
+        rogerBeep(); buzz([14,26,14]);
+        say.value = "";
+        appendTurn({ id: d.id, at: new Date().toISOString(), sender:"bryan",
+                     kind:"say", body, thread_id: S.run });
+        if(d.answering) startWait(d.id);
+        else toast("sent — but ATLAS could not take the mic; the turn stands");
+        loadRuns();
+      }catch(err){
+        clearTimeout(abortT);
+        btn.dataset.state = "refused"; thud(); buzz([12,70,12]);
+        toast((err.name === "AbortError" ? "nine seconds and no answer — " :
+               "the channel didn't take it — ") + "nothing was sent; your words stay in the well");
+        T.push(setTimeout(() => { delete btn.dataset.state; }, 500));
+      }finally{
+        $("keycap").textContent = "HOLD TO KEY";
+        rail.getAnimations().forEach(x => x.cancel()); rail.style.transform = "scaleX(0)";
+        document.body.classList.remove("sc-keyed");
+      }
+    }, reduce() ? 260 : 460);
+  };
+  const drop = () => {
+    clearTimeout(T1);
+    document.body.classList.remove("sc-keyed");
+    if(!fired){
+      rail.getAnimations().forEach(x => x.cancel()); rail.style.transform = "scaleX(0)";
+      if(t0 && performance.now() - t0 > 120)
+        toast("released before it keyed — nothing was sent. the key is held, not tapped.");
+      t0 = 0;
+    }
+  };
+  btn.addEventListener("pointerdown", arm);
+  ["pointerup","pointercancel"].forEach(ev => btn.addEventListener(ev, drop));
+  document.addEventListener("visibilitychange", () => { if(document.hidden) drop(); });
+}
+
+/* ══ HOLD TO TALK — his voice fills the rail; release → THE READ-BACK ══ */
+function wireTalk(){
+  const btn = $("talk"), rail = $("vurail"), say = $("say");
+  const stopTracks = () => {
+    if(!S.rec) return;
+    try{ S.rec.proc.disconnect(); }catch(e){}
+    try{ S.rec.src.disconnect(); }catch(e){}
+    try{ S.rec.stream.getTracks().forEach(t => t.stop()); }catch(e){}  // every path — a leaked pill reads as surveillance
+    try{ S.rec.ctx.close(); }catch(e){}
+    cancelAnimationFrame(S.vuRaf); S.vuRaf = 0;
+    rail.style.transform = "scaleX(0)"; deadAir();
+    btn.classList.remove("rec"); arc("you", false);
+    S.rec = null;
+  };
+  btn.addEventListener("pointerdown", async e => {
+    e.preventDefault();
+    if(S.rec || document.visibilityState !== "visible") return;
+    btn.setPointerCapture?.(e.pointerId);
+    let stream;
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ audio: {
+        channelCount:1, echoCancellation:true, noiseSuppression:true } });
+    }catch(err){
+      toast("the mic refused — the keyboard mic is the floor that never breaks");
+      thud(); return;
+    }
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const src = ctx.createMediaStreamSource(stream);
+    const proc = ctx.createScriptProcessor(4096, 1, 1);
+    const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
+    const mute = ctx.createGain(); mute.gain.value = 0;   // the zero-gain node is load-bearing
+    src.connect(analyser); src.connect(proc); proc.connect(mute).connect(ctx.destination);
+    const chunks = [];
+    proc.onaudioprocess = ev => chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0)));
+    S.rec = { stream, ctx, src, proc, analyser, chunks, t0: performance.now(), rate: ctx.sampleRate };
+    btn.classList.add("rec"); $("talkcap").textContent = "TAKING";
+    keyThump(); buzz([8]); arc("you", true);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const [g, w, h] = traceCtx(); let x = 0;
+    g.clearRect(0,0,w,h);
+    const vu = () => {
+      if(!S.rec) return;
+      analyser.getByteTimeDomainData(data);
+      let rms = 0; for(const v of data) rms += (v-128)*(v-128);
+      rms = Math.sqrt(rms/data.length)/128;
+      rail.style.transform = `scaleX(${Math.min(1, rms*6)})`;   /* his own voice fills the rail */
+      const sh = 2 + Math.min(1, rms*7)*(h-6);
+      g.fillStyle = "rgba(198,212,228,.6)";
+      g.fillRect(x % w, (h-sh)/2, 1.4, sh);
+      if(++x % w === 0) g.clearRect(0,0,w,h);
+      S.vuRaf = requestAnimationFrame(vu);
+    };
+    S.vuRaf = requestAnimationFrame(vu);
+  });
+  const finish = async () => {
+    const rec = S.rec; if(!rec) return;
+    const held = performance.now() - rec.t0;
+    $("talkcap").textContent = "HOLD TO TALK";
+    if(held < 400){
+      stopTracks();
+      toast("released before it keyed — the mic is held, not tapped.");
+      return;
+    }
+    const { chunks, rate } = rec;
+    stopTracks();
+    const n = chunks.reduce((s,c) => s + c.length, 0);
+    if(!n){ toast("the take carried nothing"); return; }
+    /* Float32 → Int16 RIFF WAV, client-side; downsample to 16k for the spine */
+    const flat = new Float32Array(n); let off = 0;
+    for(const c of chunks){ flat.set(c, off); off += c.length; }
+    const ratio = rate / 16000, m = Math.floor(n / ratio);
+    const pcm = new Int16Array(m);
+    for(let i = 0; i < m; i++){
+      const v = Math.max(-1, Math.min(1, flat[Math.floor(i*ratio)]));
+      pcm[i] = v < 0 ? v*0x8000 : v*0x7FFF;
+    }
+    const wav = new ArrayBuffer(44 + pcm.length*2), dv = new DataView(wav);
+    const ws = (o,s) => { for(let i=0;i<s.length;i++) dv.setUint8(o+i, s.charCodeAt(i)); };
+    ws(0,"RIFF"); dv.setUint32(4, 36 + pcm.length*2, true); ws(8,"WAVE");
+    ws(12,"fmt "); dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+    dv.setUint32(24,16000,true); dv.setUint32(28,32000,true); dv.setUint16(32,2,true);
+    dv.setUint16(34,16,true); ws(36,"data"); dv.setUint32(40, pcm.length*2, true);
+    new Int16Array(wav, 44).set(pcm);
+    $("talkcap").textContent = "READING…";
+    try{
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 30000);
+      const r = await fetch(url("/api/stt"), { method:"POST",
+        headers: hdr({"Content-Type":"audio/wav"}), body: wav, signal: ctrl.signal });
+      clearTimeout(t);
+      const d = await r.json().catch(() => ({}));
+      if(!r.ok || !d.text) throw new Error(d.error || "the spine has not answered with the transcript — your take was not kept");
+      /* THE READ-BACK: his words land selected; his send is a separate signed act */
+      say.value = (say.value ? say.value.replace(/\s*$/, " ") : "") + d.text;
+      say.focus(); say.select();
+      $("keycap").textContent = "READ IT BACK";
+      T.push(setTimeout(() => { $("keycap").textContent = "HOLD TO KEY"; }, 2600));
+      rogerBeep(); buzz([14,26,14]);
+    }catch(err){
+      thud(); toast(err.name === "AbortError"
+        ? "the transcriber ran past 30s — your take was not kept"
+        : (err.message || String(err)));
+    }finally{
+      $("talkcap").textContent = "HOLD TO TALK";
+    }
+  };
+  ["pointerup","pointercancel"].forEach(ev => btn.addEventListener(ev, finish));
+  document.addEventListener("visibilitychange", () => {
+    /* hidden = abort: a held take dies with the screen; the mic pill goes dark */
+    if(document.hidden && S.rec){ stopTracks(); $("talkcap").textContent = "HOLD TO TALK"; }
+  });
+  addEventListener("pagehide", stopTracks);
+}
+
+/* ══ the held micro-grammar on rows — visor pin (ATLAS) · →19 (his) ══ */
+function wireHold(el, m){
+  if(m.kind !== "answer" && m.kind !== "say") return;
+  let t = 0, t0 = 0;
+  el.addEventListener("pointerdown", e => {
+    if(e.target.closest(".play")) return;
+    t0 = performance.now();
+    t = setTimeout(async () => {
+      if(performance.now() - t0 < 440) return;      // the wall clock decides
+      buzz([14,26,14]);
+      if(m.kind === "answer"){
+        try{
+          const r = await fetch(url("/api/pins"), { method:"POST",
+            headers: hdr({"Content-Type":"application/json"}),
+            body: JSON.stringify({ fact: m.body.slice(0, 500), source_thread: S.run }) });
+          if(!r.ok) throw new Error("the spine answered " + r.status);
+          if(!el.querySelector(".sc-pin")) el.querySelector(".st").insertAdjacentHTML("beforeend",
+            `<svg class="sc-pin" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="none" stroke="#5E6870" stroke-width="1.4"/><path d="M3.2 6h5.6" stroke="#5E6870" stroke-width="1.4" transform="rotate(35 6 6)"/></svg>`);
+          toast("clipped to the visor — rides in every seat from here.");
+        }catch(err){ thud(); toast("not clipped — " + (err.message||err)); }
+      }else{
+        try{
+          const r = await fetch(url(`/api/messages/${m.id}/promote`), { method:"POST",
+            headers: hdr({"Content-Type":"application/json"}), body:"{}" });
+          const d = await r.json().catch(() => ({}));
+          if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
+          toast("on the channel — the next session reads it at kickoff.");
+        }catch(err){ thud(); toast("not promoted — " + (err.message||err)); }
+      }
+    }, 460);
+  });
+  ["pointerup","pointerleave","pointercancel"].forEach(ev =>
+    el.addEventListener(ev, () => clearTimeout(t)));
+}
+
+/* ══ the visor popover ══ */
+function wireVisor(){
+  $("visorbtn").addEventListener("click", async e => {
+    e.stopPropagation();
+    const v = $("visor");
+    if(!v.hidden){ v.hidden = true; return; }
+    try{
+      const d = await grab("/api/pins");
+      const rows = d.pins || [];
+      v.innerHTML = `<h3>THE VISOR — HIS HAND CLIPPED THESE</h3>` +
+        (rows.length ? rows.map(p =>
+          `<div class="pf"><span style="flex:1">${esc(p.fact)}</span>
+           <button data-un="${p.id}">UNCLIP</button></div>`).join("")
+        : `<div class="none">nothing clipped yet — hold an answer to fix it to the plate.</div>`);
+      v.hidden = false;
+      v.querySelectorAll("[data-un]").forEach(b => b.addEventListener("click", async () => {
+        await fetch(url(`/api/pins/${b.dataset.un}/unpin`), { method:"POST",
+          headers: hdr({"Content-Type":"application/json"}), body:"{}" }).catch(()=>{});
+        b.closest(".pf").remove();
+      }));
+    }catch(err){ toast("the visor did not answer — " + (err.message||err)); }
+  });
+  document.addEventListener("click", e => {
+    const v = $("visor");
+    if(!v.hidden && !v.contains(e.target) && e.target.id !== "visorbtn") v.hidden = true;
+  });
+}
+
+/* ══ boot ══ */
+$("door").addEventListener("click", () => { location.href = "desk.html"; });
+function connect(){
+  $("conn").hidden = false;
+  $("capi").value = API;
+  $("cgo").addEventListener("click", async () => {
+    const api = $("capi").value.trim().replace(/\/$/, ""), tok = $("ctok").value.trim();
+    try{
+      const r = await fetch(api + "/api/threads", { headers: { Authorization: "Bearer " + tok } });
+      if(!r.ok) throw new Error("the spine answered " + r.status);
+      localStorage.setItem("almanac_api", API = api);
+      localStorage.setItem("almanac_token", TOK = tok);
+      $("conn").hidden = true; boot();
+    }catch(err){ toast("not connected — " + (err.message||err)); }
+  });
+}
+async function boot(){
+  paintCarrierGlass();
+  try{
+    await loadRuns();
+    if(S.runs.length) await tune(S.runs[0].id);
+    else renderWire();
+  }catch(e){
+    if(TOK === "") return connect();
+    toast("the spine did not answer — " + (e.message||e));
+  }
+  stateWord();
+}
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden){
+    if(S.audio) S.audio.pause();     // the light freezes with the voice
+    releaseWake();
+  }else{
+    if(S.waiting) holdWake();
+    heard();
+  }
+});
+addEventListener("pagehide", () => {
+  T.forEach(clearTimeout); T.length = 0;
+  stopPlayback(); clearWait();
+  try{ AC && AC.close(); }catch(e){}
+});
+wireKey(); wireTalk(); wireVisor();
+if(TOK === "" && !API) connect(); else boot();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
