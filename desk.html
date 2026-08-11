@@ -150,7 +150,16 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .orb{transition:opacity .3s}
 .sysorb{transition:left .42s cubic-bezier(.22,.61,.36,1), top .42s cubic-bezier(.22,.61,.36,1), opacity .34s;
   z-index:5}
-@media (prefers-reduced-motion: reduce){ .orb,.sysorb{transition:none} }
+.orb.sysparent{transition:left .42s cubic-bezier(.22,.61,.36,1), top .42s cubic-bezier(.22,.61,.36,1), opacity .3s;
+  z-index:6}
+/* the orbit ring — a lane line, not a decoration; while his hand spins it,
+   the seats track the finger raw (no easing fighting the drag) */
+.sysring{position:absolute;transform:translate(-50%,-50%);border-radius:50%;
+  border:1px dashed rgba(198,212,228,.14);pointer-events:none;z-index:4;
+  transition:width .42s cubic-bezier(.22,.61,.36,1), height .42s cubic-bezier(.22,.61,.36,1)}
+#orbs.spinning .sysorb{transition:opacity .34s}
+.stage.insys{touch-action:none}
+@media (prefers-reduced-motion: reduce){ .orb,.sysorb,.sysparent,.sysring{transition:none} }
 .orb.active .ball{box-shadow:0 0 34px -4px rgba(var(--key),.95),inset 0 -10px 24px rgba(0,0,0,.5),
   inset 0 4px 10px rgba(255,255,255,.16),0 0 0 2px rgba(var(--key),.35)}
 
@@ -1226,16 +1235,31 @@ const D = [
    constellation itself is wayfinding, never a console. Tapping the parent
    again climbs back out. */
 const RSYS = [
-  {k:"CH 19",   hue:"255,164,25",  fx:30, fy:42, act:"room",
+  {k:"CH 19",   id:"ch19", hue:"255,164,25",  act:"room",
    why:"the channel — telemetry, held reads, the repeater strip"},
-  {k:"SIDE CH", hue:"198,212,228", fx:70, fy:42, act:"companion.html",
+  {k:"SIDE CH", id:"sidech", hue:"198,212,228", act:"companion.html",
    why:"the conversation — take it to 21"},
-  {k:"THE EAR", hue:"198,212,228", fx:30, fy:76, act:"ear.html",
+  {k:"THE EAR", id:"ear", hue:"198,212,228", act:"ear.html",
    why:"the diet's intake — what has been in your ears"},
-  {k:"REPEATER",hue:"255,164,25",  fx:70, fy:76, act:"room",
+  {k:"REPEATER",id:"rep", hue:"255,164,25",  act:"room",
    why:"the glasses lane — its controls live on CH 19"}
 ];
 let SYS = false;
+/* the orbit: he SPINS the children around the parent star to reach one, and
+   each orb's SIZE is earned by his own hand — a per-device count of every
+   time he takes that door (his ask, 2026-08-11). */
+const SPIN = { base: -Math.PI/2, moved: false, movedT: 0 };
+function sysUse(){
+  try{ return JSON.parse(localStorage.getItem("almanac.radio.use") || "{}"); }
+  catch(e){ return {}; }
+}
+function bumpUse(id){
+  const u = sysUse(); u[id] = (u[id] || 0) + 1;
+  localStorage.setItem("almanac.radio.use", JSON.stringify(u));
+}
+function spinGuard(){ return SPIN.moved && performance.now() - SPIN.movedT < 300; }
+function sysCenter(){ return { x: innerWidth/2, y: fieldH()*0.48 }; }
+function sysRadius(){ return Math.max(140, Math.min(250, Math.min(innerWidth, fieldH())*0.30)); }
 const field = $("field"), host = $("orbs");
 D.forEach((o,i) => {
   const el = document.createElement("div");
@@ -1263,6 +1287,7 @@ function layout(){
   const W = innerWidth, H = fieldH();
   field.style.height = H + "px";
   D.forEach((o,i) => {
+    if(SYS && !entered && o.room === "radio") return;   // the sun holds its seat
     const r = entered ? (H <= 60 ? 26 : H <= 68 ? 30 : 34) : o.r;
     const b = o.el.querySelector(".ball");
     b.style.width = r + "px"; b.style.height = r + "px";
@@ -1297,6 +1322,7 @@ function layout(){
    balls shrink rather than the labels colliding — unreadable is a failure,
    smaller is not. */
 function separate(){
+  if(SYS) return;   // the constellation owns the sky; the frozen field waits
   const W = innerWidth, H = fieldH(), GAP = 14, EDGE = 6;
   const box = D.map(o => ({ w: o.el.offsetWidth, h: o.el.offsetHeight }));
   if(box.some(b => !b.w || !b.h)) return;   // not laid out yet; paintField re-runs this
@@ -1506,6 +1532,7 @@ function paintConsider(){
 
 /* ── entering a domain ────────────────────────────────────────────── */
 function enter(i, direct){
+  if(spinGuard()) return;   // a spin's release is not a tap
   if(SYS && D[i].room !== "radio") closeSys(true);
   if(D[i].room === "radio" && !direct){ SYS ? closeSys() : openSys(); return; }
   if(SYS) closeSys(true);
@@ -1527,13 +1554,26 @@ $("home").addEventListener("click", () => {
   history.replaceState(null, "", location.pathname + location.search);
 });
 
-/* ── THE RADIO SYSTEM (card #93) — fall in, climb out ─────────────────── */
+/* ── THE RADIO SYSTEM (card #93) — the parent becomes the sun ──────────
+   His refinement 2026-08-11: the children ORBIT the radio orb like the main
+   field orbits the spine; he spins the ring to reach one; each orb's size is
+   earned by his own usage of that door. */
+let RING = null;
 function openSys(){
   if(SYS) return;
   SYS = true;
   stage.classList.add("insys");
-  D[2].el.classList.add("active");
-  const R = D[2];
+  const P = D[2];
+  P.el.classList.add("active", "sysparent");
+  const c = sysCenter();
+  P.el.style.left = c.x + "px"; P.el.style.top = c.y + "px";
+  /* the orbit ring — the spin's affordance, faint as a lane line */
+  RING = document.createElement("div");
+  RING.className = "sysring";
+  host.appendChild(RING);
+  /* size is EARNED: 40px floor, +36px by his relative usage of the door */
+  const use = sysUse();
+  const mx = Math.max(1, ...RSYS.map(o => use[o.id] || 0));
   RSYS.forEach(o => {
     const el = document.createElement("div");
     el.className = "orb sysorb"; el.title = o.why;
@@ -1544,29 +1584,28 @@ function openSys(){
          inset 0 5px 12px rgba(255,255,255,.12)">
          <div class="fig"><div><span class="n">—</span><span class="u"></span></div></div>
        </div><div class="name">${o.k}</div><div class="sig">&#8230;</div>`;
-    /* born at the parent star, then flown to its seat — the field's own idiom.
-       PIXELS, same math as layout(): the orbs host is not the field box, so
-       percentages resolve against the wrong element (first-paint lesson). */
-    el.style.left = (R.fx/100*innerWidth) + "px";
-    el.style.top  = (R.fy/100*fieldH()) + "px";
+    el.style.left = c.x + "px"; el.style.top = c.y + "px";
     el.style.opacity = "0";
     el.addEventListener("click", e => {
       e.stopPropagation();
+      if(spinGuard()) return;          // the spin's release is not a tap
+      bumpUse(o.id);                   // the door remembers his hand — size is earned
       if(o.act === "room"){ closeSys(true); enter(2, true); }
       else location.href = o.act;
     });
     host.appendChild(el);
     o.el = el;
     const b = el.querySelector(".ball");
-    b.style.width = b.style.height = "58px";
+    const r = 40 + Math.round(36 * ((use[o.id] || 0) / mx));
+    b.style.width = b.style.height = r + "px";
   });
-  /* seats are set SYNCHRONOUSLY — a hidden document never fires rAF (the
-     preview pane taught this), and position must not hang on a frame that
-     might not come. The forced reflow makes the transition ride for free. */
+  /* seats set SYNCHRONOUSLY — a hidden document never fires rAF (the preview
+     pane taught this); the forced reflow lets the transition ride for free */
   void host.offsetWidth;
   layoutSys();
   RSYS.forEach(o => { if(o.el) o.el.style.opacity = "1"; });
   $("consider").classList.add("dim");
+  wireSpin();
   paintSys();
   /* the repeater's truth rides in when asked — never blocks the fall */
   grab("/api/glasses").then(g => { State.glasses = g; paintSys(); }).catch(()=>{});
@@ -1576,14 +1615,76 @@ function closeSys(silent){
   SYS = false;
   stage.classList.remove("insys");
   $("consider").classList.remove("dim");
-  if(ACTIVE === null) D[2].el.classList.remove("active");
+  unwireSpin();
+  const P = D[2];
+  if(ACTIVE === null) P.el.classList.remove("active");
   RSYS.forEach(o => { o.el && o.el.remove(); o.el = null; });
+  if(RING){ RING.remove(); RING = null; }
+  layout();   // the parent star glides home (sysparent's transition carries it)
+  setTimeout(() => P.el.classList.remove("sysparent"), 460);
 }
 function layoutSys(){
   if(!SYS) return;
-  RSYS.forEach(o => { if(!o.el) return;
-    o.el.style.left = (o.fx/100*innerWidth) + "px";
-    o.el.style.top  = (o.fy/100*fieldH()) + "px"; });
+  const c = sysCenter(), R = sysRadius();
+  const P = D[2];
+  P.el.style.left = c.x + "px"; P.el.style.top = c.y + "px";
+  if(RING){
+    RING.style.left = c.x + "px"; RING.style.top = c.y + "px";
+    RING.style.width = RING.style.height = (R*2) + "px";
+  }
+  RSYS.forEach((o, i) => { if(!o.el) return;
+    const th = SPIN.base + i * (Math.PI*2/RSYS.length);
+    o.el.style.left = (c.x + R*Math.cos(th)) + "px";
+    o.el.style.top  = (c.y + R*Math.sin(th)) + "px"; });
+}
+/* the spin: drag anywhere on the field while the system is open; the ring
+   follows his hand and snaps to the nearest seat on release. A tap is a tap
+   — under 10px of travel never becomes a spin. */
+const DRAG = { on:false, id:0, a0:0, b0:0, x0:0, y0:0 };
+function spinAngle(e){
+  const c = sysCenter();
+  const r = field.getBoundingClientRect();
+  return Math.atan2((e.clientY - r.top) - c.y, e.clientX - c.x);
+}
+function spinDown(e){
+  if(!SYS) return;
+  DRAG.on = true; DRAG.id = e.pointerId;
+  DRAG.a0 = spinAngle(e); DRAG.b0 = SPIN.base;
+  DRAG.x0 = e.clientX; DRAG.y0 = e.clientY;
+}
+function spinMove(e){
+  if(!DRAG.on || e.pointerId !== DRAG.id) return;
+  const moved = Math.hypot(e.clientX - DRAG.x0, e.clientY - DRAG.y0);
+  if(moved < 10 && !SPIN.moved) return;
+  if(!SPIN.moved){ SPIN.moved = true; host.classList.add("spinning"); }
+  SPIN.movedT = performance.now();
+  SPIN.base = DRAG.b0 + (spinAngle(e) - DRAG.a0);
+  layoutSys();
+}
+function spinUp(e){
+  if(!DRAG.on || e.pointerId !== DRAG.id) return;
+  DRAG.on = false;
+  if(SPIN.moved){
+    SPIN.movedT = performance.now();
+    host.classList.remove("spinning");
+    const step = Math.PI*2/RSYS.length;
+    SPIN.base = Math.round((SPIN.base + Math.PI/2)/step)*step - Math.PI/2;  // snap to seats
+    layoutSys();
+    setTimeout(() => { SPIN.moved = false; }, 300);
+  }
+}
+function wireSpin(){
+  field.addEventListener("pointerdown", spinDown);
+  addEventListener("pointermove", spinMove);
+  addEventListener("pointerup", spinUp);
+  addEventListener("pointercancel", spinUp);
+}
+function unwireSpin(){
+  field.removeEventListener("pointerdown", spinDown);
+  removeEventListener("pointermove", spinMove);
+  removeEventListener("pointerup", spinUp);
+  removeEventListener("pointercancel", spinUp);
+  SPIN.moved = false;
 }
 function paintSys(){
   if(!SYS) return;
