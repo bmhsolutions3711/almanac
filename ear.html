@@ -47,8 +47,11 @@ body{background:var(--void);color:var(--ink);font-family:var(--sans);
   padding:9px 12px;cursor:pointer;min-height:40px}
 .door:hover{color:var(--ink)}
 
-.stagewrap{flex:1;display:grid;place-items:center;width:100%}
-.stage{display:flex;flex-direction:column;align-items:center;gap:16px}
+/* top-stacked (his eye, from the mount): orb up top, and the trail owns
+   every remaining pixel of the screen */
+.stagewrap{flex:1;display:flex;justify-content:center;width:100%;min-height:0}
+.stage{display:flex;flex-direction:column;align-items:center;gap:14px;
+  width:100%;min-height:0;padding-top:10px}
 /* the one control — as big as a coaster, mute-in-a-glance */
 /* the ball is an ORB — the desk's own glass recipe, in moonglass. OFF is a
    dark sphere at rest; ON it lights from within like the field's planets. */
@@ -75,7 +78,7 @@ body{background:var(--void);color:var(--ink);font-family:var(--sans);
 /* the trail — what the ear actually wrote down, take by take. Newest rides
    the bottom edge (column-reverse pins it, zero scroll JS); scroll up for
    the day. ~5 lines on the glass. */
-.feed{width:min(92vw,680px);max-height:16em;overflow-y:auto;display:flex;
+.feed{width:min(92vw,680px);flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;
   flex-direction:column-reverse;gap:7px;scrollbar-width:none;
   -webkit-mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 22px),transparent 100%);
           mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 22px),transparent 100%)}
