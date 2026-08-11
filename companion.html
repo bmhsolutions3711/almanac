@@ -196,6 +196,7 @@ body.sc-keyed .sc-wire,body.sc-keyed .sc-rail{opacity:.55;transition:opacity .28
       <path class="arc" d="M7 9a8.5 8.5 0 0 1 14 0"/>
     </svg>
     <span class="sc-state" id="state">QUIET</span>
+    <button class="sc-visorbtn" id="earbtn" title="the diet's intake — its own instrument, one tap away">EAR</button>
     <button class="sc-visorbtn" id="visorbtn" title="the facts his hand clipped">VISOR</button>
     <button class="sc-door" id="door" title="back to the desk">◂ THE DESK</button>
   </div>
@@ -1005,6 +1006,7 @@ function wireVisor(){
 
 /* ══ boot ══ */
 $("door").addEventListener("click", () => { location.href = "desk.html"; });
+$("earbtn").addEventListener("click", () => { location.href = "ear.html"; });   // a door, not a verb
 function connect(){
   $("conn").hidden = false;
   $("capi").value = API;

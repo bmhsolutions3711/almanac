@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Almanac — the cab ear</title>
+<meta name="theme-color" content="#07080A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.png" type="image/png">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE CAB EAR — card #92. The diet's instrument.
+
+   What has been in his ears is the input stream behind his thinking — this
+   page is the intake. ON, it listens to the cab continuously, ships each
+   take to the spine, the spine keeps the HEARD WORDS and destroys the audio
+   in the same request. Nothing is ever stored as sound, here or there.
+
+   It is its own page ON PURPOSE: the side channel keeps its one-verb law
+   (talk), and this instrument keeps its own — LISTEN. One giant tap arms
+   it; the same tap is the mute a broker call needs. The mic pill showing is
+   honest: it IS listening, and it says so as big as the screen.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  --void:#07080A; --glass:rgba(30,36,44,.86); --line:rgba(150,170,190,.15);
+  --ink:#E9EDF0; --mid:#AEB8C0; --dim:#8B96A0; --etch:#5E6870; --hot:#FF3B18;
+  --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --key:198,212,228;
+}
+[hidden]{display:none !important}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--void);color:var(--ink);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;overflow:hidden;user-select:none;-webkit-user-select:none}
+.shell{height:100svh;display:flex;flex-direction:column;align-items:center;
+  padding:max(12px,env(safe-area-inset-top)) 16px max(12px,env(safe-area-inset-bottom))}
+.mast{width:100%;max-width:640px;display:flex;align-items:baseline;gap:12px}
+.kick{font:700 10px/1 var(--mono);letter-spacing:.24em;color:var(--dim)}
+.head{font:700 21px/1 var(--sans);letter-spacing:.02em;text-transform:uppercase;
+  text-shadow:0 0 28px rgba(var(--key),.45)}
+.mast .sp{flex:1}
+.door{font:700 10px/1 var(--mono);letter-spacing:.13em;color:var(--mid);
+  background:var(--glass);border:1px solid var(--line);border-radius:4px;
+  padding:9px 12px;cursor:pointer;min-height:40px}
+.door:hover{color:var(--ink)}
+
+.stagewrap{flex:1;display:grid;place-items:center;width:100%}
+.stage{display:flex;flex-direction:column;align-items:center;gap:26px}
+/* the one control — as big as a coaster, mute-in-a-glance */
+.big{width:min(62vw,300px);aspect-ratio:1;border-radius:50%;cursor:pointer;
+  border:2px solid var(--line);background:radial-gradient(circle at 38% 32%,rgba(150,170,190,.10),rgba(0,0,0,.35));
+  display:grid;place-items:center;position:relative;touch-action:manipulation}
+.big .ring{position:absolute;inset:-2px;border-radius:50%;border:2px solid rgba(var(--key),.0);
+  transform:scale(1);pointer-events:none}
+.big.on{border-color:rgba(var(--key),.65)}
+.big.on .ring{border-color:rgba(var(--key),.5)}
+.big .st{font:700 13px/1.5 var(--mono);letter-spacing:.2em;color:var(--dim);text-align:center}
+.big.on .st{color:rgb(var(--key))}
+.counts{font:600 11.5px/1.8 var(--mono);letter-spacing:.1em;color:var(--dim);
+  text-align:center;font-variant-numeric:tabular-nums slashed-zero}
+.counts b{color:var(--ink);font-weight:600}
+.last{max-width:min(86vw,600px);font:400 13.5px/1.6 var(--sans);color:var(--dim);
+  font-style:italic;text-align:center;min-height:3.2em;overflow-wrap:anywhere}
+.last b{color:var(--mid);font-style:normal}
+.law{font:600 8.5px/1.7 var(--mono);letter-spacing:.16em;color:var(--etch);text-align:center;
+  max-width:92vw}
+.toast{position:fixed;left:50%;bottom:24px;translate:-50% 0;background:var(--glass);
+  border:1px solid var(--line);border-radius:5px;color:var(--ink);
+  font:600 12px/1.4 var(--sans);padding:10px 16px;opacity:0;pointer-events:none;
+  transition:opacity .25s;z-index:60;max-width:86vw;text-align:center}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion: reduce){ .big .ring{transition:none} }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="mast">
+    <div>
+      <div class="kick">THE DIET · INTAKE</div>
+      <div class="head">The Cab Ear</div>
+    </div>
+    <span class="sp"></span>
+    <button class="door" id="tosc">◂ SIDE CH</button>
+    <button class="door" id="todesk">◂ THE DESK</button>
+  </div>
+  <div class="stagewrap"><div class="stage">
+    <button class="big" id="big"><span class="ring" id="ring"></span>
+      <span class="st" id="bst">OFF<br>TAP TO LISTEN</span></button>
+    <div class="counts" id="counts">the ear is off — nothing is heard, nothing is kept</div>
+    <div class="last" id="last"></div>
+    <div class="law">WORDS ARE KEPT · AUDIO IS DESTROYED ON ARRIVAL · A CALL TAKING THE SCREEN KILLS THE MIC · THE SAME TAP IS THE MUTE</div>
+  </div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let API = localStorage.getItem("almanac_api") || "";
+let TOK = localStorage.getItem("almanac_token") || "";
+const url = p => (API || "") + p;
+const hdr = x => Object.assign({ Authorization: "Bearer " + TOK }, x || {});
+let toastT = 0;
+function toast(m){ const el = $("toast"); el.textContent = m; el.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 3200); }
+
+/* ── the ear ── */
+const E = { on:false, stream:null, mr:null, cycleT:0, wake:null,
+            takes:0, kept:0, bytes:0, fails:0, ac:null, an:null, vuRaf:0 };
+const TAKE_MS = 20000;                    // one take = 20s; back-to-back = continuous
+const FLAG = "almanac.sc.ear";            // his standing intent survives a reload
+
+function paint(){
+  $("big").classList.toggle("on", E.on);
+  $("bst").innerHTML = E.on ? "LISTENING<br>TAP = MUTE" : "OFF<br>TAP TO LISTEN";
+  $("counts").textContent = E.on || E.takes
+    ? `${E.takes} takes · ${E.kept} kept · ${(E.bytes/1048576).toFixed(1)} MB shipped`
+      + (E.fails ? ` · ${E.fails} failed` : "")
+    : "the ear is off — nothing is heard, nothing is kept";
+}
+async function post(blob){
+  E.takes++; E.bytes += blob.size;
+  try{
+    const r = await fetch(url("/api/listening/sample"), { method:"POST",
+      headers: hdr({ "Content-Type": blob.type || "audio/webm", "X-Device": "fold7-ear" }),
+      body: blob });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
+    if(d.kept){
+      E.kept++;
+      const row = await fetch(url("/api/listening?days=1"), { headers: hdr() })
+        .then(x => x.json()).catch(() => null);
+      const mine = row && (row.rows || []).find(m => m.source === "cab-ear");
+      if(mine) $("last").innerHTML = `<b>last kept:</b> “${(mine.album || mine.title)
+        .replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}”`;
+    }
+  }catch(err){
+    E.fails++;
+    /* the ear survives a bad POST — count it, keep listening, say it once */
+    if(E.fails === 1 || E.fails % 10 === 0) toast("a take was lost — " + (err.message || err));
+  }
+  paint();
+}
+function cycle(){
+  /* restart per take so every blob is a complete, standalone file — a
+     timesliced MediaRecorder emits headerless fragments after the first */
+  if(!E.on || !E.stream) return;
+  const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+    ? "audio/webm;codecs=opus"
+    : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus") ? "audio/ogg;codecs=opus" : "";
+  const mr = new MediaRecorder(E.stream, mime ? { mimeType: mime, audioBitsPerSecond: 24000 } : {});
+  E.mr = mr;
+  mr.addEventListener("dataavailable", ev => { if(ev.data && ev.data.size > 2048) post(ev.data); });
+  mr.addEventListener("stop", () => { if(E.on) cycle(); });
+  mr.start();
+  E.cycleT = setTimeout(() => { try{ mr.state !== "inactive" && mr.stop(); }catch(e){} }, TAKE_MS);
+}
+async function arm(){
+  if(E.on) return;
+  try{
+    E.stream = await navigator.mediaDevices.getUserMedia({ audio: {
+      channelCount:1, echoCancellation:false, noiseSuppression:false } });
+  }catch(err){ toast("the mic refused — the ear stays off"); return; }
+  E.on = true; localStorage.setItem(FLAG, "1");
+  try{ E.wake = await navigator.wakeLock?.request("screen"); }catch(e){}
+  /* the ring breathes with the ROOM's real level — a measurement, not a mood */
+  try{
+    E.ac = new (window.AudioContext||window.webkitAudioContext)();
+    const src = E.ac.createMediaStreamSource(E.stream);
+    E.an = E.ac.createAnalyser(); E.an.fftSize = 512;
+    src.connect(E.an);
+    const data = new Uint8Array(E.an.frequencyBinCount);
+    const vu = () => {
+      if(!E.on) return;
+      E.an.getByteTimeDomainData(data);
+      let rms = 0; for(const v of data) rms += (v-128)*(v-128);
+      rms = Math.sqrt(rms/data.length)/128;
+      $("ring").style.transform = `scale(${1 + Math.min(.09, rms*.9)})`;
+      E.vuRaf = requestAnimationFrame(vu);
+    };
+    E.vuRaf = requestAnimationFrame(vu);
+  }catch(e){}
+  cycle(); paint();
+}
+function disarm(silent, keepFlag){
+  if(!keepFlag) localStorage.removeItem(FLAG);
+  if(!E.on){ paint(); return; }
+  E.on = false;
+  clearTimeout(E.cycleT);
+  try{ E.mr && E.mr.state !== "inactive" && E.mr.stop(); }catch(e){}
+  E.mr = null;
+  try{ E.stream && E.stream.getTracks().forEach(t => t.stop()); }catch(e){}
+  E.stream = null;
+  cancelAnimationFrame(E.vuRaf); E.vuRaf = 0;
+  try{ E.ac && E.ac.close(); }catch(e){} E.ac = null;
+  try{ E.wake?.release(); }catch(e){} E.wake = null;
+  $("ring").style.transform = "scale(1)";
+  paint();
+  if(!silent) toast("the ear is off — nothing is being heard");
+}
+$("big").addEventListener("click", () => { E.on ? disarm() : arm(); });
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden){
+    /* a call (or any app) taking the screen kills the mic — but his standing
+       intent survives: the ear re-arms when the page is his screen again */
+    if(E.on){ disarm(true, true); E.resume = true; }
+  }else if(E.resume && localStorage.getItem(FLAG) === "1"){
+    E.resume = false; arm();
+  }
+});
+addEventListener("pagehide", () => disarm(true, true));
+$("tosc").addEventListener("click", () => { location.href = "companion.html"; });
+$("todesk").addEventListener("click", () => { location.href = "desk.html"; });
+/* his standing intent: if the ear was on when this page last closed, it
+   comes back on with the page — mounted in the truck, that is the whole job */
+if(localStorage.getItem(FLAG) === "1") arm();
+paint();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
