@@ -1448,19 +1448,28 @@ function whyBar(){
     It goes cold when they do.</span></div>`;
 }
 
+/* HOW MANY THINGS CAN ACTUALLY BE SETTLED — one home, because three sites
+   each deriving it is how the same page ended up saying 16 and 2 for one
+   idea (audit 2026-08-11). counts.standing is the length of a MIXED list:
+   bills, down services, and board rulings injected as kind='rule'. The
+   rulings and services carry settleable:false; a real bill carries no flag
+   at all, so the test is "not false" and never "=== true". A ruling cannot
+   be paid by dragging a bank row — it has no bank row. Returns null when
+   the spine has not answered, so callers can render "—" instead of a zero
+   that looks like good news. */
+function settleableCount(s){
+  return s && s.standings
+    ? s.standings.filter(x => x.settleable !== false).length
+    : null;
+}
+
 /* ── the field's signals — every one of them served ───────────────── */
 function paintField(){
   const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
   const b = State.board, s = State.standings, r = State.radio, l = State.learn, d = State.soul;
   const qa = b ? b.cards.filter(c => c.column_name === "qa").length : null;
   const open = b ? b.cards.filter(c => c.column_name !== "done").length : null;
-  /* settleables ONLY — counts.standing lumps in rulings and down services,
-     and 14 rulings wearing "TO SETTLE" is the partial-count lie again
-     (review of #84). settleable is explicitly false on those; bills carry
-     no flag at all, so the test is "not false". */
-  const needs = s && s.standings
-    ? s.standings.filter(x => x.settleable !== false).length
-    : null;
+  const needs = settleableCount(s);
   const sig = [
     p.to_go == null ? ["——","",'<span style="color:var(--unknown)">not enough is known</span>']
       : p.to_go > 0 ? [short(p.to_go),"TO GO",`<b class="h">${money(p.to_go)}</b> TO GO`]
@@ -1475,7 +1484,12 @@ function paintField(){
      whole system: the channel's unread + the side channel's unheard */
   (() => { const sc = State.sidech, r = State.radio;
     const un = sc ? (sc.runs||[]).reduce((n,t)=>n+(t.unheard||0),0) : null;
-    if(r == null && sc == null) return;
+    /* EITHER producer missing means the rollup is unknowable, not smaller
+       (audit 2026-08-11): with && , one dead fetch rendered r.unread + 0 as a
+       confident whole and OVERWROTE the honest "— · spine unavailable" the
+       line above already computed. Every sibling orb renders "—" when its
+       producer is null; the parent star was the only one that faked it. */
+    if(r == null || sc == null) return;
     const tot = (r ? r.unread : 0) + (un ?? 0);
     sig[2] = [String(tot), "TO HEAR",
       `<b>${r ? r.unread : "—"}</b> CH 19 · <b>${un ?? "—"}</b> CH 21 · THE RADIO SYSTEM`];
@@ -1529,8 +1543,9 @@ function paintConsider(){
     pick = { q: `${qa.length} card${qa.length===1?"":"s"} ${qa.length===1?"is":"are"} in QA waiting for your hand.`,
       rz: `${qa.map(c => "#"+c.id).join(", ")} — shipped and verified. Nothing closes until you approve it, so they wait as long as it takes.`,
       go: "GO TO QA", i: 1 };
-  } else if(s && s.counts && s.counts.standing > 0){
-    pick = { q: `${s.counts.standing} obligation${s.counts.standing===1?"":"s"} need your hand.`,
+  } else if(settleableCount(s) > 0){
+    const nSet = settleableCount(s);
+    pick = { q: `${nSet} obligation${nSet===1?"":"s"} need your hand.`,
       rz: `Each one is paid on the floor — drag the bank row that paid it into MONTHLY.`, go: "OPEN THE LEDGER", i: 3 };
   } else if(l && (l.open||[]).length){
     pick = { q: l.open[0].question,
@@ -1888,7 +1903,7 @@ function standingRoom(){
         <div class="rw"><span style="width:78px">covered</span><span class="b"><i class="k" style="width:${
           p.nut ? Math.min(100, Math.round(100*(p.contribution||0)/p.nut)) : 0}%"></i></span>
           <span class="v">${p.nut ? Math.round(100*(p.contribution||0)/p.nut)+"%" : "——"}</span></div>
-        <div class="rw"><span style="width:78px">still out</span><span class="b"><i style="width:${
+        <div class="rw" title="this month's delivered work minus this month's cash in — timing, NOT what brokers owe you; the chase clock holds that"><span style="width:78px">not cashed</span><span class="b"><i style="width:${
           p.earned ? Math.min(100, Math.round(100*(p.still_out||0)/p.earned)) : 0}%"></i></span>
           <span class="v">${p.still_out==null?"——":money(p.still_out)}</span></div>
       </div>
@@ -1932,11 +1947,22 @@ function actsHTML(){
   const b = State.board, s = State.standings;
   const qa = b ? b.cards.filter(c => c.column_name === "qa").length : 0;
   const A = [];
+  /* the booked-ahead line is SERVED, never asserted: it read "Nothing is
+     booked ahead" while $825 sat on the field (audit 2026-08-11) */
   if(p.uncovered > 0) A.push({n:"THE GAP",imp:money(p.uncovered),
-    t:"Cover the month.", w:`Nothing is booked ahead. One load at your floor rate closes it.`, go:"THE HUNT", i:0});
-  if(p.still_out > 0) A.push({n:"ALREADY EARNED",imp:money(p.still_out),
-    t:"Chase what is booked and unpaid.", w:`Money you already drove for — served from the same judgement as the standing.`, go:"THE LEDGER", i:3});
-  if(s && s.counts && s.counts.standing > 0) A.push({n:"YOUR HAND",imp:String(s.counts.standing),
+    t:"Cover the month.", w:`${p.booked_ahead_total > 0
+      ? `${money(p.booked_ahead_total)} is booked ahead and already counted here.`
+      : "Nothing is booked ahead."} One load at your floor rate closes it.`, go:"THE HUNT", i:0});
+  /* This card used to read "Chase what is booked and unpaid · money you
+     already drove for" over the revenue-vs-cash DRIFT — a timing artifact
+     that is not a receivable and cannot be chased (audit 2026-08-11). What
+     brokers actually owe has one home, the chase clock, and it is a different
+     number entirely. Until this points at that home it states what it is. */
+  if(p.still_out > 0) A.push({n:"NOT YET CASHED",imp:money(p.still_out),
+    t:"This month's delivered work, still on its way to the bank.",
+    w:`Timing, not a debt — what brokers owe you lives on the chase clock in the ledger.`, go:"THE LEDGER", i:3});
+  const settleable = settleableCount(s);
+  if(settleable > 0) A.push({n:"YOUR HAND",imp:String(settleable),
     t:"Obligations waiting to be settled.", w:`Each one is paid on the floor — drag the bank row that paid it into MONTHLY.`, go:"THE LEDGER", i:3});
   if(qa) A.push({n:"YOUR APPROVAL",imp:String(qa),
     t:"Cards in QA waiting to close.", w:`Nothing closes but by your hand. Hold to close on the board.`, go:"THE WORK", i:1});
@@ -3345,13 +3371,27 @@ function finReconcile(){
       ${R.road_shift.on ? `<span><b>+${money(R.road_shift.on)}</b> earlier spend riding this ${esc(FIN.period)}'s loads</span>` : ""}
       <span>= <b>${money(R.road_actual||0)}</b> this ${esc(FIN.period)}'s work</span>
     </div>` : ""}
-    ${(H.cash || H.personal_road || H.uncategorized) ? `<div class="held">
+    ${(H.cash || H.personal_road || H.uncategorized || H.accounted || H.on_deposit) ? `<div class="held">
       <span class="cap">held out of every load — rule on these and the month closes honestly</span>
       ${chip("cash", H.cash, "what it bought on the road is unknown until you itemize it")}
       ${chip("tagged personal", H.personal_road, "road categories MI auto-tagged personal — flip its pin if that is wrong")}
       ${chip("uncategorized", H.uncategorized, "no category yet, so no lane")}
       ${chip("already accounted", H.accounted, "rows your hand declared covered elsewhere — held out of road and the line")}
       ${chip("on deposit", H.on_deposit, "parked with hotels, coming back — never cost; refunded pairs cancel silently")}
+    </div>` : ""}
+    ${/* MONEY IN THAT NOTHING COUNTS (audit 2026-08-11): its own row, loud, and
+          NEVER gated behind the held-out test above — a $2,400 deposit hid for a
+          day because that block only asked about outgoing money. This is cash
+          already in the bank, so it reads hot: every collected figure is short
+          by exactly this until the rows are categorized. */
+      R.uncounted_in ? `<div class="held" style="border-color:rgba(255,90,70,.45)">
+      <span class="cap" style="color:var(--hot)">in the bank, counted by nothing —
+        ${R.uncounted_in_n} deposit${R.uncounted_in_n===1?"":"s"} with no category</span>
+      <span class="hchip" title="${esc(R.uncounted_in_note||"")}"
+        style="border-color:rgba(255,90,70,.5)">uncounted deposits
+        <b class="hot">${money(R.uncounted_in)}</b></span>
+      <span class="cap">every collected figure on this desk is short by this much
+        until you give these rows a category.</span>
     </div>` : ""}
     ${ex && ex.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
       spend known only through ${esc(ex.txn_through)} — ${ex.blind_days} day${
@@ -4479,6 +4519,9 @@ function wireFin(){
         const out = await r.json().catch(() => ({}));
         if(!r.ok) throw new Error(out.error || ("HTTP " + r.status));
         State.fin.followups = await grab("/api/fin/followups");
+        /* this path never calls loadFin(), so the docket kept shouting the
+           old N NEED YOUR HAND after the ack decremented it (audit 08-11) */
+        await refreshStanding();
       }catch(err){ finSay("the ack was not written: " + (err.message||err), true); }
       renderRoom();
     }));
@@ -5131,6 +5174,31 @@ async function loadFin(){
       const ro2 = await grab("/api/fin/rollup"+q); State.fin.rollup = ro2;
     }catch(e){}
   }
+  await refreshStanding();
+}
+
+/* THE FIELD MUST FOLLOW HIS OWN HAND (audit 2026-08-11). State.standing was
+   assigned in exactly ONE place — the initial load() — so every money write
+   updated the floor and left the field, the masthead and the WHY bar showing
+   pre-write figures, REDRAWN as though current and carrying no staleness mark.
+   Correct a category and the pill stayed RED on the old number; add road spend
+   and the room could not turn hot. That is the go-quiet failure, worse than
+   crying wolf.
+
+   This does NOT reopen the 2026-07-29 ruling that nothing re-reads behind his
+   back: the 30s poll and the focus re-read stay dead. This fires only on a
+   write HE just made. Failures are swallowed on purpose — a settle that
+   succeeded must never report failure because a repaint could not fetch. */
+async function refreshStanding(){
+  try{
+    const [sd, hd] = await Promise.allSettled([grab("/api/standing"), grab("/api/hand")]);
+    if(sd.status === "fulfilled") State.standing = sd.value;
+    if(hd.status === "fulfilled") State.hand = hd.value;
+    const sg = await grab("/api/standings").catch(() => null);
+    if(sg) State.standings = sg;
+    /* paintField() repaints the masthead docket chip too (it owns both) */
+    deriveTemp(); paintField();
+  }catch(e){}
 }
 
 /* ── load ─────────────────────────────────────────────────────────── */
