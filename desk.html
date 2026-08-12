@@ -538,6 +538,20 @@ body.hot .tmin{color:var(--hot)}
   text-transform:uppercase}
 .lane .lf b{font:700 15px var(--mono);color:rgba(var(--key),1)}
 .lane .lf b.dn{color:var(--hot)}
+/* THE VERDICT RIDES ON TOP (Bryan, 2026-08-11: "put summary of contribution to
+   the nut at the top of the card"). What the run gave the month is the first
+   thing the card says — the costs below are the evidence for it, not the lede.
+   It reads before any scroll, so a lane full of drops still answers at a glance. */
+.lane .lnut{padding:8px 11px 9px;border-bottom:1px solid var(--line);
+  background:rgba(var(--key),.07);display:flex;justify-content:space-between;
+  align-items:baseline;gap:8px}
+.lane .lnut.dn{background:rgba(255,59,24,.09)}
+.lane .lnut span{font:400 9px/1.3 var(--mono);letter-spacing:.07em;
+  color:var(--etch);text-transform:uppercase}
+.lane .lnut b{font:700 17px var(--mono);color:rgba(var(--key),1);letter-spacing:-.01em}
+.lane .lnut b.dn{color:var(--hot)}
+.lane .lnut i{display:block;font:400 9px/1.3 var(--mono);color:var(--etch);
+  font-style:normal;letter-spacing:.05em;margin-top:2px}
 
 /* MONTHLY stands apart from the loads — it is the other half of the month,
    not another load. Same box, different metal. */
@@ -3081,7 +3095,7 @@ function finFloor(){
           money(l.revenue || 0)} earned${stale != null && stale > 6
             ? ` · <span style="color:var(--hot)">mirror ${stale}h old</span>` : ""}</div>
         <div class="lanes" id="loadZone" style="margin-top:7px">${finMonthlyBox()}${
-          (l.loads||[]).length ? (l.loads||[]).map(ld => finLane(ld, ro)).join("")
+          (l.loads||[]).length ? recentFirst(l.loads).map(ld => finLane(ld, ro)).join("")
             : `<p class="nodata">no loads delivered in this window</p>`}</div>
       </div>
     </div>
@@ -3238,6 +3252,19 @@ function finMonthlyBox(){
   </div>`;
 }
 
+/* THE FRESHEST RUN STANDS NEXT TO THE BILLS (Bryan, 2026-08-11: "we need to
+   show monthly and then most recent load... loads should be shown in reverse
+   order"). The load he just ran is the one carrying unplaced receipts, so it
+   belongs one thumb from MONTHLY — not at the end of a scroll that grows all
+   month. Sorted by delivery date, newest first; sheet_row breaks a same-day
+   tie (the later row is the later run). Sorted here, never mutating the served
+   array — the producer's order stays the producer's. */
+function recentFirst(loads){
+  return [...loads].sort((a, b) => {
+    const d = String(b.delivery_date || "").localeCompare(String(a.delivery_date || ""));
+    return d || (b.sheet_row || 0) - (a.sheet_row || 0);
+  });
+}
 /* one load, as an open box you drop into */
 function finLane(ld, ro){
   const row = ro && (ro.loads||[]).find(x => x.sheet_row === ld.sheet_row);
@@ -3250,11 +3277,19 @@ function finLane(ld, ro){
   const ids = row ? (row.assigned_txn_ids || []) : [];
   const txns = State.fin.expenses ? (State.fin.expenses.transactions||[]) : [];
   const inside = ids.map(id => txns.find(t => t.id === id)).filter(Boolean);
+  /* the verdict first, then its evidence (his 2026-08-11 ruling). Same served
+     figure that used to sit in the footer — moved, not copied. */
+  const nutBand = `<div class="lnut${nut != null && nut < 0 ? " dn" : ""}">
+      <span>to the nut${row && row.nut_pct != null
+        ? `<i>${row.nut_pct.toFixed(1)}% of the month's</i>` : ""}</span>
+      <b class="${nut == null ? "" : nut < 0 ? "dn" : ""}">${
+        nut == null ? "——" : (nut < 0 ? "−" : "+") + money(Math.abs(nut))}</b></div>`;
   return `<div class="lane" data-row="${ld.sheet_row}">
     <div class="lh"><span class="lr">${money(ld.rate || 0)}</span>
       <div class="lb">${esc(ld.broker || "—")}</div>
       <div class="lm">${esc(ld.pickup_city||"?")} &rarr; ${esc(ld.delivery_city||"?")}${
         ld.delivery_state ? ", " + esc(ld.delivery_state) : ""}<br>${esc(ld.delivery_date||"")}</div></div>
+    ${nutBand}
     <div class="lin">${inside.length ? inside.map(t => {
       /* what THIS load carries of that transaction — a Pilot week sits on
          several loads, so the portion is the truth here, never the whole */
@@ -3270,10 +3305,9 @@ function finLane(ld, ro){
         <span>factoring fee</span><b>${money(row.fee)}</b></div>` : ""}
       ${row && row.trip_accrual ? `<div class="drop-in" style="opacity:.6;cursor:default">
         <span>trip accrual</span><b>${money(row.trip_accrual)}</b></div>` : ""}</div>
-    <div class="lf"><span>to the nut</span>
-      <b class="${nut == null ? "" : nut < 0 ? "dn" : "up"}">${
-        nut == null ? "——" : (nut < 0 ? "−" : "+") + money(Math.abs(nut))}</b>
-      ${row && row.nut_pct != null ? `<i>${row.nut_pct.toFixed(1)}% of it</i>` : ""}</div>
+    <div class="lf"><span>the road it ate</span>
+      <b class="${(row && row.assigned_cost) ? "dn" : ""}">${
+        row && row.assigned_cost != null ? money(row.assigned_cost) : "——"}</b></div>
   </div>`;
 }
 
@@ -3730,7 +3764,8 @@ function finBudget(){
     const done = !l.paid_off && l.original_balance > 0
       ? Math.max(0, Math.min(1, 1 - (l.balance||0)/l.original_balance)) : null;
     return `<div class="brow${l.paid_off ? " retired" : ""}" data-bt="loans" data-bid="${esc(l.id)}"
-      data-bname="${esc(l.name)}" data-bfig="${l.payment || 0}" title="tap to edit this line">
+      data-bname="${esc(l.name)}" data-bfig="${l.payment || 0}"
+      data-bdue="${esc(String(l.due_date ?? ""))}" title="tap to edit this line">
       <div class="bn">${esc(l.name)}</div>
       <div class="bm">${l.paid_off ? "retired" : money(l.payment) + "<em>/mo</em>"}</div>
       <div class="bs">${l.paid_off ? "paid off — carried to zero"
@@ -3741,7 +3776,8 @@ function finBudget(){
   const cards = (bd.credit_cards||[]).map((c,ix) => {
     const util = c.credit_limit > 0 ? Math.min(1, (c.balance||0)/c.credit_limit) : null;
     return `<div class="brow" data-bt="credit_cards" data-bid="${esc(c.id)}"
-      data-bname="${esc(c.name)}" data-bfig="${c.min_payment || 0}" title="tap to edit this line">
+      data-bname="${esc(c.name)}" data-bfig="${c.min_payment || 0}"
+      data-bdue="${esc(String(c.due_date ?? ""))}" title="tap to edit this line">
       <div class="bn"><span class="rank">${String(c.kill_priority ?? ix+1).padStart(2,"0")}</span>${esc(c.name)}</div>
       <div class="bm">${money(c.min_payment)}<em>/mo min</em></div>
       <div class="bs">${money(c.balance)}${c.credit_limit ? ` of ${money(c.credit_limit)}` : ""}${
@@ -3751,7 +3787,7 @@ function finBudget(){
     </div>`;}).join("") || `<p class="nodata">no cards on record</p>`;
   const fixed = (bd.fixed_monthly||[]).map(f => `<div class="brow" data-bt="fixed_monthly"
       data-bid="${esc(f.id)}" data-bname="${esc(f.name)}" data-bfig="${f.amount || 0}"
-      title="tap to edit this line">
+      data-bdue="${esc(String(f.due_date ?? ""))}" title="tap to edit this line">
       <div class="bn">${esc(f.name)}</div>
       <div class="bm">${money(f.amount)}<em>/mo</em></div>
       <div class="bs">${esc(f.category || "")}${due(f.due_date)}${st("fixed_monthly", f.id)}</div>
@@ -3809,26 +3845,50 @@ function menuShell(ev, html){
   m.querySelectorAll('[data-act="x"]').forEach(b => b.addEventListener("click", closeMove));
   return m;
 }
-function budgetMenu(ev, bt, bid, name, fig){
+/* WHAT DAY IT LANDS (Bryan, 2026-08-11: "in the budget...need to be able to
+   update due date. truckstop is due on the 14th of each month"). A bill's day
+   is not decoration — the standings clock and the chase order read it, so a
+   wrong day is a bill that cries wolf or goes quiet. Day-of-month, his words:
+   "the 14th". Only what he actually CHANGED is written — a due-date edit must
+   never re-write a dollar figure he did not touch. */
+const ordinal = d => { const n = parseInt(d, 10); if(!(n >= 1 && n <= 31)) return String(d);
+  const s = ["th","st","nd","rd"][((n % 100) - 20) % 10] || ["th","st","nd","rd"][n % 100] || "th";
+  return n + s; };
+function budgetMenu(ev, bt, bid, name, fig, dueNow){
   const field = bt === "fixed_monthly" ? "amount"
               : bt === "credit_cards" ? "min_payment" : "payment";
   const label = bt === "fixed_monthly" ? "the monthly amount"
               : bt === "credit_cards" ? "the minimum payment" : "the monthly payment";
+  const d0 = String(dueNow ?? "").trim();
   const m = menuShell(ev, `<div class="mh">${esc(name)}
-      <span>${label} today: ${money(fig)}</span></div>
+      <span>${label} today: ${money(fig)}${d0 ? ` · due the ${esc(ordinal(d0))}` : " · no day set"}</span></div>
     <div class="minrow"><input class="minput" type="number" inputmode="decimal"
-      step="0.01" value="${fig}"><button class="mi msave">save</button></div>` +
+      step="0.01" value="${fig}"></div>
+    <div class="minrow"><input class="minput mdue" type="number" inputmode="numeric"
+      min="1" max="31" step="1" placeholder="day of the month — 14"
+      value="${esc(d0)}"><button class="mi msave">save</button></div>` +
     (bt === "fixed_monthly" ? `<button class="mi" data-act="rm">remove from the budget
       <i>no longer charged — the ledger keeps its history</i></button>` : "") +
     `<button class="mi off" data-act="x">never mind</button>`);
   const inp = m.querySelector(".minput");
+  const dueInp = m.querySelector(".mdue");
   inp.focus(); inp.select();
+  dueInp.addEventListener("keydown", e => { if(e.key === "Enter") m.querySelector(".msave").click(); });
   m.querySelector(".msave").addEventListener("click", async () => {
     const v = parseFloat(inp.value);
     if(!(v >= 0)){ finSay("a real number, or never mind — nothing was written", true); return; }
+    const d = dueInp.value.trim();
+    if(d !== "" && !(parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31)){
+      finSay("a day of the month, 1 to 31 — nothing was written", true); return; }
+    /* only the changed fields travel: an untouched dollar figure is never rewritten */
+    const fields = {}, said = [];
+    if(Math.abs(v - fig) > 0.004){ fields[field] = v; said.push(`${label} is now ${money(v)}`); }
+    if(d !== d0){ fields.due_date = d;
+      said.push(d ? `due the ${ordinal(d)} of each month` : "its due day is cleared"); }
+    if(!said.length){ closeMove(); finSay("nothing changed — nothing was written", false); return; }
     closeMove();
-    await budgetWrite({op:"update", type:bt, id:bid, fields:{[field]: v}},
-      `${name} — ${label} is now ${money(v)}`);
+    await budgetWrite({op:"update", type:bt, id:bid, fields},
+      `${name} — ${said.join(" · ")}`);
   });
   const rm = m.querySelector('[data-act="rm"]');
   let armed = false;
@@ -4285,7 +4345,7 @@ function wireFin(){
       row.addEventListener("click", ev => {
         ev.stopPropagation();
         budgetMenu(ev, row.dataset.bt, row.dataset.bid, row.dataset.bname,
-                   parseFloat(row.dataset.bfig || "0"));
+                   parseFloat(row.dataset.bfig || "0"), row.dataset.bdue || "");
       }));
     const add = R.querySelector("#bgtAdd");
     add && add.addEventListener("click", ev => { ev.stopPropagation(); budgetAdd(ev); });
