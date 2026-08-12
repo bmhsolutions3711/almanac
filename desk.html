@@ -3192,7 +3192,9 @@ function finMonthlyBox(){
       <div class="lm">paid this month · ${settled.length} of ${pay.length}${
         owed ? ` · ${money(owed)} still due on the left` : ""}</div></div>
     <div class="lin">${ask ? `<div class="ask">
-        <div class="at">${ask.no_match
+        <div class="at">${ask.txn.category === "Transfer"
+          ? `which card did this ${money(ask.txn.amount)} transfer pay? &mdash; a transfer settles a card, nothing else`
+          : ask.no_match
           ? `no bill matches ${esc(ask.txn.merchant || "this row")} ${
               money(ask.txn.amount)} — name it yourself`
           : `which bill did ${esc(ask.txn.merchant || "this")} ${
@@ -3208,8 +3210,10 @@ function finMonthlyBox(){
            one tap away from attaching to the card it paid. */
         (arrived.length ? `<div class="cap" style="margin-bottom:5px">arrived — tap to match to a bill</div>`
           + arrived.map(t => `<div class="drop-in arr" data-arr="${t.id}"
-              title="tap to say which bill this paid">
-              <span>${esc(t.merchant || t.description || "—")}</span>
+              title="${t.cc_lane ? "a transfer — it can settle a credit card, nothing else (your 08-10 ruling)"
+                                 : "tap to say which bill this paid"}">
+              <span>${esc(t.merchant || t.description || "—")}${
+                t.cc_lane ? ` <i class="pt">transfer &middot; a card only</i>` : ""}</span>
               <b>${money(t.amount)}</b></div>`).join("")
           + (settled.length ? `<div class="cap" style="margin:7px 0 5px">paid</div>` : "") : "")
         + settled.map(x => {
