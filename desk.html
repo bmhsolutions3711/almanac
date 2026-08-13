@@ -3773,11 +3773,61 @@ function finBooks(){
         ["pnc","loadpay"].map(a => `<button data-acct="${a}" class="${
           (FIN.shotAcct||"pnc")===a ? "on" : ""}">${a}</button>`).join("")}</div></div>
   </div>`;
+  /* ── MONEY IN — the deposits ledger (card #103) ──────────────────────
+     The record above is the SPEND lane by design (its producer holds
+     amount<0 plus road credits; "deposit" there means a hotel hold), so
+     income rendered NOWHERE once categorized — his 2026-08-12 ask:
+     "where am i validating deposits." Every positive row in its window,
+     category chip tappable through the SAME writer the record uses.
+     Rows carry no data-txn on purpose: the spend row-menu (MONTHLY,
+     loads, deposit) has no business on money in — the chip is the act. */
+  const inc = State.fin.income;
+  let moneyIn;
+  if(!inc) moneyIn = `<div class="gen" style="min-height:48px"><span class="nodata">${
+    esc(State.fin.incErr || "the spine has not answered with the deposits")}</span></div>`;
+  else {
+    const dep = inc.deposits || [];
+    const inote = t =>
+      t.uncounted ? "no category — counted by NOTHING until you name it"
+      : t.transfer ? "money moved between your own accounts — not income"
+      : (t.invoices||[]).length ? "pays inv " + t.invoices.map(v =>
+          esc(v.invoice || "?")).join(" · ") + (t.invoices[0].broker ? " — " + esc(t.invoices[0].broker) : "")
+      : "counted — " + esc(t.category);
+    moneyIn = `<div class="lghead"><span>date</span><span>category</span><span>payer</span>
+      <span class="ra">amount</span><span>notes</span><span style="text-align:right">status</span></div>
+    <div class="scroll" style="max-height:34vh">${
+      dep.length ? dep.map(t => `<div class="lgr${t.uncounted ? "" : ""}">
+        <span class="ld" title="${esc(t.date)}">${esc(String(t.date||"").slice(5))}</span>
+        <span class="lc"><span class="catchip edit${t.uncounted ? " uncat" : ""}" data-cat-txn="${t.id}"
+          style="${t.uncounted ? "border-color:rgba(255,90,70,.55);color:rgba(255,120,90,.95)" : ""}"
+          title="tap to change the category — the rules learn it">${
+          esc(t.category || "uncategorized")}</span></span>
+        <span class="lp" title="${esc(t.description || "")}">${esc(t.merchant || t.description || "—")}</span>
+        <span class="la cr">+${money(t.amount)}</span>
+        <span class="ln">${inote(t)}</span>
+        <span class="lst ${t.expired ? "expired" : t.pending ? "pending" : "posted"}">${
+          t.expired ? "expired" : t.pending ? "pending" : "posted"}</span>
+        <span class="lsub">${esc(String(t.date||"").slice(5))} · ${inote(t)}</span></div>`).join("")
+      : `<p class="nodata">nothing landed in the window</p>`}</div>
+    ${dep.length ? `<div class="sfoot">${money(inc.total)} landed in the window${
+      inc.uncounted_n ? ` · <b style="color:rgba(255,120,90,.95)">${money(inc.uncounted_total)} across ${
+        inc.uncounted_n} row${inc.uncounted_n===1?"":"s"} has no category — invisible to every revenue figure</b>` : ""}${
+      inc.held_road_credits ? ` · ${inc.held_road_credits} road credit${
+        inc.held_road_credits===1?"":"s"} live in the record above` : ""}</div>` : ""}`;
+  }
+  const moneyInPanel = `<div class="panel" style="margin-bottom:10px;min-width:0">
+    <div class="cap" style="display:flex;align-items:center;gap:8px">money in — ${
+      inc ? `${inc.count} deposit${inc.count===1?"":"s"}, ${esc((FIN.incPeriod||"month")==="month"?"this month":"this quarter")}` : "…"}
+      <div class="sp" style="flex:1"></div>
+      <div class="seg" id="incPeriod">${
+        [["month","mo"],["quarter","qtr"]].map(([k,l]) =>
+          `<button data-incp="${k}" class="${(FIN.incPeriod||"month")===k?"on":""}">${l}</button>`).join("")}</div>
+    </div>${moneyIn}</div>`;
   return `<div class="finscroll">${intake}${faultStrip}<div class="floor" style="grid-template-columns:minmax(280px,380px) 1fr">
     <div class="panel"><div class="cap">cash — the tanks${
       A && A.as_of ? " · newest reading " + esc(String(A.as_of).slice(0,10)) : ""}</div>${cash}</div>
     <div class="panel"><div class="cap">feeding the nut — ${esc(FIN.period)}, each load's surviving contribution</div>${feed}</div>
-  </div><div class="bookslow">${record}${spend}</div></div>`;
+  </div>${moneyInPanel}<div class="bookslow">${record}${spend}</div></div>`;
 }
 /* THE BUDGET — Bryan, 2026-08-03: "a budget tab that details out my loans and
    monthly budget for recurring monthly payments." A reference wall, not a
@@ -4337,9 +4387,22 @@ function wireFin(){
            and dies as it is born — "works for one, not the next"). The chip's
            click must not reach it. */
         ev.stopPropagation();
-        const t = ((State.fin.expenses||{}).transactions||[])
+        /* the chip lives on TWO ledgers now — the record (spend) and
+           MONEY IN (deposits, card #103); one writer serves both */
+        const t = [...(((State.fin.expenses||{}).transactions)||[]),
+                   ...(((State.fin.income||{}).deposits)||[])]
           .find(x => x.id === Number(ch.dataset.catTxn));
         if(t) openCat(ev, t);
+      }));
+    /* MONEY IN's own window — deposits are sparse; a month that reset
+       yesterday hides the very rows he came to validate */
+    R.querySelectorAll("#incPeriod button").forEach(b =>
+      b.addEventListener("click", async () => {
+        FIN.incPeriod = b.dataset.incp;
+        try{ State.fin.income = await grab("/api/fin/income?period="+FIN.incPeriod);
+             State.fin.incErr = null; }
+        catch(e){ State.fin.income = null; State.fin.incErr = String(e.message||e); }
+        renderRoom();
       }));
     /* the breakdown sifts the ledger — tap a category, read only its rows;
        tap it again and the whole record comes back */
@@ -5145,12 +5208,19 @@ async function loadFin(){
      overwrite the fresh one (panel finding, 2026-08-02) */
   const seq = FIN._seq = (FIN._seq || 0) + 1;
   const q = `?period=${FIN.period}`;
-  const [sum, ld, ex, ro, ac, sp, bd, fw] = await Promise.allSettled([
+  /* MONEY IN rides its OWN window (mo/qtr on the block) — deposits are
+     sparse, and the month resetting on the 1st would hide the very rows
+     he came to validate. The block announces its window; the nut is not
+     measured here, so the books' month-snap law is untouched. */
+  const [sum, ld, ex, ro, ac, sp, bd, fw, inc] = await Promise.allSettled([
     grab("/api/fin/summary"), grab("/api/fin/loads"+q),
     grab("/api/fin/expenses"+q), grab("/api/fin/rollup"+q),
     grab("/api/fin/accounts"), grab("/api/fin/spend"+q),
-    grab("/api/fin/budget"), grab("/api/fin/followups")]);
+    grab("/api/fin/budget"), grab("/api/fin/followups"),
+    grab("/api/fin/income?period="+(FIN.incPeriod||"month"))]);
   if(seq !== FIN._seq) return;               // a newer fetch superseded this one
+  State.fin.income = inc.status === "fulfilled" ? inc.value : null;
+  State.fin.incErr = inc.status === "rejected" ? String(inc.reason.message||inc.reason) : null;
   State.fin.spend = sp.status === "fulfilled" ? sp.value : null;
   State.fin.budget = bd.status === "fulfilled" ? bd.value : null;
   State.fin.summary = sum.status === "fulfilled" ? sum.value : null;
