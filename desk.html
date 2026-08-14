@@ -1458,6 +1458,10 @@ function whyBar(){
    the spine has not answered, so callers can render "—" instead of a zero
    that looks like good news. */
 function settleableCount(s){
+  /* card #97: the producer serves the split now (counts.settleable) — one
+     number, one home. The local filter remains ONLY as the fallback for a
+     spine still serving the old shape, and dies with it. */
+  if(s && s.counts && s.counts.settleable != null) return s.counts.settleable;
   return s && s.standings
     ? s.standings.filter(x => x.settleable !== false).length
     : null;
