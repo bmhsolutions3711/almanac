@@ -2069,6 +2069,10 @@ function qWeigh(){
 
 function qRender(){
   const box = $("qsc"); if(!box) return;
+  if(QEDIT_OPEN){
+    if(box.querySelector("input")) return;  /* his hand is in a chip — commit repaints */
+    QEDIT_OPEN = false;  /* the input died without a blur (room rebuild) — never wedge */
+  }
   const t = qTrip(), a = QANS;
   const ask = Number(t[qAskKey()]) || 0;
   const chips = [
@@ -2138,6 +2142,11 @@ function qRender(){
   qWire();
 }
 let QTICKET = false;
+/* an edit input is open under his thumb: async answers (qWeigh/qDiesel/qBook)
+   may NOT rebuild the lane — the rebuild destroys the focused input, which on
+   the phone slams the keyboard shut the moment it opens (Fold, 2026-08-14).
+   Every commit path clears this and renders, so a deferred paint is never lost. */
+let QEDIT_OPEN = false;
 
 function qEdit(chip, k, isText){
   const vEl = chip.querySelector(".v") || chip;
@@ -2145,9 +2154,11 @@ function qEdit(chip, k, isText){
   const inp = document.createElement("input");
   inp.type = isText ? "text" : "number"; inp.step = "any"; inp.value = old;
   vEl.replaceWith(inp); inp.focus(); inp.select();
+  QEDIT_OPEN = true;
   let done = false;
   const commit = ok => {
     if(done) return; done = true;
+    QEDIT_OPEN = false;
     if(ok){
       const v = isText ? inp.value.trim() : parseFloat(inp.value);
       if(isText ? v : Number.isFinite(v)){
@@ -2181,9 +2192,11 @@ function qWire(){
     const inp = document.createElement("input");
     inp.placeholder = "customer name · enter";
     add.replaceWith(inp); inp.focus();
+    QEDIT_OPEN = true;
     let done = false;
     const commit = async ok => {
       if(done) return; done = true;
+      QEDIT_OPEN = false;
       const name = inp.value.trim();
       if(ok && name){
         try{
