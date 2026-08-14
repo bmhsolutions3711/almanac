@@ -1406,7 +1406,19 @@ function separate(){
 }
 layout();
 addEventListener("resize", () => { clearTimeout(window.__l);
-  window.__l = setTimeout(() => { layout(); if(ACTIVE !== null) renderRoom(); }, 160); });
+  window.__l = setTimeout(() => {
+    layout();
+    /* A resize with his hand in a field must not rebuild the room: on the
+       Fold a resize rides keyboard rises, folds, and split-screen — and an
+       anonymous chip editor cannot be handed back like the id'd inputs
+       renderRoom rescues (08-08 note). The walls do not move under his
+       thumb; the blur that ends the edit repaints, and the next resize
+       (keyboard closing) catches the layout up. */
+    const ae = document.activeElement, room = $("room");
+    if(ae && room && room.contains(ae) &&
+       /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return;
+    if(ACTIVE !== null) renderRoom();
+  }, 160); });
 
 /* ── TEMPERATURE IS DERIVED, never a mood switch ──────────────────── */
 function tempFacts(){
