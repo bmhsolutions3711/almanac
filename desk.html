@@ -3858,7 +3858,7 @@ function finBudget(){
     const done = !l.paid_off && l.original_balance > 0
       ? Math.max(0, Math.min(1, 1 - (l.balance||0)/l.original_balance)) : null;
     return `<div class="brow${l.paid_off ? " retired" : ""}" data-bt="loans" data-bid="${esc(l.id)}"
-      data-bname="${esc(l.name)}" data-bfig="${l.payment || 0}"
+      data-bname="${esc(l.name)}" data-bfig="${l.payment || 0}" data-bbal="${l.balance || 0}"
       data-bdue="${esc(String(l.due_date ?? ""))}" title="tap to edit this line">
       <div class="bn">${esc(l.name)}</div>
       <div class="bm">${l.paid_off ? "retired" : money(l.payment) + "<em>/mo</em>"}</div>
@@ -3870,7 +3870,7 @@ function finBudget(){
   const cards = (bd.credit_cards||[]).map((c,ix) => {
     const util = c.credit_limit > 0 ? Math.min(1, (c.balance||0)/c.credit_limit) : null;
     return `<div class="brow" data-bt="credit_cards" data-bid="${esc(c.id)}"
-      data-bname="${esc(c.name)}" data-bfig="${c.min_payment || 0}"
+      data-bname="${esc(c.name)}" data-bfig="${c.min_payment || 0}" data-bbal="${c.balance || 0}"
       data-bdue="${esc(String(c.due_date ?? ""))}" title="tap to edit this line">
       <div class="bn"><span class="rank">${String(c.kill_priority ?? ix+1).padStart(2,"0")}</span>${esc(c.name)}</div>
       <div class="bm">${money(c.min_payment)}<em>/mo min</em></div>
@@ -3948,35 +3948,50 @@ function menuShell(ev, html){
 const ordinal = d => { const n = parseInt(d, 10); if(!(n >= 1 && n <= 31)) return String(d);
   const s = ["th","st","nd","rd"][((n % 100) - 20) % 10] || ["th","st","nd","rd"][n % 100] || "th";
   return n + s; };
-function budgetMenu(ev, bt, bid, name, fig, dueNow){
+function budgetMenu(ev, bt, bid, name, fig, dueNow, balNow){
   const field = bt === "fixed_monthly" ? "amount"
               : bt === "credit_cards" ? "min_payment" : "payment";
   const label = bt === "fixed_monthly" ? "the monthly amount"
               : bt === "credit_cards" ? "the minimum payment" : "the monthly payment";
+  /* the balance (his ask 2026-08-14: "need to be able to update balances") —
+     loans and cards carry one; a fixed line does not. Same one-writer lane,
+     same only-what-changed rule as the figure and the day. */
+  const hasBal = bt !== "fixed_monthly" && balNow != null && !Number.isNaN(balNow);
+  const balWord = bt === "loans" ? "still owed" : "carried";
   const d0 = String(dueNow ?? "").trim();
   const m = menuShell(ev, `<div class="mh">${esc(name)}
-      <span>${label} today: ${money(fig)}${d0 ? ` · due the ${esc(ordinal(d0))}` : " · no day set"}</span></div>
+      <span>${label} today: ${money(fig)}${hasBal ? ` · ${money(balNow)} ${balWord}` : ""}${d0 ? ` · due the ${esc(ordinal(d0))}` : " · no day set"}</span></div>
     <div class="minrow"><input class="minput" type="number" inputmode="decimal"
-      step="0.01" value="${fig}"></div>
-    <div class="minrow"><input class="minput mdue" type="number" inputmode="numeric"
+      step="0.01" value="${fig}"></div>` +
+    (hasBal ? `<div class="msep">the balance — ${balWord} today</div>
+    <div class="minrow"><input class="minput mbal" type="number" inputmode="decimal"
+      min="0" step="0.01" value="${balNow}"></div>` : "") +
+    `<div class="minrow"><input class="minput mdue" type="number" inputmode="numeric"
       min="1" max="31" step="1" placeholder="day of the month — 14"
       value="${esc(d0)}"><button class="mi msave">save</button></div>` +
     (bt === "fixed_monthly" ? `<button class="mi" data-act="rm">remove from the budget
       <i>no longer charged — the ledger keeps its history</i></button>` : "") +
     `<button class="mi off" data-act="x">never mind</button>`);
   const inp = m.querySelector(".minput");
+  const balInp = m.querySelector(".mbal");
   const dueInp = m.querySelector(".mdue");
   inp.focus(); inp.select();
   dueInp.addEventListener("keydown", e => { if(e.key === "Enter") m.querySelector(".msave").click(); });
+  balInp && balInp.addEventListener("keydown", e => { if(e.key === "Enter") m.querySelector(".msave").click(); });
   m.querySelector(".msave").addEventListener("click", async () => {
     const v = parseFloat(inp.value);
     if(!(v >= 0)){ finSay("a real number, or never mind — nothing was written", true); return; }
+    let b = null;
+    if(balInp){ b = parseFloat(balInp.value);
+      if(!(b >= 0)){ finSay("a real balance, zero or more — nothing was written", true); return; } }
     const d = dueInp.value.trim();
     if(d !== "" && !(parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31)){
       finSay("a day of the month, 1 to 31 — nothing was written", true); return; }
     /* only the changed fields travel: an untouched dollar figure is never rewritten */
     const fields = {}, said = [];
     if(Math.abs(v - fig) > 0.004){ fields[field] = v; said.push(`${label} is now ${money(v)}`); }
+    if(balInp && Math.abs(b - balNow) > 0.004){ fields.balance = b;
+      said.push(`the balance ${balWord} is now ${money(b)}`); }
     if(d !== d0){ fields.due_date = d;
       said.push(d ? `due the ${ordinal(d)} of each month` : "its due day is cleared"); }
     if(!said.length){ closeMove(); finSay("nothing changed — nothing was written", false); return; }
@@ -4452,7 +4467,8 @@ function wireFin(){
       row.addEventListener("click", ev => {
         ev.stopPropagation();
         budgetMenu(ev, row.dataset.bt, row.dataset.bid, row.dataset.bname,
-                   parseFloat(row.dataset.bfig || "0"), row.dataset.bdue || "");
+                   parseFloat(row.dataset.bfig || "0"), row.dataset.bdue || "",
+                   row.dataset.bbal == null ? null : parseFloat(row.dataset.bbal));
       }));
     const add = R.querySelector("#bgtAdd");
     add && add.addEventListener("click", ev => { ev.stopPropagation(); budgetAdd(ev); });
