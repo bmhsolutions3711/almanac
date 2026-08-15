@@ -348,12 +348,12 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
   .strip .stones{grid-column:1/-1}}
 @media(max-width:760px){.strip{grid-template-columns:1fr}}
 .strip .gp{padding:8px 10px 4px;justify-content:center}
-.hero{width:100%;height:auto;display:block;overflow:visible;max-height:250px}
+.hero{width:100%;height:auto;display:block;overflow:visible;max-height:262px}
 /* The strip cannot shrink, so on a short screen (or at his zoom) it will take
    whatever it needs and push the floor out of sight. Cap the instrument by
    VIEWPORT HEIGHT so the work below stays on the same screen as the reading
    above it — the gauge is the headline, not the article. */
-@media(max-height:900px){.hero{max-height:196px}}
+@media(max-height:900px){.hero{max-height:212px}}
 
 /* SHORT SCREEN — or his zoom, which is the same thing in CSS pixels. Stacking
    the three panels made the strip 386px of a 510px screen: 76% of everything he
@@ -387,7 +387,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
   .strip>.panel{flex:1 1 0;min-width:min(300px,80vw);max-height:176px;overflow-y:auto;
     overflow-x:hidden;padding:9px 11px}
   .strip>.panel::-webkit-scrollbar{width:0}
-  .hero{max-height:132px}
+  .hero{max-height:152px}
   /* Tightened until the readout actually FITS the cap — scrollable-but-clipped
      still reads as broken, and a figure you have to discover by scrolling a
      150px box is a figure you will not read. */
@@ -404,7 +404,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 }
 @media(max-height:560px){
   .strip{max-height:150px}.strip>.panel{max-height:146px}
-  .hero{max-height:108px}.rbig{font-size:19px}
+  .hero{max-height:126px}.rbig{font-size:19px}
 }
 /* HIS RULING 2026-08-04 ("fonts still off... having me scroll... same buffers
    as the clock"): the mobile lesson — two columns, fonts that FIT — now
@@ -3087,7 +3087,10 @@ function heroGauge(m){
   const same = GAUGE_AT && GAUGE_AT.m === rotM && GAUGE_AT.p === rotP;
   const restM = same ? rotM : -90, restP = same ? rotP : -90;
   const restArc = same ? (100 - pct) : 100;
-  return `<svg class="hero" viewBox="0 0 440 286" role="img"
+  /* the viewBox hugs the drawing (his eye 08-15: "stretch to fill more of the
+     card") — empty sky above the label and bare gutters beside the arc were
+     letterboxing the dial to ~60% of its seat */
+  return `<svg class="hero" viewBox="20 4 400 254" role="img"
       aria-label="Month revenue ${money(mtd)} against break-even ${money(be)}">
     <defs><linearGradient id="dgrad" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="${C.red}"/><stop offset="0.5" stop-color="${C.yellow}"/>
