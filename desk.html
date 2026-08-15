@@ -3803,8 +3803,11 @@ function simAdopt(){
     const R = (rMin + (rMax - rMin)*Math.sqrt(s.amount/mx)) * (paid ? 0.72 : 1);
     let rk = SIM.rocks.get(k);
     if(!rk){
-      /* born above the yard, staggered — the game fills as it loads */
-      const x = 10 + Math.random()*(W - 20);
+      /* born above its TYPE's ground (his eye 08-15: "i like it clustered by
+         type") — the rain sorts itself: fixed monthly left, cards center,
+         loans right; the in-flight steer below keeps a flung rock's homing */
+      const ax = W * typeAnchor(s.bill_type);
+      const x = Math.max(10, Math.min(W - 10, ax + (Math.random()-.5)*W*0.22));
       const y = -R - 6 - born*18; born++;
       rk = {k, x, y, ox: x - (Math.random()-.5)*2, oy: y, grab: null, lumps: rockLumps(k)};
       SIM.rocks.set(k, rk);
@@ -3817,12 +3820,22 @@ function simAdopt(){
   return SIM;
 }
 
+/* each bill type owns a stretch of ground — clusters read at a glance */
+const typeAnchor = bt => bt === "fixed_monthly" ? 0.18
+                       : bt === "credit_card"   ? 0.5
+                       : bt === "loan"          ? 0.82 : 0.5;
+
 function simStep(){
   const {rocks, W, H, lineY} = SIM;
   const GRAV = 0.42, DAMP = 0.985;
   for(const r of rocks.values()){
     if(r.grab) continue;
-    const vx = (r.x - r.ox) * DAMP, vy = (r.y - r.oy) * DAMP + GRAV;
+    let vx = (r.x - r.ox) * DAMP;
+    const vy = (r.y - r.oy) * DAMP + GRAV;
+    /* the steer home fires only on a MOVING rock — a resting pile must owe
+       the battery nothing, so sleep stays reachable */
+    if(Math.abs(vx) + Math.abs(vy) > 0.2)
+      vx += (W * typeAnchor(r.s.bill_type) - r.x) * 0.004;
     r.ox = r.x; r.oy = r.y; r.x += vx; r.y += vy;
   }
   const rs = [...rocks.values()];
