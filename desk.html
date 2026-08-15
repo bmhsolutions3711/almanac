@@ -194,6 +194,50 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .consider .rz{margin-top:7px;font:400 12px/1.5 var(--sans);color:var(--dim)}
 .consider .acts{margin-top:12px;display:flex;gap:8px}
 .consider .btn.go{color:var(--amber);border-color:rgba(255,164,25,.4)}
+.consider .att{margin-top:6px;font:700 8.5px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
+
+/* ══ THE DOCKET BREATHES (card #114) — a slow glow when NEW items wait,
+   stilled the moment he opens the drawer. Animation exists only while the
+   .fresh class does (a resting masthead costs nothing). ═══════════════ */
+@keyframes handbreathe{
+  0%,100%{text-shadow:0 0 2px rgba(255,164,25,.25);opacity:.82}
+  50%{text-shadow:0 0 14px rgba(255,164,25,.95),0 0 28px rgba(255,164,25,.35);opacity:1}
+}
+.bar .hand.fresh{animation:handbreathe 3.8s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){
+  .bar .hand.fresh{animation:none;text-shadow:0 0 10px rgba(255,164,25,.8)}
+}
+
+/* ══ THE MORNING PAGE (cards #112/#113) — the almanac's daily page ═════ */
+.pagewrap{position:fixed;inset:0;z-index:70}
+.pageback{position:absolute;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(3px)}
+.page{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(560px,94vw);max-height:min(760px,92vh);overflow-y:auto;
+  background:linear-gradient(196deg,rgba(30,27,21,.99),rgba(13,12,10,.99));
+  border:1px solid rgba(255,164,25,.35);border-radius:12px;
+  box-shadow:0 40px 90px -20px rgba(0,0,0,.9);padding:20px 20px 16px;
+  display:flex;flex-direction:column;gap:13px}
+.page .phead{text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(255,164,25,.25)}
+.page .phead .pt{font:700 15px/1 var(--mono);letter-spacing:.34em;color:var(--amber)}
+.page .phead .pd{margin-top:7px;font:700 9px/1 var(--mono);letter-spacing:.22em;color:var(--dim)}
+.page .sect .sl{font:700 8.5px/1 var(--mono);letter-spacing:.22em;color:var(--amber);
+  padding-bottom:5px;border-bottom:1px dashed rgba(255,255,255,.09);margin-bottom:7px}
+.page .sect .sv{font:400 12.5px/1.55 var(--sans);color:var(--ink)}
+.page .sect .sv b{color:var(--amber)}
+.page .sect .dim2{color:var(--dim);font-size:11px;line-height:1.5}
+.page .wxrow{display:flex;align-items:baseline;gap:9px;padding:3px 0}
+.page .wxrow .wl{flex:0 0 auto;font:700 9px/1 var(--mono);letter-spacing:.12em;color:var(--dim);min-width:86px}
+.page .wxrow .wv{font:400 12.5px/1.4 var(--sans)}
+.page .wxrow .wv .deg{color:var(--amber);font-weight:600}
+.page .voice{font:400 12.5px/1.65 var(--sans);color:var(--ink);white-space:pre-wrap;
+  border-left:2px solid rgba(255,164,25,.4);padding-left:11px}
+.page .proverb{text-align:center;padding:8px 6px 2px}
+.page .proverb .pq{font:600 13.5px/1.5 var(--sans);text-wrap:balance}
+.page .proverb .pa{margin-top:7px;font:700 8.5px/1 var(--mono);letter-spacing:.18em;color:var(--dim)}
+.page .pacts{display:flex;justify-content:center;padding-top:4px}
+.page .pacts .btn{color:var(--amber);border-color:rgba(255,164,25,.4);min-height:42px;padding:12px 22px;
+  font:700 10px/1 var(--mono);letter-spacing:.16em;background:rgba(255,164,25,.08);
+  border:1px solid rgba(255,164,25,.4);border-radius:7px;cursor:pointer}
 
 .room{flex:1 1 auto;min-height:0;padding:0 22px 16px;display:flex;flex-direction:column;gap:10px;
   opacity:0;transform:translateY(22px);pointer-events:none;transition:opacity .5s .18s, transform .5s .18s}
@@ -1176,12 +1220,23 @@ body.hot .act .h .n{color:var(--hot)}
     <aside class="docket" id="docket" role="dialog" aria-label="the docket"></aside>
   </div>
 
+  <!-- THE MORNING PAGE (cards #112/#113) — the almanac's daily page: what a
+       farmer's almanac has always been. Weather at the top, the numbers,
+       yesterday's field notes, the navigator's word, and the proverb at the
+       bottom. Loads once on the first open of the day; his CLOSE stamps it
+       read. Every figure on it is a SERVED string (one producer) — the page
+       computed nothing. -->
+  <div class="pagewrap" id="pageWrap" hidden>
+    <div class="pageback" id="pageBack"></div>
+    <aside class="page" id="page" role="dialog" aria-label="the morning page"></aside>
+  </div>
+
   <div class="field" id="field">
     <div class="core"><div><div class="t">THE SPINE</div>
       <div class="s">one service &middot; one database<br>everything above is served</div></div></div>
     <div id="orbs"></div>
     <div class="consider" id="consider">
-      <span class="lbl">THE SPINE PUT THIS IN FRONT OF YOU</span>
+      <span class="lbl" id="clbl">THE SPINE PUT THIS IN FRONT OF YOU</span>
       <div class="q" id="cq">reading&#8230;</div>
       <div class="rz" id="crz"></div>
       <div class="acts"><button class="btn go" id="cgo">OPEN IT</button></div>
@@ -1248,7 +1303,7 @@ const short = v => v == null ? "——" :
 
 const State = { standing:null, standings:null, board:null, radio:null, learn:null,
                 soul:null, held:null, watch:null, at:null, err:null, glasses:null,
-                hand:null, sidech:null, diet:null,
+                hand:null, sidech:null, diet:null, brief:null,
                 fin:{ summary:null, loads:null, expenses:null, rollup:null,
                       followups:null,
                       summaryErr:null, err:null, stones:[], placed:[] } };
@@ -1571,6 +1626,14 @@ function paintField(){
     : hd.count_total > 0 ? "DOCKET · " + hd.count_total + (unk ? " ?" : "")
     : unk ? "DOCKET · ?" : "";
   $("hand").classList.toggle("unk", hd == null || unk > 0);
+  /* THE BREATH (card #114): glow only when items exist that his eye has not
+     seen — docket rows carry no server id (recon 2026-08-15), so the key is
+     derived. Opening the drawer stamps them seen and stills the glow. */
+  try{
+    const seen = JSON.parse(localStorage.getItem("almanac_hand_seen") || "[]");
+    $("hand").classList.toggle("fresh",
+      handKeys().some(k => !seen.includes(k)));
+  }catch(e){ /* a corrupt stamp never breaks the masthead */ }
   $("hand").title = hd == null ? "the spine has not answered with the docket — tap to see"
     : `${hd.count_front} on the front · ${hd.count_total} in all`
       + (unk ? ` · ${unk} producer${unk === 1 ? "" : "s"} unreadable` : "")
@@ -1589,6 +1652,21 @@ function paintField(){
 /* the ONE thing the spine puts in front of him — chosen by a stated rule,
    never a guess, and it always says why it beat the others */
 function paintConsider(){
+  /* HIS RULING 2026-08-15 (card #112): the box feeds wisdom from the canon;
+     standing alerts reach him through the docket + its breath (#114). The
+     old five-branch ladder survives BELOW as the fallback for a spine that
+     serves no brief — the card never goes blank. */
+  const w = State.brief && State.brief.wisdom;
+  if(w){
+    $("clbl").textContent = "FROM THE CANON — " + (w.attribution || "").toUpperCase();
+    $("cq").textContent = w.take;
+    $("crz").textContent = "· " + (w.behavior || "") + " ·"
+      + (w.quote ? `  “${w.quote}”` : "") + `  (${w.cycle || ""})`;
+    $("cgo").textContent = "THE PAGE";
+    $("cgo").onclick = openPage;
+    return;
+  }
+  $("clbl").textContent = "THE SPINE PUT THIS IN FRONT OF YOU";
   const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
   const b = State.board, s = State.standings, l = State.learn;
   const qa = b ? b.cards.filter(c => c.column_name === "qa") : [];
@@ -1835,13 +1913,90 @@ function docketHTML(h){
         + fold.map(row).join("") : "")
     + (h.unknowns || []).map(u => `<div class="dunknown">UNKNOWN — ${esc(u)}</div>`).join("");
 }
+const handKeys = () => ((State.hand && State.hand.items) || [])
+  .map(i => [i.kind, i.ref, i.title].join("|"));
 function openDocket(){
   /* a capture image shares the overlay plane — dismiss it or the docket
      paints invisibly beneath (review of #84) */
   const cv = document.querySelector(".capview"); cv && cv.click();
+  /* the breath stills: what he is about to see is, by that act, seen (#114) */
+  try{ localStorage.setItem("almanac_hand_seen", JSON.stringify(handKeys())); }catch(e){}
+  $("hand").classList.remove("fresh");
   $("dockWrap").hidden = false; renderDocket();
 }
 function closeDocket(){ $("dockWrap").hidden = true; }
+
+/* ── THE MORNING PAGE (cards #112/#113) ──────────────────────────────
+   The almanac's daily page. Every money line is a SERVED sentence from
+   /api/standing (one producer — the page computed nothing); weather, recap,
+   voice and the proverb ride /api/brief. His CLOSE stamps the day read. */
+const PAGE_KEY = "almanac_page_read";
+function pageDeg(v){ return v == null ? "—" : `<span class="deg">${Math.round(v)}°</span>`; }
+function wxLine(f){
+  if(!f) return "";
+  if(!f.ok) return `<div class="wxrow"><span class="wl">${esc((f.label||"").toUpperCase())}</span>`
+    + `<span class="wv dim2">${esc(f.unavailable || "unavailable")}</span></div>`;
+  const now = f.now || {}, d0 = (f.days || [])[0] || {};
+  return `<div class="wxrow"><span class="wl">${esc((f.label||"").toUpperCase())}</span>`
+    + `<span class="wv">${pageDeg(now.temp)} ${esc(now.words||"")} now · `
+    + `${pageDeg(d0.hi)}/${pageDeg(d0.lo)} today`
+    + (d0.precip_pct ? ` · ${d0.precip_pct}% precip` : "")
+    + (now.wind_mph != null ? ` · wind ${Math.round(now.wind_mph)}` : "") + `</span></div>`;
+}
+function pageHTML(){
+  const br = State.brief || {};
+  const wx = br.weather || {}, rc = br.recap || {}, vo = br.voice || {}, w = br.wisdom;
+  const day = new Date().toLocaleDateString("en-US",
+    { weekday:"long", month:"long", day:"numeric", year:"numeric" }).toUpperCase();
+  /* money: served sentences verbatim, ** markers rendered as emphasis */
+  const sents = ((State.standing||{}).judgement||{}).sentences || [];
+  const moneyHTML = sents.slice(0,3).map(s =>
+    `<div class="sv">${esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")}</div>`).join("")
+    || `<div class="sv dim2">the spine has not answered with the money picture</div>`;
+  /* the road: booked loads, served rows */
+  const ba = ((State.standing||{}).money||{}).booked_ahead || [];
+  const nl = wx.next_load;
+  const roadHTML = (ba.length
+    ? ba.map(r => `<div class="sv">${esc(r.broker||"—")} — delivers ${esc(r.delivery_date||"—")}`
+        + (r.rate != null ? ` · ${money(r.rate)}` : "") + `</div>`).join("")
+    : `<div class="sv dim2">nothing booked ahead</div>`);
+  /* yesterday */
+  const le = rc.last_entry;
+  const mv = rc.moves || {};
+  const mvLine = Object.keys(mv).length
+    ? Object.entries(mv).map(([k,n]) => `${n} ${k}`).join(" · ") : "";
+  const recapHTML = le
+    ? `<div class="sv"><b>${esc(le.title||"untitled")}</b></div>`
+      + (mvLine ? `<div class="sv dim2">${esc(mvLine)}</div>` : "")
+      + (le.next_up ? `<div class="sv dim2" style="margin-top:5px">said to pick up: ${esc(le.next_up.slice(0,220))}${le.next_up.length>220?" …":""}</div>` : "")
+    : `<div class="sv dim2">no closed entry to recap</div>`;
+  /* the navigator */
+  const voiceHTML = vo.status === "written"
+    ? `<div class="voice">${esc(vo.text)}</div>`
+    : vo.status === "writing"
+    ? `<div class="sv dim2">the navigator is still writing — tap THE PAGE again in a minute</div>`
+    : `<div class="sv dim2">the navigator is offline${vo.detail ? " — " + esc(vo.detail) : ""} — the facts stand on their own</div>`;
+  return `<div class="phead"><div class="pt">THE MORNING PAGE</div><div class="pd">${day}</div></div>`
+    + `<div class="sect"><div class="sl">THE SKY</div>${wxLine(wx.home)}${wxLine(nl)}</div>`
+    + `<div class="sect"><div class="sl">THE MONEY</div>${moneyHTML}</div>`
+    + `<div class="sect"><div class="sl">THE ROAD</div>${roadHTML}</div>`
+    + `<div class="sect"><div class="sl">YESTERDAY</div>${recapHTML}</div>`
+    + `<div class="sect"><div class="sl">THE NAVIGATOR</div>${voiceHTML}</div>`
+    + (w ? `<div class="proverb"><div class="pq">${esc(w.take)}</div>`
+         + `<div class="pa">— ${esc(w.attribution)}${w.quote ? ` · “${esc(w.quote)}”` : ""}</div></div>` : "")
+    + `<div class="pacts"><button class="btn" id="pageClose">START THE DAY</button></div>`;
+}
+function openPage(){
+  if(!State.brief){ return; }
+  const cv = document.querySelector(".capview"); cv && cv.click();
+  $("page").innerHTML = pageHTML();
+  $("pageWrap").hidden = false;
+  $("pageClose").onclick = closePage;
+}
+function closePage(){
+  if(State.brief && State.brief.day) localStorage.setItem(PAGE_KEY, State.brief.day);
+  $("pageWrap").hidden = true;
+}
 function renderDocket(){
   const el = $("docket");
   /* SNAPSHOT BINDING (review of #84): taps resolve against the array this
@@ -1906,7 +2061,9 @@ addEventListener("hashchange", async () => {
   }
 });
 $("dockBack").addEventListener("click", closeDocket);
+$("pageBack").addEventListener("click", closePage);
 document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && !$("pageWrap").hidden) closePage();
   if(e.key === "Escape" && !$("dockWrap").hidden) closeDocket();
 });
 
@@ -5693,7 +5850,7 @@ async function load(keep){
       ["radio","/api/messages"], ["learn","/api/learning"], ["soul","/api/doctrine"],
       ["held","/api/push/held"], ["watch","/api/watch"], ["hotshot","/api/hotshot"],
       ["hand","/api/hand"], ["sidech","/api/threads"],
-      ["diet","/api/listening?days=1"]
+      ["diet","/api/listening?days=1"], ["brief","/api/brief"]
     ];
     await Promise.all(rest.map(([k,p]) =>
       grab(p).then(v => { State[k] = v; }).catch(() => {})));
@@ -5705,6 +5862,13 @@ async function load(keep){
     if(location.hash === "#hand"){
       history.replaceState(null, "", location.pathname + location.search);
       openDocket();
+    }
+    /* THE WAKE-UP (card #113): the first open of the day loads the morning
+       page — his ask 2026-08-15. A push deep-link (#hand) outranks it; his
+       CLOSE stamps the day and later opens go straight to the field. */
+    else if(State.brief && State.brief.day
+            && localStorage.getItem(PAGE_KEY) !== State.brief.day){
+      openPage();
     }
     if(ACTIVE !== null) renderRoom();
   }catch(e){
