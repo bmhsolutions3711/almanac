@@ -342,9 +342,9 @@ body.hot .rw .b i.k{background:var(--hot)}
 body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shadow:inset 0 -2px 0 var(--hot)}
 
 .strip{flex:0 0 auto;display:grid;gap:9px;
-  grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,.8fr)}
+  grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) minmax(0,1fr)}
 @media(max-width:1050px){.strip{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
-  .strip .clk{grid-column:1/-1}}
+  .strip .stones{grid-column:1/-1}}
 @media(max-width:760px){.strip{grid-template-columns:1fr}}
 .strip .gp{padding:8px 10px 4px;justify-content:center}
 .hero{width:100%;height:auto;display:block;overflow:visible;max-height:250px}
@@ -397,16 +397,12 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
   .rr{gap:0}
   .strip>.ro{flex:0 0 min(360px,84vw)}
   .daybar{margin-top:3px;height:4px}
-  .tmin{font-size:28px}
-  .strip .clk .ln{font-size:11px;padding:1px 0}
+  .strip .stones .ln{font-size:11px;padding:1px 0}
   .strip .cap{font-size:7.5px}
-  /* the only thing dropped on a short screen is a caption, never a figure —
-     "three lines that never sum" is editorial; cash, runway and still-out stay */
-  .strip .clk .cap:last-child{display:none}
 }
 @media(max-height:560px){
   .strip{max-height:150px}.strip>.panel{max-height:146px}
-  .hero{max-height:108px}.rbig{font-size:19px}.tmin{font-size:25px}
+  .hero{max-height:108px}.rbig{font-size:19px}
 }
 /* HIS RULING 2026-08-04 ("fonts still off... having me scroll... same buffers
    as the clock"): the mobile lesson — two columns, fonts that FIT — now
@@ -422,8 +418,6 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .daybar{margin-top:5px;height:5px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
 .daybar i{display:block;height:100%;background:var(--mid);
   transition:width 1s cubic-bezier(.16,1,.3,1)}
-.tmin{font:700 clamp(30px,4vw,52px)/.95 var(--mono);letter-spacing:-.02em;color:var(--ink)}
-body.hot .tmin{color:var(--hot)}
 .strip .ln{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
   font:400 11.5px/1.5 var(--sans);color:var(--dim);border-bottom:1px dotted rgba(255,255,255,.07)}
 .strip .ln:last-of-type{border-bottom:0}
@@ -644,6 +638,20 @@ body.hot .tmin{color:var(--hot)}
 .hcard .ha{margin-top:4px;font:700 24px/1 var(--mono);color:rgba(var(--key),1)}
 .hcard .hs{margin-top:6px;font:400 11.5px/1.5 var(--sans);color:var(--dim)}
 .hcard .hb{margin-top:11px;display:flex;gap:7px;align-items:center}
+/* THE STONES — the strip's passive tracker (his ask 2026-08-14): the month's
+   bills pile above the line and drop to the bed below it as his drag settles
+   them on the floor. Read-only — the act lives on the floor (08-01 ruling). */
+.strip .stones{display:flex;flex-direction:column}
+.stw{position:relative;flex:1 1 auto;min-height:118px;border-radius:5px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(0,0,0,.4),rgba(0,0,0,.15))}
+.stw canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer}
+.sthead{position:absolute;right:7px;top:5px;text-align:right;pointer-events:none}
+.sthead b{font:700 15px/1 var(--mono);color:var(--ink)}
+.sthead span{display:block;margin-top:2px;font:700 7px/1.25 var(--mono);letter-spacing:.14em;
+  color:var(--dim);text-transform:uppercase}
+.stonetip{position:fixed;z-index:50;background:#101317;border:1px solid var(--line);
+  border-radius:5px;padding:6px 8px;font:400 10.5px/1.45 var(--mono);color:var(--ink);
+  pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.55)}
 .catchip{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:3px;
   font:600 9px/1.5 var(--mono);letter-spacing:.07em;text-transform:uppercase;
   color:var(--mid);background:rgba(var(--key),.1);border:1px solid rgba(var(--key),.22);
@@ -2986,7 +2994,11 @@ function finStrip(){
   const r = { cash: rw.total_cash != null ? rw.total_cash : cl.cash,
               weeks: cl.weeks_fuel,          /* SERVED, not derived from months */
               verdict: rw.verdict };
-  const days = cl.days_left != null ? cl.days_left : cl.days;
+  /* THE CLOCK IS DEAD HERE (his word 2026-08-14): its T−N read
+     survival.days_left while the hotshot tab serves judgement.line.days — the
+     recorded day they disagreed on one screen (see the standing room's
+     comment) retires with the second source. The countdown has ONE home. */
+  const ps = payState();
   /* THE ROAD ESTIMATE IS DEAD (2026-08-01). The line is nut + road ACTUALLY
      spent — $0 road on the 1st, growing as CSVs land. Served, never derived,
      and never the projection: if the actuals are unreadable this says "——". */
@@ -3013,19 +3025,20 @@ function finStrip(){
         m.day_of_month} / ${m.days_in_month} · ${m.days_left} left</div>
         <div class="daybar"><i style="width:${dayPct}%"></i></div></div>
     </div>
-    <div class="panel clk">
-      <div class="cap">the clock</div>
-      <div class="tmin" style="margin-top:7px">${days == null ? "——" : "T−" + days}</div>
-      <div class="cap" style="margin-top:2px">days to 10/1</div>
-      <div class="ln" style="margin-top:9px"><span>cash</span><b>${
+    <div class="panel stones">
+      <div class="cap">the stones · the month unloads</div>
+      <div class="stw" id="stonesW"><canvas id="stonesC"></canvas>
+        <div class="sthead">${!ps
+          ? `<span class="nodata">the spine has not answered with the standings</span>`
+          : ps.owed
+          ? `<b>${money(ps.owed)}</b><span>still due · ${ps.settled.length} of ${ps.pay.length} paid</span>`
+          : `<b>bare</b><span>all ${ps.pay.length} paid</span>`}</div>
+      </div>
+      <div class="ln" style="margin-top:6px"><span>cash</span><b>${
         r.cash == null ? "——" : money(r.cash)}</b></div>
       <div class="ln"><span>runway</span><b class="${
         r.verdict === "CRITICAL" ? "dn" : ""}">${r.weeks == null ? "——" :
         r.weeks + " wk"}${r.verdict ? " · " + esc(r.verdict) : ""}</b></div>
-      <div class="ln"><span>still out</span><b>${
-        (s.collections && s.collections.outstanding) == null ? "——"
-          : money(s.collections.outstanding)}</b></div>
-      <div class="cap" style="margin-top:7px">three lines that never sum</div>
     </div>
   </div>`;
 }
@@ -3254,16 +3267,29 @@ function finFloor(){
    bill is a CARD — the moment he pays it in the real world he drags it into
    MONTHLY, because the bank row is often days from import. The row attaches
    as evidence when it lands; until then the bucket says so honestly. */
-function finNutList(m0){
+/* ONE derivation of the month's pay-set. The nut list, the MONTHLY bucket and
+   the strip's stones all read THIS — a third inline settled/open/owed would be
+   the #84 restatement class the audit killed (a count derived in two places
+   is two counts). */
+function payState(){
   const s = State.standings;
-  if(!s) return "";
-  const open = [...(s.standings||[]), ...(s.tape||[])]
-    .filter(x => x.kind === "pay" && x.state !== "settled")
-    .sort((a,b) => ((a.days ?? 99) - (b.days ?? 99)));
+  if(!s) return null;
+  const pay = [...(s.standings||[]), ...(s.tape||[])].filter(x => x.kind === "pay");
+  const settled = pay.filter(x => x.state === "settled");
+  const open = pay.filter(x => x.state !== "settled");
+  return { pay, settled, open,
+           owed: open.reduce((a,x) => a + (x.amount||0), 0),
+           settledTotal: settled.reduce((a,x) => a + (x.amount||0), 0) };
+}
+
+function finNutList(m0){
+  const ps = payState();
+  if(!ps) return "";
+  const open = [...ps.open].sort((a,b) => ((a.days ?? 99) - (b.days ?? 99)));
   const mon = esc((m0 && m0.month_name || "this month").toLowerCase());
   if(!open.length) return `<div class="nut">
     <div class="cap">the nut — every bill recorded for ${mon}</div></div>`;
-  const owed = open.reduce((a,x) => a + (x.amount||0), 0);
+  const owed = ps.owed;
   return `<div class="nut">
     <div class="cap">the nut — ${open.length} due in ${mon} · ${money(owed)} open · drag a bill over as you pay it</div>
     ${open.map(x => {
@@ -3329,11 +3355,9 @@ function finLine(t){
    one sanctioned writer, and when the transaction does not name one bill
    beyond doubt the box asks instead of guessing. */
 function finMonthlyBox(){
-  const s = State.standings;
-  const pay = s ? [...(s.standings||[]), ...(s.tape||[])].filter(x => x.kind === "pay") : [];
-  const settled = pay.filter(x => x.state === "settled");
-  const open = pay.filter(x => x.state !== "settled");
-  const owed = open.reduce((a,x) => a + (x.amount||0), 0);
+  const ps = payState();
+  const pay = ps ? ps.pay : [], settled = ps ? ps.settled : [];
+  const owed = ps ? ps.owed : 0;
   const ev = (State.fin.expenses && State.fin.expenses.monthly_pays) || [];
   /* ALL of a bill's bank rows, not the first one — the SBA loan pays in two
      ACH debits every month (2026-08-03), and the bucket reads their sum */
@@ -3343,7 +3367,7 @@ function finMonthlyBox(){
     .filter(t => t.monthly_candidate);
   const ask = FIN.ask;                       // a drop the spine handed back to him
   return `<div class="lane monthly" data-row="monthly">
-    <div class="lh"><span class="lr">${money(settled.reduce((a,x)=>a+(x.amount||0),0))}</span>
+    <div class="lh"><span class="lr">${money(ps ? ps.settledTotal : 0)}</span>
       <div class="lb">MONTHLY</div>
       <div class="lm">paid this month · ${settled.length} of ${pay.length}${
         owed ? ` · ${money(owed)} still due on the left` : ""}</div></div>
@@ -3389,7 +3413,7 @@ function finMonthlyBox(){
              esc((State.fin.summary&&State.fin.summary.the_month&&
                   State.fin.summary.the_month.month_name)||"the month")} —<br>
              drag a bill across as you pay it</div>`)}</div>
-    <div class="lf"><span>${open.length ? `${open.length} still due` : "all recorded"}</span>
+    <div class="lf"><span>${ps && ps.open.length ? `${ps.open.length} still due` : "all recorded"}</span>
       <b class="${owed ? "dn" : ""}">${owed ? money(owed) : "clear"}</b></div>
   </div>`;
 }
@@ -3630,7 +3654,47 @@ function finHold(){
 
 /* Stones are laid on the floor by size, largest first, packed in rows from the
    bottom — a load of stone, not a chart. Positions are DERIVED FROM SERVED
-   AMOUNTS; nothing here invents a figure. */
+   AMOUNTS; nothing here invents a figure. The engine below is shared by the
+   hold and the strip's stones — one packer, one body, never forked. */
+
+/* SIZE IS RANK, NOT RATIO — and the code says so rather than pretending.
+   Radius grows with √amount so weight reads by AREA rather than width, but
+   rMin is a hard floor: a $1 subscription beside a $1,500 truck payment
+   would be a 1px target, and an obligation he cannot tap is an obligation
+   he cannot settle. So a small stone is BIGGER than its share. The number
+   on the stone is the truth; the size is only the ordering. */
+function packStones(items, W, floorY, o){
+  const rMin = o.rMin, rMax = o.rMax, x0 = o.x0 ?? 14, gap = o.gap ?? 7,
+        rowGap = o.rowGap ?? 8, xMax = o.xMax ?? (W - 10);
+  const mx = Math.max(1, ...items.map(s => s.amount));
+  const rad = a => rMin + (rMax - rMin)*Math.sqrt(a/mx);
+  const sorted = [...items].sort((a,b) => b.amount - a.amount);
+  const placed = [];
+  let x = x0, y = floorY, rowH = 0;
+  for(const s of sorted){
+    const R = rad(s.amount);
+    if(x + R*2 > xMax){ x = x0; y -= rowH + rowGap; rowH = 0; }
+    placed.push({s, cx: x + R, cy: y - R, R});
+    x += R*2 + gap; rowH = Math.max(rowH, R*2);
+  }
+  return placed;
+}
+
+function drawStone(g, p, o){
+  o = o || {};
+  const a = o.faded ? 0.42 : 1;
+  const grd = g.createRadialGradient(p.cx - p.R*0.34, p.cy - p.R*0.36, p.R*0.1,
+                                     p.cx, p.cy, p.R);
+  if(o.hot){ grd.addColorStop(0,`rgba(255,120,90,${0.98*a})`); grd.addColorStop(.55,`rgba(196,39,26,${0.8*a})`);
+             grd.addColorStop(1,`rgba(60,12,8,${0.95*a})`); }
+  else     { grd.addColorStop(0,`rgba(214,222,232,${0.95*a})`); grd.addColorStop(.55,`rgba(140,152,166,${0.72*a})`);
+             grd.addColorStop(1,`rgba(22,28,36,${0.96*a})`); }
+  g.fillStyle = grd;
+  g.beginPath(); g.arc(p.cx, p.cy, p.R, 0, 7); g.fill();
+  if(o.ring){ g.strokeStyle = o.ring; g.lineWidth = 2;
+              g.beginPath(); g.arc(p.cx, p.cy, p.R+2, 0, 7); g.stroke(); }
+}
+
 function paintHold(){
   const cv = $("holdC"), w = $("holdW"); if(!cv || !w) return;
   const st = (State.fin.stones || []).filter(s => s.state !== "settled" && s.amount);
@@ -3641,41 +3705,15 @@ function paintHold(){
   g.clearRect(0,0,W,H);
   const key = HOT ? "255,59,24" : (getComputedStyle(document.documentElement)
                      .getPropertyValue("--key").trim() || "255,164,25");
-  const mx = Math.max(1, ...st.map(s => s.amount));
-  /* SIZE IS RANK, NOT RATIO — and the code says so rather than pretending.
-     Radius grows with √amount so weight reads by AREA rather than width, but
-     rMin is a hard floor: a $1 subscription beside a $1,500 truck payment
-     would be a 1px target, and an obligation he cannot tap is an obligation
-     he cannot settle. So a small stone is BIGGER than its share. The number
-     on the stone is the truth; the size is only the ordering. */
-  const rMin = 13, rMax = Math.min(52, H*0.2);
-  const rad = a => rMin + (rMax-rMin)*Math.sqrt(a/mx);
-  const sorted = [...st].sort((a,b) => b.amount - a.amount);
-  const placed = [];
-  let x = 14, y = H - 16, rowH = 0;
-  for(const s of sorted){
-    const R = rad(s.amount);
-    if(x + R*2 > W - 10){ x = 14; y -= rowH + 8; rowH = 0; }
-    const cx = x + R, cy = y - R;
-    placed.push({s, cx, cy, R});
-    x += R*2 + 7; rowH = Math.max(rowH, R*2);
-  }
+  const placed = packStones(st, W, H - 16, {rMin: 13, rMax: Math.min(52, H*0.2)});
   State.fin.placed = placed;
   const top = placed.length ? Math.min(...placed.map(p => p.cy - p.R)) : H - 20;
   const line = $("holdLine");
   if(line) line.style.bottom = Math.max(28, H - top + 8) + "px";
   for(const p of placed){
-    const hot = p.s.severity === "short", sel = FIN.pick === p.s.id;
-    const grd = g.createRadialGradient(p.cx - p.R*0.34, p.cy - p.R*0.36, p.R*0.1,
-                                       p.cx, p.cy, p.R);
-    if(hot){ grd.addColorStop(0,"rgba(255,120,90,.98)"); grd.addColorStop(.55,"rgba(196,39,26,.8)");
-             grd.addColorStop(1,"rgba(60,12,8,.95)"); }
-    else   { grd.addColorStop(0,"rgba(214,222,232,.95)"); grd.addColorStop(.55,"rgba(140,152,166,.72)");
-             grd.addColorStop(1,"rgba(22,28,36,.96)"); }
-    g.fillStyle = grd;
-    g.beginPath(); g.arc(p.cx, p.cy, p.R, 0, 7); g.fill();
-    if(sel){ g.strokeStyle = `rgba(${key},1)`; g.lineWidth = 2;
-             g.beginPath(); g.arc(p.cx, p.cy, p.R+2, 0, 7); g.stroke(); }
+    const sel = FIN.pick === p.s.id;
+    drawStone(g, p, {hot: p.s.severity === "short",
+                     ring: sel ? `rgba(${key},1)` : null});
     /* The number is the truth the size cannot carry, so it goes on every stone
        that can hold legible type — short form under 18px, and the drill-in
        card carries the rest. */
@@ -3689,6 +3727,103 @@ function paintHold(){
       g.fillText(short(p.s.amount), p.cx, p.cy);
     }
   }
+}
+
+/* THE STONES — the strip's passive tracker (his ask 2026-08-14: "as i drag
+   into the current process they drop down... automatically as a visual
+   tracker"). The month's pay-set as bodies: unpaid stones pile ABOVE the
+   line; a bill his drag settles on the floor DROPS below it once and lies
+   faded on the bed. By month's end the pile above is bare — the trailer
+   unloaded. Read-only: the act lives on the floor (08-01 ruling). */
+let STONE_PREV = null, STONE_SET = null, STONE_ANIM = 0;
+const stoneKey = s => (s.bill_type || "") + ":" + (s.bill_id ?? s.id ?? s.title);
+
+function paintStripStones(){
+  const cv = $("stonesC"), w = $("stonesW"); if(!cv || !w) return;
+  cancelAnimationFrame(STONE_ANIM);
+  const ps = payState(); if(!ps) return;
+  const r = w.getBoundingClientRect();
+  const W = Math.max(180, r.width), H = Math.max(110, r.height);
+  cv.width = W*2; cv.height = H*2;
+  const g = cv.getContext("2d"); g.scale(2,2);
+
+  const lineY = Math.round(H*0.62);
+  const open = ps.open.filter(s => s.amount);
+  const done = ps.settled.filter(s => s.amount);
+  const rMaxTop = Math.min(22, H*0.15);
+  const topP = packStones(open, W, lineY - 2,
+    {rMin: 7, rMax: rMaxTop, x0: 8, gap: 5, rowGap: 5, xMax: W - 8});
+  const botP = packStones(done, W, H - 6,
+    {rMin: 5, rMax: Math.max(8, rMaxTop*0.6), x0: 8, gap: 4, rowGap: 4, xMax: W - 8});
+
+  /* the drop: a bill that flipped settled since the last paint falls ONCE —
+     from where it lay in the pile to where it lands on the bed. First paint
+     of a session sets the baseline silently (no rain of drops on load). */
+  let fall = null;
+  if(STONE_SET && STONE_PREV){
+    for(const p of botP){
+      const k = stoneKey(p.s);
+      if(!STONE_SET.has(k) && STONE_PREV.has(k)){
+        fall = {from: STONE_PREV.get(k), to: p, t0: performance.now()};
+        break;
+      }
+    }
+  }
+  STONE_SET = new Set(done.map(stoneKey));
+  STONE_PREV = new Map([...topP, ...botP].map(p =>
+    [stoneKey(p.s), {cx: p.cx, cy: p.cy, R: p.R}]));
+  State.fin.stripPlaced = [...topP, ...botP];
+
+  const paint = frac => {
+    g.clearRect(0,0,W,H);
+    g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(6, lineY + .5); g.lineTo(W - 6, lineY + .5); g.stroke();
+    for(const p of topP)
+      drawStone(g, p, {hot: p.s.state === "unmarked" || p.s.severity === "short"});
+    for(const p of botP){
+      if(fall && stoneKey(p.s) === stoneKey(fall.to.s) && frac < 1) continue;
+      drawStone(g, p, {faded: true});
+    }
+    if(fall && frac < 1){
+      const e = frac*frac;   /* ease-in — a body gathers speed */
+      drawStone(g, {s: fall.to.s,
+        cx: fall.from.cx + (fall.to.cx - fall.from.cx)*e,
+        cy: fall.from.cy + (fall.to.cy - fall.from.cy)*e,
+        R:  fall.from.R  + (fall.to.R  - fall.from.R)*e}, {});
+    }
+  };
+  if(fall){
+    const DUR = 650;
+    const step = now => {
+      const f = Math.min(1, (now - fall.t0)/DUR);
+      paint(f);
+      if(f < 1) STONE_ANIM = requestAnimationFrame(step);
+    };
+    STONE_ANIM = requestAnimationFrame(step);
+  } else paint(1);
+}
+
+function wireStripStones(){
+  const cv = $("stonesC"); if(!cv) return;
+  const hide = () => { const t = $("stoneTip"); if(t) t.remove(); };
+  const read = ev => {
+    const r = cv.getBoundingClientRect();
+    const x = ev.clientX - r.left, y = ev.clientY - r.top;
+    const p = (State.fin.stripPlaced || []).find(p =>
+      Math.hypot(p.cx - x, p.cy - y) <= p.R + 3);
+    if(!p){ hide(); return; }
+    let t = $("stoneTip");
+    if(!t){ t = document.createElement("div"); t.id = "stoneTip";
+            t.className = "stonetip"; document.body.appendChild(t); }
+    t.innerHTML = `<b>${esc(p.s.title)}</b> · ${p.s.amount == null ? "——" : money(p.s.amount)}<br>${
+      p.s.state === "settled" ? "paid — on the bed" : esc(p.s.sub || "due")}`;
+    t.style.left = Math.min(innerWidth - 200, ev.clientX + 10) + "px";
+    t.style.top = Math.max(6, ev.clientY - 40) + "px";
+  };
+  cv.addEventListener("pointerdown", read);
+  cv.addEventListener("pointermove", e => {
+    if(e.buttons || e.pointerType === "mouse") read(e); });
+  cv.addEventListener("pointerleave", hide);
 }
 
 /* THE BOOKS — Bryan, 2026-08-02: "repurpose the standing tab for an overview
@@ -4247,7 +4382,9 @@ function renderRoom(){
     else { paintGauge(); wireFigs(); wireActs(); wireSnap(); wireScale(); }
   }
   if(o.room === "work"){ wireCards(); }
-  if(o.room === "ledger"){ wireFin(); }
+  if(o.room === "ledger"){ wireFin();
+    /* the strip rides every fin view — its stones paint on all four tabs */
+    paintStripStones(); wireStripStones(); }
   if(o.room === "radio"){ wireKeyup(); markRead(); wireCapMedia(); wireLane(); freshenRadio(); }
   if(o.room === "soul"){
     /* stopPropagation is law on anything that opens/closes (ruled 08-03 after
