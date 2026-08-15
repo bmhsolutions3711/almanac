@@ -1976,7 +1976,11 @@ function pageHTML(){
   const roadHTML = (ba.length
     ? ba.map(r => `<div class="sv">${esc(r.broker||"—")} — delivers ${esc(r.delivery_date||"—")}`
         + (r.rate != null ? ` · ${money(r.rate)}` : "") + `</div>`).join("")
-    : `<div class="sv dim2">nothing booked ahead</div>`);
+    : `<div class="sv dim2">nothing booked ahead</div>`)
+    /* the trip's SHAPE (card #117): anchor legs + HOS leave-by, served words */
+    + (br.plan && br.plan.ok && br.plan.words
+        ? br.plan.words.map(s => `<div class="sv dim2">${esc(s)}</div>`).join("")
+        : "");
   /* yesterday */
   const le = rc.last_entry;
   const mv = rc.moves || {};
