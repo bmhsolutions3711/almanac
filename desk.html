@@ -1239,7 +1239,7 @@ body.hot .act .h .n{color:var(--hot)}
       <span class="lbl" id="clbl">THE SPINE PUT THIS IN FRONT OF YOU</span>
       <div class="q" id="cq">reading&#8230;</div>
       <div class="rz" id="crz"></div>
-      <div class="acts"><button class="btn go" id="cgo">OPEN IT</button></div>
+      <div class="acts"><button class="btn go" id="cgo">OPEN IT</button><button class="btn go" id="cair" hidden>ON AIR</button></div>
     </div>
   </div>
 
@@ -1656,16 +1656,33 @@ function paintConsider(){
      standing alerts reach him through the docket + its breath (#114). The
      old five-branch ladder survives BELOW as the fallback for a spine that
      serves no brief — the card never goes blank. */
-  const w = State.brief && State.brief.wisdom;
+  /* the hour picks the slot (his ruling: motivational morning, encouragement
+     midday, reflective night) — the CLIENT's clock, because the truck crosses
+     time zones and the phone knows where it is */
+  const slots = State.brief && State.brief.wisdom_slots;
+  const hr = new Date().getHours();
+  const slotName = hr < 12 ? "morning" : hr < 17 ? "midday" : "evening";
+  const w = (slots && slots[slotName]) || (State.brief && State.brief.wisdom);
   if(w){
     $("clbl").textContent = "FROM THE CANON — " + (w.attribution || "").toUpperCase();
     $("cq").textContent = w.take;
-    $("crz").textContent = "· " + (w.behavior || "") + " ·"
+    $("crz").textContent = "· " + slotName + " · " + (w.behavior || "") + " ·"
       + (w.quote ? `  “${w.quote}”` : "") + `  (${w.cycle || ""})`;
     $("cgo").textContent = "THE PAGE";
     $("cgo").onclick = openPage;
+    /* the choice point (his ask 2026-08-15): read or listen, side by side */
+    const bc = (State.brief && State.brief.broadcast) || {};
+    const air = $("cair");
+    air.hidden = false;
+    if(AIR && !AIR.paused){ air.textContent = "■ SIGN OFF"; air.disabled = false; }
+    else if(bc.status === "on_air"){ air.textContent = "▶ ON AIR"; air.disabled = false; }
+    else if(bc.status === "warming" || bc.status === "waiting_on_navigator"){
+      air.textContent = "WARMING UP…"; air.disabled = true; }
+    else { air.textContent = "OFF AIR"; air.disabled = true; }
+    air.onclick = () => playAir(air);
     return;
   }
+  $("cair").hidden = true;
   $("clbl").textContent = "THE SPINE PUT THIS IN FRONT OF YOU";
   const p = (State.standing && State.standing.judgement && State.standing.judgement.parts) || {};
   const b = State.board, s = State.standings, l = State.learn;
@@ -1976,17 +1993,9 @@ function pageHTML(){
     : vo.status === "writing"
     ? `<div class="sv dim2">the navigator is still writing — tap THE PAGE again in a minute</div>`
     : `<div class="sv dim2">the navigator is offline${vo.detail ? " — " + esc(vo.detail) : ""} — the facts stand on their own</div>`;
-  /* THE SIGN-ON (card #115): the air button wears the broadcast's honest
-     status — on_air plays, warming says so, offline never pretends */
-  const bc = br.broadcast || {};
-  const airLabel = bc.status === "on_air" ? "▶ ON AIR — THE SIGN-ON"
-    : bc.status === "warming" || bc.status === "waiting_on_navigator" ? "SIGN-ON WARMING UP…"
-    : bc.status === "offline" ? "TRANSMITTER OFFLINE" : "SIGN-ON PENDING";
-  const airBtn = `<button class="btn air" id="airBtn" ${bc.status === "on_air" ? "" : "disabled"}
-     style="margin-top:9px;font:700 9px/1 var(--mono);letter-spacing:.14em;min-height:38px;
-     padding:10px 16px;border:1px solid rgba(255,164,25,.4);border-radius:6px;cursor:pointer;
-     background:rgba(255,164,25,.07);color:var(--amber)">${airLabel}</button>`;
-  return `<div class="phead"><div class="pt">THE MORNING PAGE</div><div class="pd">${day}</div>${airBtn}</div>`
+  /* the air button lives on the canon card now (his word 2026-08-15: read or
+     listen, chosen side by side) — the page masthead stays print-clean */
+  return `<div class="phead"><div class="pt">THE MORNING PAGE</div><div class="pd">${day}</div></div>`
     + `<div class="sect"><div class="sl">THE SKY</div>${wxLine(wx.home)}${wxLine(nl)}</div>`
     + `<div class="sect"><div class="sl">THE MONEY</div>${moneyHTML}</div>`
     + `<div class="sect"><div class="sl">THE ROAD</div>${roadHTML}</div>`
@@ -1999,14 +2008,14 @@ function pageHTML(){
 let AIR = null;   // the one Audio element — the station has one transmitter
 function playAir(btn){
   if(AIR && !AIR.paused){ AIR.pause(); AIR = null;
-    btn.textContent = "▶ ON AIR — THE SIGN-ON"; return; }
+    btn.textContent = "▶ ON AIR"; return; }
   btn.textContent = "TUNING…"; btn.disabled = true;
   /* fetch-blob: an <audio src> cannot carry the bearer token */
   fetch(url("/api/brief/audio"), { headers: hdr() })
     .then(r => { if(!r.ok) throw new Error("no air"); return r.blob(); })
     .then(b => {
       AIR = new Audio(URL.createObjectURL(b));
-      AIR.onended = () => { btn.textContent = "▶ ON AIR — THE SIGN-ON"; AIR = null; };
+      AIR.onended = () => { btn.textContent = "▶ ON AIR"; AIR = null; };
       btn.textContent = "■ SIGN OFF"; btn.disabled = false;
       return AIR.play();
     })
@@ -2018,12 +2027,10 @@ function openPage(){
   $("page").innerHTML = pageHTML();
   $("pageWrap").hidden = false;
   $("pageClose").onclick = closePage;
-  const ab = $("airBtn");
-  if(ab && !ab.disabled) ab.onclick = () => playAir(ab);
 }
 function closePage(){
   if(State.brief && State.brief.day) localStorage.setItem(PAGE_KEY, State.brief.day);
-  if(AIR){ AIR.pause(); AIR = null; }   // the ritual ends when the day starts
+  /* the air keeps playing — reading done ≠ listening done; SIGN OFF is its own act */
   $("pageWrap").hidden = true;
 }
 function renderDocket(){
