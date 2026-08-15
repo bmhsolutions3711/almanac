@@ -140,7 +140,12 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .orb .fig .u{display:block;margin-top:3px;font:700 7px/1 var(--mono);letter-spacing:.15em;color:rgba(255,255,255,.75)}
 .orb .name{font:700 10px/1 var(--mono);letter-spacing:.2em;text-shadow:0 2px 10px rgba(0,0,0,.85);
   transition:font-size .5s,color .3s}
-.orb .sig{font:600 9px/1 var(--mono);letter-spacing:.1em;color:var(--dim);transition:opacity .4s;white-space:nowrap}
+.orb .sig{font:600 9px/1 var(--mono);letter-spacing:.1em;color:var(--dim);transition:opacity .4s;white-space:nowrap;
+  /* the caption hangs OUTSIDE the hit box: a nowrap sig inside the flex column
+     made the radio's orb 227px wide in the rail — its box covered THE WORK's
+     right half, and a tap on the neighbor opened the constellation
+     (his catch, 2026-08-14). Same law as .fig: decoration never takes taps. */
+  position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);pointer-events:none}
 .orb .sig b{color:var(--amber)}
 .orb .sig b.h{color:var(--hot)}
 .stage.entered .orb .sig,.stage.entered .orb .fig{opacity:0;pointer-events:none}
@@ -1361,7 +1366,13 @@ function layout(){
 function separate(){
   if(SYS) return;   // the constellation owns the sky; the frozen field waits
   const W = innerWidth, H = fieldH(), GAP = 14, EDGE = 6;
-  const box = D.map(o => ({ w: o.el.offsetWidth, h: o.el.offsetHeight }));
+  /* the sig hangs OUTSIDE the element box now (it may not take taps — the
+     radio's wide caption was stealing its neighbors' clicks in the rail), so
+     the collision law measures it back in: the FOOTPRINT includes the caption
+     even though the hit box does not. */
+  const box = D.map(o => { const sg = o.el.querySelector(".sig");
+    return { w: Math.max(o.el.offsetWidth, sg ? sg.offsetWidth : 0),
+             h: o.el.offsetHeight + (sg ? sg.offsetHeight + 7 : 0) }; });
   if(box.some(b => !b.w || !b.h)) return;   // not laid out yet; paintField re-runs this
 
   // If the footprints cannot fit the field, shrink the BALLS until they can.
