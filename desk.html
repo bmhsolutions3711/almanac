@@ -5924,10 +5924,19 @@ async function sendSnap(file){
     }
     State.hotshot = o.pulse || State.hotshot;
     renderRoom();
+    /* THE RECEIPT (card #126, his live UAT: "took photo and nothing
+       happened" — both snaps had LANDED; the only feedback was well text
+       sitting below the fold after the full-room re-render). The toast
+       lands where his eyes are, wherever they are; the well scrolls in. */
+    const read = `read: odo ${(o.snap.odometer||0).toLocaleString()}` +
+      (o.snap.trailer ? ` · ${o.snap.trailer}` : "");
+    toast(read);
     const w1 = $("snapWell");
-    if(w1) w1.textContent = `read: odo ${(o.snap.odometer||0).toLocaleString()}` +
-      (o.snap.trailer ? ` · ${o.snap.trailer}` : "") +
-      " — wrong? tap misread on the anchor line";
+    if(w1){
+      w1.textContent = read + " — wrong? tap misread on the anchor line";
+      w1.scrollIntoView({ block: "center",
+        behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }
   }catch(err){
     const w = $("snapWell");
     if(w){ w.classList.remove("busy"); w.textContent = String(err.message||err); }
