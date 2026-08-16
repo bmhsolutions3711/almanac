@@ -2412,12 +2412,12 @@ function bulletinHTML(){
   /* his own clock — pulled from HIS list, labeled as such, never invented */
   const pl = State.planner, targets = [];
   if(pl && pl.tasks) (pl.tasks.open || []).forEach(t => {
-    if(t.category === "business" && /(\bdot\b|\bhut\b|\bucr\b|ifta|inspect|tax)/i.test(t.text))
+    if(t.category === "business" && /(\bdot\b|\bhut\b|\bucr\b|ifta|\bpuco\b|inspect|tax|medical)/i.test(t.text))
       targets.push(t);
   });
   const tHTML = targets.length
     ? `<div class="cap" style="margin:13px 0 3px">your compliance targets — from your list</div>`
-      + targets.slice(0, 6).map(t =>
+      + targets.slice(0, 8).map(t =>
         `<div class="hb-tgt">${esc(t.text)}<i>${esc(t.timeframe)}</i></div>`).join("")
     : "";
   return `<div class="panel" style="grid-column:1 / -1">
