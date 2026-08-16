@@ -1043,18 +1043,22 @@ body.hot .act .h .n{color:var(--hot)}
 .pl-tog{min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:3px;background:none;color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.14em;cursor:pointer}
 .pl-tog.on{color:var(--ink);border-color:rgba(var(--key),.6);box-shadow:0 0 10px -4px rgba(var(--key),.7)}
 .pl-thin{font:400 12px/1.5 var(--sans);color:var(--dim);margin-top:8px}
-.pl-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px;max-width:480px}
-.pl-wd{font:700 8px/1 var(--mono);letter-spacing:.1em;color:var(--etch);text-align:center;padding:4px 0}
-.pl-cell{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:34px}
-.pl-cell.pad{border:none;cursor:default}
-.pl-cell .pl-dn{position:absolute;top:2px;left:4px;font:700 8px/1 var(--mono);color:var(--dim)}
-.pl-cell .pl-mk{font-size:11px;margin-top:5px}
-.pl-cell.dst{box-shadow:inset 0 0 0 1.5px rgba(255,59,24,.45)}
-.pl-cell.today{box-shadow:inset 0 0 0 1.5px var(--amber)}
-.pl-cell.today.dst{box-shadow:inset 0 0 0 1.5px var(--amber),inset 0 0 0 3px rgba(255,59,24,.45)}
-.pl-cell.picked{outline:2px solid rgb(var(--key));outline-offset:1px}
-.pl-wk{display:inline-block;width:5px;height:5px;border-radius:50%;background:#22c55e;position:absolute;bottom:3px;right:3px}
-.pl-legend .pl-wk{position:static;display:inline-block;margin-right:2px}
+.pl-ytabs{display:flex;gap:6px;margin:8px 0 6px;flex-wrap:wrap}
+.pl-ytab{min-height:40px;min-width:56px;border:none;border-bottom:2px solid transparent;background:none;color:var(--dim);font:700 11px/1 var(--mono);letter-spacing:.1em;cursor:pointer}
+.pl-ytab.on{color:var(--amber);border-bottom-color:var(--amber)}
+/* the bik format: months as rows, weekday-aligned columns, one picture.
+   Wide by nature — it scrolls in its own container, never the page. */
+.pl-yearwrap{overflow-x:auto;padding-bottom:4px}
+.pl-yrow{display:grid;grid-template-columns:30px repeat(37,20px);gap:2px;align-items:center;margin-top:2px;width:max-content}
+.pl-ymon{font:700 9px/1 var(--mono);letter-spacing:.08em;color:var(--dim);text-transform:uppercase}
+.pl-yhdr .pl-ywd{font:700 7.5px/1 var(--mono);color:var(--etch);text-align:center}
+.pl-yhdr .pl-ywd.we{color:var(--amber);opacity:.75}
+.pl-yc{position:relative;height:20px;border:1px solid var(--line);border-radius:2px;cursor:pointer;font:600 7.5px/18px var(--mono);color:var(--etch);text-align:center;overflow:hidden}
+.pl-yc.pad{border:none;cursor:default}
+.pl-yc.dst{background:#7f1d1d;color:#fca5a5}
+.pl-yc.today{background:var(--amber);color:#000;font-weight:700}
+.pl-yc.wk{background:#16a34a;color:#fff}
+.pl-yc.picked{outline:2px solid rgb(var(--key));outline-offset:1px}
 .pl-picker{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:3px}
 .pl-swatch{width:34px;height:34px;border-radius:3px;border:1px solid var(--line);cursor:pointer}
 .pl-swatch.clear{background:none;color:var(--dim);font:700 12px var(--mono)}
@@ -1450,14 +1454,17 @@ $("dateline").textContent = new Date().toLocaleDateString("en-US",
   { weekday:"long", month:"long", day:"numeric", year:"numeric" }).toUpperCase();
 
 /* ── the domains. hue = identity. ─────────────────────────────────── */
+/* THE RING (his tee, card #122): the orbs sit as a cylinder around the
+   spine — the left arc mirrors the right's curve (80,30 / 85,60 / 73,80),
+   and PLANNING rides the top band beside RADIO, a bit more to the right. */
 const D = [
-  {k:"HOTSHOT", hue:"255,110,50",  fx:19, fy:36, r:118, room:"standing"},
+  {k:"HOTSHOT", hue:"255,110,50",  fx:20, fy:32, r:118, room:"standing"},
   {k:"THE WORK",hue:"70,190,200",  fx:80, fy:30, r:102, room:"work"},
   {k:"RADIO",   hue:"255,164,25",  fx:50, fy:16, r:80,  room:"radio"},
   {k:"MONEY",   hue:"190,160,60",  fx:85, fy:60, r:90,  room:"ledger"},
-  {k:"LEARN",   hue:"150,90,220",  fx:18, fy:68, r:84,  room:"learn"},
+  {k:"LEARN",   hue:"150,90,220",  fx:15, fy:62, r:84,  room:"learn"},
   {k:"SOUL",    hue:"120,200,120", fx:73, fy:80, r:72,  room:"soul"},
-  {k:"PLANNING",hue:"90,160,255",  fx:22, fy:13, r:76,  room:"planner"}
+  {k:"PLANNING",hue:"90,160,255",  fx:34, fy:14, r:76,  room:"planner"}
 ];
 /* THE RADIO SYSTEM (card #93, his framing): the radio grew into a DOMAIN —
    tap its orb and the field falls into the radio's own constellation. Every
@@ -5351,10 +5358,9 @@ function wireLearn(){
    absorbed. His labels, his colors, verbatim — never paraphrased. */
 const LP = {
   date: null,            // the practice day being viewed (null = today)
-  ym: null,              // the weather month being viewed
+  y: null,               // the weather year being viewed (his tee: plan at a year glance)
   pick: null,            // date awaiting a color
   fold: false,           // done-tasks fold
-  monthCache: {},        // ym -> days[] fetched beyond the served month
 };
 function lpToday(){ const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
@@ -5383,15 +5389,15 @@ async function lpWrite(path, bodyObj){
   return out;
 }
 async function lpRefetch(){
-  try{ State.planner = await grab("/api/planner" + (LP.ym ? "?month=" + LP.ym : "")); }catch(_){}
+  try{ State.planner = await grab("/api/planner" + (LP.y ? "?year=" + LP.y : "")); }catch(_){}
 }
 function lpDayView(){
   const pl = State.planner, date = LP.date || lpToday();
   if(date === (pl.today || {}).date) return pl.today;
-  /* a past day edits only once its month is actually LOADED — a save built
+  /* a past day edits only once its year is actually LOADED — a save built
      from an unloaded blank would overwrite real history with nothing */
-  const loaded = pl.month && pl.month.ym === date.slice(0, 7);
-  const hit = loaded ? (pl.month.days || []).find(x => x.date === date) : null;
+  const loaded = pl.year && pl.year.y === +date.slice(0, 4);
+  const hit = loaded ? (pl.year.days || {})[date] : null;
   return { date,
            checks: hit ? (hit.checks || []) : (loaded ? [] : null),
            workout: hit ? hit.workout : 0, above: hit ? hit.above : 0,
@@ -5426,39 +5432,51 @@ function plannerRoom(){
       <button class="pl-tog${t.above ? " on" : ""}" id="plAbove" ${canCheck ? "" : "disabled"}>ABOVE &amp; BEYOND</button></div>
     ${canCheck ? "" : `<div class="pl-thin">fetching this day's record — the boxes unlock when it lands.</div>`}
   </div>`;
-  /* THE WEATHER — the month grid */
-  const ym = (pl.month && pl.month.ym) || today.slice(0,7);
-  LP.ym = ym;
-  const [yy, mm] = ym.split("-").map(Number);
-  const dst = lpDstDates(yy);
-  const byDate = {}; (pl.month.days || []).forEach(x => { byDate[x.date] = x; });
-  const first = new Date(yy, mm-1, 1), pad = first.getDay();
-  const nDays = new Date(yy, mm, 0).getDate();
-  let cells = "";
-  for(let i = 0; i < pad; i++) cells += `<div class="pl-cell pad"></div>`;
-  for(let d = 1; d <= nDays; d++){
-    const ds = `${ym}-${String(d).padStart(2,"0")}`;
-    const x = byDate[ds] || {};
-    const marks = (x.all7 ? "⭐" : (x.m >= 3 ? "✓" : (x.m || x.d ? "·" : "")));
-    cells += `<div class="pl-cell${ds === today ? " today" : ""}${dst[ds] ? " dst" : ""}${LP.pick === ds ? " picked" : ""}"
-      data-d="${ds}" style="${x.color ? `background:${x.color}` : ""}">
-      <span class="pl-dn">${d}</span><span class="pl-mk">${marks}</span>
-      ${x.workout ? `<i class="pl-wk"></i>` : ""}</div>`;
+  /* YEAR AT A GLANCE — the bik format, his tee (card #123): months as
+     rows, weekday-aligned day columns, the whole year in one picture.
+     Status paint follows the bik precedence: color < dst < today < workout. */
+  const thisY = +today.slice(0, 4);
+  const Y = (pl.year && pl.year.y) || thisY;
+  LP.y = Y;
+  const yd = (pl.year && pl.year.days) || {};
+  const dst = lpDstDates(Y);
+  const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let tabs = "";
+  for(let ty = 2026; ty <= thisY + 4; ty++)
+    tabs += `<button class="pl-ytab${ty === Y ? " on" : ""}" data-y="${ty}">${ty}</button>`;
+  const wdHdr = `<div class="pl-yrow pl-yhdr"><span class="pl-ymon"></span>` +
+    Array.from({length: 37}, (_, i) =>
+      `<span class="pl-ywd${i % 7 >= 5 ? " we" : ""}">${"MTWTFSS"[i % 7]}</span>`).join("") + `</div>`;
+  let grid = "";
+  for(let m = 1; m <= 12; m++){
+    const off = (new Date(Y, m - 1, 1).getDay() + 6) % 7;   // Monday-first, the bik way
+    const nD = new Date(Y, m, 0).getDate();
+    let row = `<span class="pl-ymon">${MON[m-1]}</span>`;
+    for(let col = 0; col < 37; col++){
+      const d = col - off + 1;
+      if(d < 1 || d > nD){ row += `<span class="pl-yc pad"></span>`; continue; }
+      const ds = `${Y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const x = yd[ds];
+      const mark = x ? (x.all7 ? "⭐" : x.m >= 3 ? "✓" : (x.m || x.d) ? "–" : "") : "";
+      const cls = "pl-yc" + (dst[ds] ? " dst" : "") + (ds === today ? " today" : "")
+        + (x && x.workout ? " wk" : "") + (LP.pick === ds ? " picked" : "");
+      const paint = (x && x.color && !dst[ds] && ds !== today && !(x && x.workout))
+        ? ` style="background:${x.color}"` : "";
+      row += `<span class="${cls}" data-d="${ds}"${paint} title="${ds}">${mark || d}</span>`;
+    }
+    grid += `<div class="pl-yrow">${row}</div>`;
   }
-  const monthName = first.toLocaleString("en-US", {month: "long"});
   const pickerHTML = LP.pick ? `<div class="pl-picker">
       <span class="cap" style="margin-right:4px">${esc(LP.pick)} —</span>
       ${(pl.colors || []).map(c => `<button class="pl-swatch" data-c="${c.hex}"
         style="background:${c.hex}" title="${esc(c.name)} — ${esc(c.means)}"></button>`).join("")}
       <button class="pl-swatch clear" data-c="" title="clear the day">✕</button></div>` : "";
   const weatherHTML = `<div class="panel pl-weather">
-    <div class="cap">the year's weather — his colors, the practice, the dark season</div>
-    <div class="pl-nav"><button class="pl-nbtn" id="plMPrev">‹</button>
-      <span class="pl-date">${monthName} ${yy}</span>
-      <button class="pl-nbtn" id="plMNext">›</button></div>
-    <div class="pl-grid">${["S","M","T","W","T","F","S"].map(w => `<div class="pl-wd">${w}</div>`).join("")}${cells}</div>
+    <div class="cap">year at a glance — his colors, the practice, the dark season</div>
+    <div class="pl-ytabs">${tabs}</div>
+    <div class="pl-yearwrap">${wdHdr}${grid}</div>
     ${pickerHTML}
-    <div class="pl-legend"><span>⭐ all seven</span><span>✓ morning</span><span><i class="pl-wk"></i> workout</span><span class="dstk">dst zone</span><span>tap a day for its color</span></div>
+    <div class="pl-legend"><span class="tdk">today</span><span class="wkk">workout</span><span class="dstk">dst zone</span><span>⭐ all 7</span><span>✓ morning</span><span>– partial</span><span>tap a day for its color</span></div>
   </div>`;
   /* THE LIST — life tasks, separate from the work board by standing rule */
   const open = (pl.tasks && pl.tasks.open) || [];
@@ -5520,24 +5538,20 @@ function wirePlanner(){
   const prev = $("plPrev"), next = $("plNext");
   prev && prev.addEventListener("click", () => {
     LP.date = lpShift(LP.date || lpToday(), -1);
-    const ym = LP.date.slice(0,7);
-    if(ym !== LP.ym){ LP.ym = ym; lpRefetch().then(renderRoom); }
+    const y = +LP.date.slice(0, 4);
+    if(y !== LP.y){ LP.y = y; lpRefetch().then(renderRoom); }
     renderRoom(); });
   next && next.addEventListener("click", () => {
     const n = lpShift(LP.date || lpToday(), 1);
     LP.date = n >= lpToday() ? null : n;
+    const y = +(LP.date || lpToday()).slice(0, 4);
+    if(y !== LP.y){ LP.y = y; lpRefetch().then(renderRoom); }
     renderRoom(); });
-  const mPrev = $("plMPrev"), mNext = $("plMNext");
-  const shiftM = dir => {
-    const [y, m] = (LP.ym || lpToday().slice(0,7)).split("-").map(Number);
-    const d = new Date(y, m - 1 + dir, 1);
-    LP.ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-    LP.pick = null;
-    lpRefetch().then(() => renderRoom());
-  };
-  mPrev && mPrev.addEventListener("click", () => shiftM(-1));
-  mNext && mNext.addEventListener("click", () => shiftM(1));
-  R.querySelectorAll(".pl-cell[data-d]").forEach(c =>
+  R.querySelectorAll(".pl-ytab").forEach(b =>
+    b.addEventListener("click", e => { e.stopPropagation();
+      LP.y = +b.dataset.y; LP.pick = null;
+      lpRefetch().then(() => renderRoom()); }));
+  R.querySelectorAll(".pl-yc[data-d]").forEach(c =>
     c.addEventListener("click", e => { e.stopPropagation();
       LP.pick = LP.pick === c.dataset.d ? null : c.dataset.d; renderRoom(); }));
   R.querySelectorAll(".pl-swatch").forEach(s =>
