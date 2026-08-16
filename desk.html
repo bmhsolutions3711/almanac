@@ -1026,7 +1026,9 @@ body.hot .act .h .n{color:var(--hot)}
 
 /* ── THE PLANNER — the almanac's own pages ────────────────────────── */
 .pl-page{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
-.pl-practice,.pl-weather{flex:0 0 auto}
+.pl-duo{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.pl-duo .pl-practice{flex:1 1 280px;min-width:280px}
+.pl-duo .pl-weather{flex:2 1 520px;min-width:min(520px,100%)}
 .pl-nav{display:flex;align-items:center;gap:12px;margin:8px 0 4px}
 .pl-nbtn{min-width:40px;min-height:40px;border:1px solid var(--line);border-radius:3px;background:none;color:var(--dim);font:700 13px var(--mono);cursor:pointer}
 .pl-nbtn:disabled{opacity:.3}
@@ -5500,10 +5502,13 @@ function plannerRoom(){
       + (LP.fold ? doneR.map(tk => `<div class="pl-task done"><span class="pl-tx">${esc(tk.text)}</span>
          <span class="pl-tf">${esc((tk.completed_at || "").slice(0,10))}</span></div>`).join("") : "") : ""}
     </div>`;
-  /* the planner is the almanac's PAGES — one column, and a page scrolls
-     (the only room that does; its content is honestly taller than a view) */
+  /* the planner is the almanac's PAGES — a page scrolls. The practice and
+     the year sit SIDE BY SIDE at desk width (his ruling: 1/3 checklist,
+     2/3 calendar — the bik proportion) and stack back to a column on the
+     fold, where the year grid already scrolls in its own container. */
   return whyBar() + `<div class="scroll pl-page" id="plScroll">`
-    + practiceHTML + weatherHTML + listHTML + `</div>`;
+    + `<div class="pl-duo">` + practiceHTML + weatherHTML + `</div>`
+    + listHTML + `</div>`;
 }
 async function lpSavePractice(t, patch){
   const next = { date: t.date, checks: t.checks || [], workout: t.workout, above: t.above, ...patch };
