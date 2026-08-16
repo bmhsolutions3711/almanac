@@ -1066,16 +1066,38 @@ body.hot .act .h .n{color:var(--hot)}
 .pl-swatch.clear{background:none;color:var(--dim);font:700 12px var(--mono)}
 .pl-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font:700 8px/1.6 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--etch)}
 .pl-legend .dstk{color:rgba(255,59,24,.7)}
-.pl-add{display:flex;gap:8px;margin:8px 0 4px;flex-wrap:wrap}
-.pl-add input{flex:1;min-width:150px;min-height:40px;background:var(--glass2);border:1px solid var(--line);border-radius:3px;color:var(--ink);font:400 13px var(--sans);padding:0 10px}
-.pl-add select{min-height:40px;background:var(--glass2);border:1px solid var(--line);border-radius:3px;color:var(--ink);font:400 12px var(--sans);padding:0 8px}
-.pl-cat{font:700 8px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:rgba(var(--key),.8);margin:14px 0 3px}
-.pl-task{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dotted var(--line)}
+/* the lists — the bik Tasks grammar: inbox pair, then category columns
+   carrying the four buckets */
+.pl-duo2,.pl-cols{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.pl-col{flex:1 1 300px;min-width:min(300px,100%)}
+.pl-colhead{display:flex;align-items:center;justify-content:space-between;font:700 9px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--ink);padding-bottom:8px;border-bottom:1px solid var(--line)}
+.pl-colhead b{font:700 10px var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:4px 8px}
+.pl-col.cquick{border-top:2px solid rgba(255,164,25,.55)}
+.pl-col.cshop{border-top:2px solid rgba(34,197,94,.5)}
+.pl-col.cbiz{border-top:2px solid rgba(96,165,250,.5)}
+.pl-col.cper{border-top:2px solid rgba(167,139,250,.5)}
+.pl-col.cspi{border-top:2px solid rgba(52,211,153,.5)}
+.pl-addin{width:100%;min-height:40px;background:var(--glass2);border:1px solid var(--line);border-radius:3px;color:var(--ink);font:400 13px var(--sans);padding:0 10px;margin:9px 0 4px}
+.pl-addrow2{display:flex;gap:7px;margin:9px 0 4px}
+.pl-addrow2 .pl-addin{flex:1;margin:0}
+.pl-addtf{min-height:40px;background:var(--glass2);border:1px solid var(--line);border-radius:3px;color:var(--dim);font:400 12px var(--sans);padding:0 6px}
+.pl-bkt{font:700 8px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:13px 0 2px;display:flex;align-items:center;gap:7px}
+.pl-bkt::before{content:"";width:7px;height:7px;border-radius:50%}
+.pl-bkt.w::before{background:#60a5fa}
+.pl-bkt.m::before{background:#22c55e}
+.pl-bkt.q::before{background:var(--amber)}
+.pl-bkt.y::before{background:#ef4444}
+.pl-ghost{font:400 11px/1 var(--sans);color:var(--etch);padding:7px 0 3px}
+.pl-task{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dotted var(--line)}
 .pl-task.done{opacity:.55}
-.pl-done{min-width:40px;min-height:40px;border:none;background:none;color:rgb(var(--key));font-size:16px;cursor:pointer}
-.pl-tx{flex:1;font:400 13.5px/1.5 var(--sans);color:var(--ink)}
+.pl-done{min-width:38px;min-height:38px;border:none;background:none;color:rgb(var(--key));font-size:16px;cursor:pointer;flex:0 0 auto}
+.pl-tx{flex:1;font:400 13px/1.45 var(--sans);color:var(--ink);min-width:0}
 .pl-task.done .pl-tx{color:var(--dim)}
-.pl-tf{font:700 8px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--etch)}
+.pl-dt{display:block;font:700 8px/1.6 var(--mono);letter-spacing:.1em;color:var(--etch);font-style:normal}
+.pl-subc{font:700 8px/1 var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:4px 7px;flex:0 0 auto}
+.pl-retime{min-height:34px;padding:0 9px;border:1px solid var(--line);border-radius:10px;background:none;color:var(--dim);font:700 8px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;flex:0 0 auto}
+.pl-del{min-width:34px;min-height:34px;border:none;background:none;color:var(--etch);font-size:12px;cursor:pointer;flex:0 0 auto}
+.pl-fin{display:block;width:100%;text-align:left;min-height:40px;margin-top:10px;border:none;border-top:1px solid var(--line);background:none;color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.14em;cursor:pointer}
 /* the practice on the canon card — below THE PAGE and ON AIR, his ask */
 .cml{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px dotted var(--line)}
 .cml[hidden]{display:none}
@@ -5362,7 +5384,7 @@ const LP = {
   date: null,            // the practice day being viewed (null = today)
   y: null,               // the weather year being viewed (his tee: plan at a year glance)
   pick: null,            // date awaiting a color
-  fold: false,           // done-tasks fold
+  finOpen: new Set(),    // per-column finished folds
 };
 function lpToday(){ const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
@@ -5480,27 +5502,64 @@ function plannerRoom(){
     ${pickerHTML}
     <div class="pl-legend"><span class="tdk">today</span><span class="wkk">workout</span><span class="dstk">dst zone</span><span>⭐ all 7</span><span>✓ morning</span><span>– partial</span><span>tap a day for its color</span></div>
   </div>`;
-  /* THE LIST — life tasks, separate from the work board by standing rule */
+  /* THE LISTS — the bik Tasks layout, his ruling: quick inbox + shopping
+     up top, then vertical category COLUMNS each carrying the four
+     timeframe buckets. Life tasks stay separate from the work board. */
   const open = (pl.tasks && pl.tasks.open) || [];
   const doneR = (pl.tasks && pl.tasks.done_recent) || [];
-  let cat = null, rowsHTML = "";
-  open.forEach(tk => {
-    if(tk.category !== cat){ cat = tk.category;
-      rowsHTML += `<div class="pl-cat">${esc(cat)}</div>`; }
-    rowsHTML += `<div class="pl-task" data-id="${tk.id}">
-      <button class="pl-done" data-id="${tk.id}" title="done">○</button>
-      <span class="pl-tx">${esc(tk.text)}</span>
-      <span class="pl-tf">${esc(tk.timeframe)}</span></div>`;
-  });
-  const listHTML = `<div class="panel">
-    <div class="cap">the list — ${open.length} open · ${(pl.tasks && pl.tasks.done_total) || 0} done · never the work board</div>
-    <div class="pl-add"><input id="plAddText" placeholder="quick capture — it lands in the inbox" autocapitalize="off">
-      <select id="plAddCat">${(pl.categories || []).map(c => `<option>${esc(c)}</option>`).join("")}</select>
-      <button class="pl-tog" id="plAddGo">ADD</button></div>
-    ${rowsHTML || `<p class="nodata">the list is clear.</p>`}
-    ${doneR.length ? `<div class="fold pl-fold" style="margin:12px 0 4px"><span>recently done — ${doneR.length}</span><i>${LP.fold ? "tuck away" : "open"}</i></div>`
-      + (LP.fold ? doneR.map(tk => `<div class="pl-task done"><span class="pl-tx">${esc(tk.text)}</span>
-         <span class="pl-tf">${esc((tk.completed_at || "").slice(0,10))}</span></div>`).join("") : "") : ""}
+  const byCat = {};
+  open.forEach(t => (byCat[t.category] = byCat[t.category] || []).push(t));
+  const TFS = [["weekly","this week","w"],["monthly","this month","m"],
+               ["quarterly","this quarter","q"],["annual","this year","y"]];
+  const TFL = { weekly:"week", monthly:"month", quarterly:"quarter", annual:"year" };
+  const mmdd = iso => iso ? esc(String(iso).slice(5,10).replace("-","/")) : "";
+  const taskRow = t => {
+    const subs = t.subtasks || [];
+    const subChip = subs.length
+      ? `<span class="pl-subc">${subs.filter(s => s && s.done).length}/${subs.length}</span>` : "";
+    return `<div class="pl-task" data-id="${t.id}">
+      <button class="pl-done" data-id="${t.id}" title="done">○</button>
+      <span class="pl-tx">${esc(t.text)}<i class="pl-dt">${mmdd(t.created_at)}</i></span>${subChip}
+      <button class="pl-retime" data-id="${t.id}" data-tf="${esc(t.timeframe)}"
+        title="move to the next bucket">${esc(TFL[t.timeframe] || t.timeframe)}</button>
+      <button class="pl-del" data-id="${t.id}" title="remove">✕</button></div>`;
+  };
+  const inboxPanel = (cat, icon, label, ph, cls) => {
+    const rows = byCat[cat] || [];
+    return `<div class="panel pl-col ${cls}">
+      <div class="pl-colhead"><span>${icon} ${label}</span><b>${rows.length}</b></div>
+      <input class="pl-addin" data-cat="${cat}" placeholder="${ph}" autocapitalize="off">
+      ${rows.map(taskRow).join("") || `<div class="pl-ghost">nothing waiting</div>`}</div>`;
+  };
+  const colPanel = (cat, icon, cls) => {
+    const list = byCat[cat] || [];
+    const fin = doneR.filter(t => t.category === cat);
+    const finOpen = LP.finOpen && LP.finOpen.has(cat);
+    let buckets = "";
+    for(const [tf, lbl, k] of TFS){
+      const rows = list.filter(t => t.timeframe === tf);
+      buckets += `<div class="pl-bkt ${k}">${lbl}</div>`
+        + (rows.map(taskRow).join("") || `<div class="pl-ghost">—</div>`);
+    }
+    return `<div class="panel pl-col ${cls}">
+      <div class="pl-colhead"><span>${icon} ${cat}</span><b>${list.length}</b></div>
+      <div class="pl-addrow2"><input class="pl-addin" data-cat="${cat}" placeholder="add task…" autocapitalize="off">
+        <select class="pl-addtf" data-cat="${cat}"><option value="weekly">Week</option>
+        <option value="monthly">Month</option><option value="quarterly">Quarter</option>
+        <option value="annual">Year</option></select></div>
+      ${buckets}
+      ${fin.length ? `<button class="pl-fin" data-cat="${cat}">✅ finished — ${fin.length}${finOpen ? " ▾" : " ▸"}</button>`
+        + (finOpen ? fin.map(t => `<div class="pl-task done"><span class="pl-tx">${esc(t.text)}<i class="pl-dt">${mmdd(t.completed_at)}</i></span></div>`).join("") : "") : ""}
+    </div>`;
+  };
+  const listHTML =
+    `<div class="cap" style="margin-top:2px">the lists — ${open.length} open · ${(pl.tasks && pl.tasks.done_total) || 0} done · never the work board</div>
+    <div class="pl-duo2">
+      ${inboxPanel("quick", "⚡", "quick inbox", "type a quick thought and press enter…", "cquick")}
+      ${inboxPanel("shopping", "🛒", "shopping list", "add item and press enter…", "cshop")}
+    </div>
+    <div class="pl-cols">
+      ${colPanel("business", "💼", "cbiz")}${colPanel("personal", "👤", "cper")}${colPanel("spiritual", "🙏", "cspi")}
     </div>`;
   /* the planner is the almanac's PAGES — a page scrolls. The practice and
      the year sit SIDE BY SIDE at desk width (his ruling: 1/3 checklist,
@@ -5565,25 +5624,46 @@ function wirePlanner(){
       try{ await lpWrite("/api/planner/color", { date: LP.pick, color: s.dataset.c });
         LP.pick = null; await lpRefetch(); renderRoom(); }
       catch(err){ toast(String(err.message || err)); } }));
-  const addGo = $("plAddGo");
-  addGo && addGo.addEventListener("click", async () => {
-    const inp = $("plAddText"), txt = (inp.value || "").trim();
-    if(!txt) return;
-    addGo.disabled = true; addGo.textContent = "…";
-    try{ await lpWrite("/api/planner/task",
-        { text: txt, category: $("plAddCat").value || "quick" });
-      await lpRefetch(); renderRoom(); }
-    catch(e){ addGo.disabled = false; addGo.textContent = "ADD"; toast(String(e.message || e)); }
-  });
+  /* the lists — bik grammar: Enter adds, ○ finishes, the bucket chip
+     cycles week→month→quarter→year, ✕ removes. Never optimistic. */
+  R.querySelectorAll(".pl-addin").forEach(inp =>
+    inp.addEventListener("keydown", async e => {
+      if(e.key !== "Enter") return;
+      const txt = (inp.value || "").trim();
+      if(!txt) return;
+      inp.disabled = true;
+      const cat = inp.dataset.cat;
+      const sel = R.querySelector(`.pl-addtf[data-cat="${cat}"]`);
+      try{ await lpWrite("/api/planner/task",
+          { text: txt, category: cat, timeframe: (sel && sel.value) || "weekly" });
+        await lpRefetch(); renderRoom(); }
+      catch(err){ inp.disabled = false; toast(String(err.message || err)); }
+    }));
   R.querySelectorAll(".pl-done").forEach(b =>
     b.addEventListener("click", async e => { e.stopPropagation();
       b.disabled = true; b.textContent = "…";
       try{ await lpWrite(`/api/planner/task/${b.dataset.id}/toggle`, {});
         await lpRefetch(); renderRoom(); }
       catch(err){ b.disabled = false; b.textContent = "○"; toast(String(err.message || err)); } }));
-  const fold = R.querySelector(".pl-fold");
-  fold && fold.addEventListener("click", e => { e.stopPropagation();
-    LP.fold = !LP.fold; renderRoom(); });
+  R.querySelectorAll(".pl-retime").forEach(b =>
+    b.addEventListener("click", async e => { e.stopPropagation();
+      const NEXT = { weekly:"monthly", monthly:"quarterly", quarterly:"annual", annual:"weekly" };
+      b.disabled = true;
+      try{ await lpWrite(`/api/planner/task/${b.dataset.id}/retime`,
+          { timeframe: NEXT[b.dataset.tf] || "weekly" });
+        await lpRefetch(); renderRoom(); }
+      catch(err){ b.disabled = false; toast(String(err.message || err)); } }));
+  R.querySelectorAll(".pl-del").forEach(b =>
+    b.addEventListener("click", async e => { e.stopPropagation();
+      b.disabled = true; b.textContent = "…";
+      try{ await lpWrite(`/api/planner/task/${b.dataset.id}/delete`, {});
+        await lpRefetch(); renderRoom(); }
+      catch(err){ b.disabled = false; b.textContent = "✕"; toast(String(err.message || err)); } }));
+  R.querySelectorAll(".pl-fin").forEach(b =>
+    b.addEventListener("click", e => { e.stopPropagation();
+      const c = b.dataset.cat;
+      LP.finOpen.has(c) ? LP.finOpen.delete(c) : LP.finOpen.add(c);
+      renderRoom(); }));
 }
 /* the morning practice on the canon card (his ask: below THE PAGE and
    ON AIR, checkable, reflected in the orb) */
