@@ -31,15 +31,26 @@ const SHELL = ['./', './index.html', './manifest.json',
                './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
+  // ALL OR NOTHING (card #99): a single missed file fails the whole install,
+  // so the old worker and its COMPLETE cache stay live and the browser
+  // retries later. The old per-file .catch(()=>{}) let a flaky connection
+  // install a holey cache — which activate then trusted, deleting the last
+  // good one. A permanent 404 here means a broken deploy and SHOULD refuse
+  // to ship; the runtime fetch handler still tops the cache up per-request.
   e.waitUntil(
     caches.open(VERSION)
       .then(c => Promise.all(SHELL.map(u =>
-        fetch(u, {cache: 'reload'}).then(r => r.ok && c.put(u, r)).catch(() => {}))))
+        fetch(u, {cache: 'reload'}).then(r => {
+          if (!r.ok) throw new Error('shell fetch failed: ' + u + ' ' + r.status);
+          return c.put(u, r);
+        }))))
       .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', e => {
+  // Deleting the old caches is safe ONLY because install is now atomic —
+  // activate cannot run behind a partial cache (card #99).
   e.waitUntil(
     caches.keys()
       .then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k))))
