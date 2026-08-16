@@ -2415,10 +2415,15 @@ function bulletinHTML(){
     if(t.category === "business" && /(\bdot\b|\bhut\b|\bucr\b|ifta|\bpuco\b|inspect|tax|medical)/i.test(t.text))
       targets.push(t);
   });
+  /* chronological, his ruling — the date is DATA (life_tasks.due), never
+     parsed from prose; an undated target sinks to the bottom honestly */
+  targets.sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : 1);
+  const dueF = d => { if(!d) return ""; const [y, m, dd] = d.split("-");
+    return +m + "/" + +dd + (+y === new Date().getFullYear() ? "" : "/" + y.slice(2)); };
   const tHTML = targets.length
-    ? `<div class="cap" style="margin:13px 0 3px">your compliance targets — from your list</div>`
+    ? `<div class="cap" style="margin:13px 0 3px">your compliance targets — from your list, soonest first</div>`
       + targets.slice(0, 8).map(t =>
-        `<div class="hb-tgt">${esc(t.text)}<i>${esc(t.timeframe)}</i></div>`).join("")
+        `<div class="hb-tgt">${esc(t.text)}<i>${t.due ? "due " + esc(dueF(t.due)) : esc(t.timeframe)}</i></div>`).join("")
     : "";
   return `<div class="panel" style="grid-column:1 / -1">
     <div class="cap">the bulletin — dot · fmcsa · the register${b && b.fresh ? ` · ${b.fresh} standing` : ""}</div>
