@@ -958,6 +958,72 @@ body.hot .act .h .n{color:var(--hot)}
 .lrow.short .t{color:var(--hot)}
 .lrow.dim{opacity:.5}
 
+/* ── THE LEARN ROOM — ARC. Amber = sound; violet = the far band. ──── */
+.lr-scopep{flex:0 0 auto}
+#lrScope{display:block;width:100%;height:84px;margin-top:6px}
+.lr-cold{font:700 9px/1.4 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--ink);margin-top:8px;transition:opacity .5s}
+.lr-cold.pre{opacity:0}
+.lr-dial{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 1px;flex:0 0 auto;scrollbar-width:none}
+.lr-dial::-webkit-scrollbar{display:none}
+.lr-chip{scroll-snap-align:start;flex:0 0 auto;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:10px;background:var(--glass2);color:var(--dim);font:700 8px/1 var(--mono);letter-spacing:.11em;cursor:pointer}
+.lr-chip.on{color:var(--ink);border-color:rgba(var(--key),.6);box-shadow:0 0 14px -6px rgba(var(--key),.8)}
+.lr-chip.mut{opacity:.45}
+.lr-aim{flex:0 0 auto}
+.lr-aimq{font:600 13.5px/1.35 var(--sans);color:var(--ink);margin-top:6px}
+.lr-aimm{font:700 8px/1.6 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--etch);margin-top:5px}
+.lr-row{padding:11px 0 11px 10px;border-bottom:1px dotted var(--line);border-left:2px solid rgba(var(--key),.45)}
+.lr-age1 .lr-t{color:#D9CFB8}
+.lr-age2 .lr-t{color:#C79449}
+.lr-age3{opacity:.72}
+.lr-age3 .lr-t{color:var(--unknown)}
+.lr-age1{border-left-color:rgba(var(--key),.3)}
+.lr-age2{border-left-color:rgba(var(--key),.18)}
+.lr-age3{border-left-color:rgba(110,110,110,.25)}
+.lr-top{display:flex;align-items:center;gap:12px}
+.lr-meter{display:inline-flex;align-items:center;gap:6px;cursor:pointer;min-height:20px}
+.lr-meter i{display:block;width:64px;height:8px;position:relative;overflow:hidden;background:repeating-linear-gradient(90deg,rgba(94,104,112,.35) 0 5.1px,transparent 5.1px 7.1px)}
+.lr-meter i::after{content:"";position:absolute;inset:0;width:calc(var(--lit)/9*100%);background:repeating-linear-gradient(90deg,rgba(var(--key),.95) 0 5.1px,transparent 5.1px 7.1px)}
+.lr-meter b{font:700 8px/1 var(--mono);letter-spacing:.11em;color:var(--dim)}
+.lr-meter.s9 i{box-shadow:0 0 10px -2px rgba(255,164,25,.7)}
+.lr-flag{font:700 8px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:rgba(var(--key),.8)}
+.lr-t{font:600 13.5px/1.35 var(--sans);color:var(--ink);margin-top:7px;cursor:pointer}
+.lr-j{font:700 8px/1.5 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--etch);margin-top:4px}
+.lr-r{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}
+.lr-why{font:700 8px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--mid);border:1px solid var(--line);border-radius:10px;padding:5px 9px}
+.lr-x{margin-top:8px}
+.lr-sum,.lr-so{font:400 13.5px/1.7 var(--sans);color:var(--mid)}
+.lr-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.lr-cite{font:700 8px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.lr-doors{display:flex;gap:10px}
+.lr-door{min-height:40px;padding:0 16px;border:1px solid var(--line);border-radius:3px;background:none;color:var(--ink);font:700 9px/1 var(--mono);letter-spacing:.14em;cursor:pointer}
+.lr-door.star{border-color:rgba(var(--key),.5);color:rgb(var(--key))}
+.lr-door.clear{color:var(--dim)}
+.lr-fade{font:700 8px/1.6 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--etch);padding:14px 0;border-bottom:1px dotted var(--line)}
+.lr-deck{flex:0 0 auto;border:1px solid var(--line);border-top:1px solid rgba(var(--key),.35);border-radius:7px;background:rgba(20,25,31,.72);backdrop-filter:blur(8px);padding:10px 14px;display:flex;flex-direction:column;gap:9px}
+.lr-deck.hot{border-top-color:rgba(255,164,25,.75)}
+.lr-now{cursor:pointer}
+.lr-nowt{font:600 13.5px/1.3 var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#lrCarrier{display:block;width:100%;height:28px;margin:7px 0 2px}
+.lr-lit{font:400 12.5px/1.5 var(--sans);color:#FFD27A;min-height:19px}
+.lr-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lr-air{min-height:40px;padding:0 18px;border:1px solid rgba(255,164,25,.5);border-radius:3px;background:none;color:var(--amber);font:700 9px/1 var(--mono);letter-spacing:.14em;cursor:pointer}
+.lr-q{font:700 8px/1 var(--mono);letter-spacing:.14em;color:var(--etch);text-transform:uppercase}
+.lr-rates{display:flex;gap:6px;margin-left:auto}
+.lr-rate,.lr-tune{min-height:40px;min-width:40px;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:none;color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.11em;cursor:pointer}
+.lr-rate.on{color:var(--ink);border-color:rgba(var(--key),.5)}
+#room.lr-onair .lr-scopep,#room.lr-onair .lr-dial,#room.lr-onair .lr-aim,#room.lr-onair #lrCatch{opacity:.55;transition:opacity .25s}
+.lr-scopep.worked #lrScope{animation:lrWorked .9s ease-out 1}
+@keyframes lrWorked{0%{filter:brightness(1)}35%{filter:brightness(1.9)}100%{filter:brightness(1)}}
+#lrDock{position:fixed;inset:0;z-index:60;background:rgba(4,5,7,.72);display:flex;align-items:flex-end;justify-content:center;padding:18px}
+#lrDock[hidden]{display:none}
+.lr-dockin{background:var(--glass);border:1px solid var(--line);border-radius:7px;max-width:560px;width:100%;max-height:72vh;overflow-y:auto;padding:16px 18px;user-select:text;-webkit-user-select:text}
+.lr-prose{font:400 14.5px/1.9 var(--sans);color:var(--mid);margin:6px 0 14px}
+.lr-sent.on{background:rgba(255,164,25,.16);color:#FFD27A}
+.lr-addrow{display:flex;gap:8px;flex-wrap:wrap}
+.lr-addrow input,.lr-addrow select{min-height:40px;background:var(--glass2);border:1px solid var(--line);border-radius:3px;color:var(--ink);font:400 13px var(--sans);padding:0 10px}
+.lr-addrow input{flex:1;min-width:140px}
+@media (prefers-reduced-motion:reduce){.lr-scopep.worked #lrScope{animation:none}}
+
 /* THE RECORD AS A LEDGER — Bryan, 2026-08-03: "it should read Date | Category |
    Payee | Amount | Notes | Status." A ledger line reads left to right in the
    order a bookkeeper writes it: when, what kind, who, how much, what became of
@@ -1591,7 +1657,14 @@ function paintField(){
     [qa==null?"—":String(qa),"IN QA", qa==null?"spine unavailable":`<b>${qa}</b> IN QA · ${open} OPEN`],
     [r==null?"—":String(r.unread),"UNREAD", r==null?"spine unavailable":`<b>${r.unread}</b> UNREAD · CH 19`],
     [needs==null?"—":String(needs),"STANDING", needs==null?"spine unavailable":`<b>${needs}</b> STANDING TO SETTLE`],
-    [l==null?"—":String((l.open||[]).length),"OPEN", l==null?"spine unavailable":`<b>${(l.open||[]).length}</b> OPEN QUESTION`],
+    (()=>{ /* the orb carries the band's weather — the story starts in orbit */
+      if(l==null || !l.wire) return ["—","BAND","spine unavailable"];
+      const fr = l.wire.fresh || [];
+      const landed = fr.filter(s => (s.age_days||0) < 1).length;
+      return [String(fr.length), "FRESH",
+        landed ? `<b>${landed}</b> LANDED OVERNIGHT`
+        : fr.length ? `BAND HOLDS <b>${fr.length}</b>` : "BAND QUIET"];
+    })(),
     [d==null?"—":String(d.confirmed),d==null?"":"OF "+d.total, d==null?"spine unavailable":`<b>${d.confirmed}</b>/${d.total} CONFIRMED`],
   ];
   /* the RADIO orb is the parent star now — its signal is the ROLLUP of the
@@ -1674,7 +1747,7 @@ function paintConsider(){
     const bc = (State.brief && State.brief.broadcast) || {};
     const air = $("cair");
     air.hidden = false;
-    if(AIR && !AIR.paused){ air.textContent = "■ SIGN OFF"; air.disabled = false; }
+    if(XMTR.owner === "page" && XMTR.playing()){ air.textContent = "■ SIGN OFF"; air.disabled = false; }
     else if(bc.status === "on_air"){ air.textContent = "▶ ON AIR"; air.disabled = false; }
     else if(bc.status === "warming" || bc.status === "waiting_on_navigator"){
       air.textContent = "WARMING UP…"; air.disabled = true; }
@@ -1721,6 +1794,7 @@ function enter(i, direct){
   if(D[i].room === "radio" && !direct){ SYS ? closeSys() : openSys(); return; }
   if(SYS) closeSys(true);
   ACTIVE = i;
+  if(D[i].room === "learn") LR.entryPending = true;   // the landing keys off ENTRY, never render
   document.documentElement.style.setProperty("--key", D[i].hue);
   D.forEach(x => x.el.classList.remove("active"));
   D[i].el.classList.add("active");
@@ -2009,19 +2083,55 @@ function pageHTML(){
          + `<div class="pa">— ${esc(w.attribution)}${w.quote ? ` · “${esc(w.quote)}”` : ""}</div></div>` : "")
     + `<div class="pacts"><button class="btn" id="pageClose">START THE DAY</button></div>`;
 }
-let AIR = null;   // the one Audio element — the station has one transmitter
+/* THE TRANSMITTER — the station has ONE. Promoted from the page's AIR
+   (the learn room's only sanctioned global edit, spec §4.2): every voice on
+   the desk keys through here, so two programs can never talk over each
+   other, and every object URL is revoked on the way out (the old AIR
+   leaked its blob). Moved means moved. */
+const XMTR = {
+  el:null, obj:null, owner:"",
+  playing(){ return !!(this.el && !this.el.paused); },
+  stop(){
+    const cb = this.onstop; this.onstop = null; this.onend = null;
+    if(this.el){ try{ this.el.pause(); }catch(_){} this.el = null; }
+    if(this.obj){ URL.revokeObjectURL(this.obj); this.obj = null; }
+    this.owner = "";
+    cb && cb();
+  },
+  play(blob, owner, opts){
+    const o = opts || {};
+    this.stop();
+    this.owner = owner;
+    this.obj = URL.createObjectURL(blob);
+    this.el = new Audio(this.obj);
+    this.el.playbackRate = o.rate || 1;
+    this.onend = o.onend || null; this.onstop = o.onstop || null;
+    if(o.ontime) this.el.addEventListener("timeupdate", () => {
+      if(XMTR.el) o.ontime(XMTR.el); });
+    this.el.onended = () => { const f = this.onend; this.onend = null;
+      this.stop(); f && f(); };
+    /* metadata BEFORE play — the lock screen must carry the callsign when
+       the first syllable lands (spec §3b) */
+    if(o.meta && "mediaSession" in navigator){
+      try{ navigator.mediaSession.metadata = new MediaMetadata(o.meta); }catch(_){}
+    }
+    return this.el.play();
+  }
+};
+addEventListener("pagehide", () => XMTR.stop());
 function playAir(btn){
-  if(AIR && !AIR.paused){ AIR.pause(); AIR = null;
-    btn.textContent = "▶ ON AIR"; return; }
+  if(XMTR.owner === "page"){ XMTR.stop(); btn.textContent = "▶ ON AIR"; return; }
   btn.textContent = "TUNING…"; btn.disabled = true;
   /* fetch-blob: an <audio src> cannot carry the bearer token */
   fetch(url("/api/brief/audio"), { headers: hdr() })
     .then(r => { if(!r.ok) throw new Error("no air"); return r.blob(); })
     .then(b => {
-      AIR = new Audio(URL.createObjectURL(b));
-      AIR.onended = () => { btn.textContent = "▶ ON AIR"; AIR = null; };
       btn.textContent = "■ SIGN OFF"; btn.disabled = false;
-      return AIR.play();
+      return XMTR.play(b, "page", {
+        meta: { title: "The morning sign-on", artist: "ALMANAC" },
+        onend:  () => { const x = $("cair"); x && (x.textContent = "▶ ON AIR"); },
+        onstop: () => { const x = $("cair"); x && (x.textContent = "▶ ON AIR", x.disabled = false); }
+      });
     })
     .catch(() => { btn.textContent = "TRANSMITTER OFFLINE"; btn.disabled = true; });
 }
@@ -4612,23 +4722,561 @@ function budgetAdd(ev){
       fields:{name, amount: amt, due_date: dued}}, `${name} added — ${money(amt)}/mo`);
   });
 }
-function learnRoom(){
-  const l = State.learn;
-  if(!l) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
-    <span class="nodata">the spine has not answered with the muscle</span></div></div>`;
-  const open = l.open || [], recent = l.recent || [];
-  return whyBar() + `<div class="panel" style="flex:1;min-height:0">
-    <div class="cap">open — ${open.length}</div>
-    <div class="scroll">` +
-      (open.length ? open.map(o => `<div class="lrow"><div class="t">${esc(o.question)}</div>
-        <div class="s">${esc(o.status||"open")}${o.track?" · "+esc(o.track):""}${
-        (o.options||[]).length?" · "+o.options.length+" options waiting":""}</div></div>`).join("")
-        : `<p class="nodata">nothing open</p>`) +
-      (recent.length ? `<div class="cap" style="margin:18px 0 6px">recently closed</div>` +
-        recent.map(r => `<div class="lrow dim"><div class="t">${esc(r.question)}</div>
-          <div class="s">${esc(r.took_away||"")}</div></div>`).join("") : "") +
-    `</div></div>`;
+/* ═══ THE LEARN ROOM — ARC (card #119; spec: LEARN-BUILD-SPEC.md) ═════════
+   The shortwave set beside the CB: at night the far conversations skip off
+   the ionosphere and land on the one antenna cut for them. The room shows
+   the landing, plays the voice, and forgives what fades. LAW: amber = sound
+   — if it's amber it either just landed or is in your ears. */
+const LR = {
+  raf:0, ac:null, entryPending:false,
+  queue:[], qi:-1, nextBlob:null, nextFor:0,
+  env:null, envFor:0, timing:null, litIx:-1,
+  open:new Set(),
+  station: localStorage.getItem("learn.station") || "",
+  rate: +localStorage.getItem("learn.rate") || 1,
+  workedThisSession:false,
+  seen(){ return +localStorage.getItem("learn.seen") || 0; },
+  stamp(v){ try{ localStorage.setItem("learn.seen", String(v)); }catch(_){} }
+};
+function lrTeardown(){
+  if(LR.raf){ cancelAnimationFrame(LR.raf); LR.raf = 0; }
+  if(LR.ac){ LR.ac.abort(); LR.ac = null; }
 }
+document.addEventListener("visibilitychange", () => {
+  /* the film dies with the lights; the audio keeps playing — that IS the
+     point. Visible again → visuals resync from currentTime, never deltas. */
+  if(document.hidden && LR.raf){ cancelAnimationFrame(LR.raf); LR.raf = 0; }
+  else if(!document.hidden && XMTR.owner === "learn") lrPaintDeckHot();
+});
+const lrRM = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function lrMutate(fn){
+  const go = () => { fn && fn(); renderRoom(); };
+  if(document.startViewTransition && !lrRM()){
+    const vt = document.startViewTransition(go);
+    /* an aborted animation is not a failed write — and abort rejects THREE
+       promises, not one (ready leaked to console, live-caught in the pane) */
+    vt.finished.catch(() => {}); vt.ready.catch(() => {});
+    vt.updateCallbackDone.catch(() => {});
+  } else go();
+}
+async function lrRefetch(){
+  try{ State.learn = await grab("/api/learning"); }catch(_){}
+}
+function lrHash(s){ let h = 0; s = String(s);
+  for(let i = 0; i < s.length; i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+  return h; }
+function lrCreatedMs(s){ const t = Date.parse((s.created_at||"").replace(" ","T")); return isNaN(t) ? 0 : t; }
+function lrBucket(d){ return d >= 12 ? 3 : d >= 8 ? 2 : d >= 4 ? 1 : 0; }
+function lrCallsign(title){
+  const t = String(title).replace(/\b(podcast|channel|official|md)\b/gi, "").trim();
+  const w = t.split(/\s+/).filter(Boolean);
+  if(w.length >= 3) return w.map(x => x[0]).join("").toUpperCase();
+  if(w.length === 2) return (w[0].length <= 1 ? w[0][0] + w[1][0]
+    : (w[0].length >= w[1].length ? w[0] : w[1])).toUpperCase();
+  return (w[0] || "?").toUpperCase().slice(0, 12);
+}
+function lrMeter(score){
+  const lit = Math.max(1, Math.min(9, Math.ceil(score / 11.12)));
+  return `<span class="lr-meter${lit >= 9 ? " s9" : ""}" title="tap — the meter shows its work">
+    <i style="--lit:${lit}"></i><b>S${lit}</b></span>`;
+}
+function learnRoom(){
+  const l = State.learn, w = l && l.wire;
+  if(!w) return whyBar() + `<div class="panel" style="flex:1"><div class="gen">
+    <span class="nodata">the spine has not answered with the forefront.</span></div></div>`;
+  const fresh = w.fresh || [], dial = w.dial || [];
+  const list = LR.station ? fresh.filter(s => s.station === LR.station) : fresh;
+  const rows = list.slice(0, 30);
+  const landed = fresh.filter(s => (s.age_days||0) < 1).length;
+  const faded = (w.counts && w.counts.faded) || 0;
+  /* cold-open — served numbers only */
+  const cold = landed
+    ? `overnight — ${landed} signal${landed === 1 ? "" : "s"} made the trip`
+    : fresh.length ? `the band was quiet last night — ${fresh.length} still fresh`
+    : faded ? `the band is quiet — nothing standing` : `the band is new — first sweep pending`;
+  const ls = w.last_sync;
+  const sweep = w.sync_running ? "a sweep is in the air now"
+    : ls ? `last sweep ${String(ls.started_at || "").slice(5, 16).replace("T", " ")} — ${ls.signals_created} new`
+      + (ls.blocked ? " · the transcript lane was blocked; it retries" : "")
+    : "no sweep yet";
+  const ready = rows.filter(s => s.has_audio).length;
+  /* the aim plate — every meter points here */
+  const aim = (l.open || [])[0];
+  const track = aim && aim.track && (l.standing || []).find(t => t.slug === aim.track);
+  const starredN = (w.starred || []).length;
+  /* the dial */
+  const dialHTML = `<div class="lr-dial" id="lrDial">`
+    + `<button class="lr-chip${LR.station ? "" : " on"}" data-st="">ALL BAND</button>`
+    + dial.map(s => `<button class="lr-chip${LR.station === s.title ? " on" : ""}${s.active ? "" : " mut"}"
+        data-st="${esc(s.title)}" data-sid="${s.id}" title="${esc(s.title)}${s.active ? "" : " — muted"} · hold to work the station">${esc(lrCallsign(s.title))}</button>`).join("")
+    + `</div>`;
+  /* the catch */
+  const rowsHTML = rows.length ? rows.map(s => {
+    const b = lrBucket(s.age_days || 0);
+    const openx = LR.open.has(s.id);
+    const age = (s.age_days|0) < 1 ? "landed today" : (s.age_days|0) === 1 ? "landed yesterday" : `landed ${s.age_days|0}d ago`;
+    const dur = s.timing && s.timing.duration ? ` · ${Math.round(s.timing.duration)}s air` : "";
+    const reasons = (s.reasons || []).length
+      ? s.reasons.map(r => `<span class="lr-why">${esc(r)}</span>`).join("")
+      : `<span class="lr-why">S${Math.max(1, Math.min(9, Math.ceil((s.score||0)/11.12)))} against the standing aim</span>`;
+    return `<div class="lr-row lr-age${b}" data-id="${s.id}" style="view-transition-name:lr-sig-a${s.id}">
+      <div class="lr-top">${lrMeter(s.score || 0)}
+        <span class="lr-flag">🛞 windshield</span></div>
+      <div class="lr-t">${esc(s.title)}</div>
+      <div class="lr-j">${esc(lrCallsign(s.station))} · ${esc(age)}${dur}${s.has_audio ? "" : " · air not cut yet"}</div>
+      <div class="lr-r" ${openx ? "" : "hidden"}>${reasons}</div>
+      <div class="lr-x" ${openx ? "" : "hidden"}>
+        <div class="lr-sum">${esc(s.summary || "")}</div>
+        ${s.so_what ? `<div class="cap" style="margin:8px 0 3px">for your build</div>
+        <div class="lr-so">${esc(s.so_what)}</div>` : ""}
+        <div class="lr-foot">
+          <a class="lr-cite" href="${esc(s.url)}" target="_blank" rel="noopener">YT · ${esc(s.video_title || s.station).slice(0, 48)}</a>
+          <span class="lr-doors">
+            <button class="lr-door star" data-id="${s.id}">★ STAR</button>
+            <button class="lr-door clear" data-id="${s.id}">✕ CLEAR</button></span>
+        </div>
+      </div>
+    </div>`;
+  }).join("")
+  : `<p class="nodata" style="margin-top:14px">${LR.station
+      ? `nothing fresh from ${esc(LR.station)} — the rest of the band still carries ${fresh.length}.`
+      : faded ? `the band is quiet — ${dial.length} stations aimed, nothing landed lately. Conditions, not debt.`
+      : `first sweep pending — tap TUNE to sweep the band now.`}</p>`;
+  const fadeLine = faded
+    ? `<div class="lr-fade">${faded} signal${faded === 1 ? "" : "s"} faded off the band unheard — conditions, not debt.</div>` : "";
+  /* the log, folded */
+  const folds = (() => { try{ return JSON.parse(localStorage.getItem("learn.folds") || "{}"); }catch(_){ return {}; } })();
+  const logOpen = !!folds.log;
+  const heard = w.heard || [], starred = w.starred || [];
+  const logHTML = `<div class="fold lr-logfold" style="margin:12px 0 4px"><span>the log — ${heard.length} heard · ${starredN} starred</span><i>${logOpen ? "tuck away" : "open"}</i></div>`
+    + (logOpen ? starred.map(s => `<div class="lrow dim"><div class="t">★ ${esc(s.title)}</div>
+        <div class="s">${esc(lrCallsign(s.station))}${s.routed ? " · routed: " + esc(s.routed) : " · awaiting routing at the next kickoff"}</div></div>`).join("")
+      + heard.slice(0, 8).map(s => `<div class="lrow dim"><div class="t">${esc(s.title)}</div>
+        <div class="s">${esc(lrCallsign(s.station))} · heard</div></div>`).join("")
+      + ((l.standing || []).map(t => `<div class="lrow dim"><div class="t">${esc(t.title)}</div>
+        <div class="s">${esc(t.depth)} — ${esc(t.meaning)} · ${t.closed} closed · ${t.applied} applied</div></div>`).join(""))
+      : "");
+  /* the deck — rendered cold or hot from module state */
+  const hot = XMTR.owner === "learn" && LR.qi >= 0 && LR.queue[LR.qi];
+  const deckHTML = `<div class="lr-deck${hot ? " hot" : ""}" id="lrDeck">
+    ${hot ? `<div class="lr-now" id="lrNow" title="tap to read along">
+        <div class="lr-nowt" id="lrNowT">${esc(LR.queue[LR.qi].title)}</div>
+        <canvas id="lrCarrier" height="28"></canvas>
+        <div class="lr-lit" id="lrLit"></div></div>` : ""}
+    <div class="lr-ctl">
+      <button class="lr-air" id="lrAir">${hot ? "■ SIGN OFF" : "▶ ON AIR"}</button>
+      <span class="lr-q" id="lrQ">${hot ? `${LR.qi + 1} of ${LR.queue.length}` : (ready ? `READY ${ready}/${rows.length}` : rows.length ? "AIR WARMING" : "NO TRAFFIC")}</span>
+      <span class="lr-rates">${[1, 1.25, 1.5].map(r =>
+        `<button class="lr-rate${LR.rate === r ? " on" : ""}" data-r="${r}">${r}×</button>`).join("")}</span>
+      <button class="lr-tune" id="lrTune" title="sweep the band now">TUNE</button>
+    </div></div>`;
+  return whyBar()
+    + `<div class="panel lr-scopep"><div class="cap">the band — ${dial.length} stations · ${fresh.length} fresh · ${esc(sweep)}</div>
+       <div class="lr-cold" id="lrCold">${esc(cold)}</div>
+       <canvas id="lrScope" height="84"></canvas></div>`
+    + dialHTML
+    + `<div class="panel lr-aim" id="lrAim" style="view-transition-name:lr-aim">
+       <div class="cap">the aim — every meter points here</div>
+       ${aim ? `<div class="lr-aimq">${esc(aim.question)}</div>
+         <div class="lr-aimm">${track ? esc(track.depth).toUpperCase() + " — " + esc(track.meaning) + " · " : ""}★ ${starredN} starred onto the aim</div>`
+       : `<div class="lr-aimq dim2">no aim standing — the band plays general until one is declared.</div>
+         <div class="lr-aimm">declare one: learning.py propose — aimed, never general.</div>`}</div>`
+    + `<div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+       <div class="cap">the catch — ${rows.length} of ${list.length}${LR.station ? " · " + esc(lrCallsign(LR.station)) : ""}</div>
+       <div class="scroll" id="lrCatch">${rowsHTML}${fadeLine}${logHTML}</div></div>`
+    + deckHTML;
+}
+/* ── the learn room's live half ───────────────────────────────────── */
+function lrDrawScope(animate){
+  const cv = $("lrScope"); if(!cv) return;
+  const w = State.learn && State.learn.wire; if(!w) return;
+  const dial = w.dial || [], fresh = w.fresh || [], heard = (w.heard || []);
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = cv.clientWidth * dpr; cv.height = 84 * dpr;
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = cv.clientWidth, H = 84, Y = H - 18;
+  const sx = id => 14 + (lrHash(id) % 1000) / 1000 * (W - 28);
+  const still = () => {
+    g.clearRect(0, 0, W, H);
+    g.strokeStyle = "rgba(150,170,190,.25)"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(8, Y + .5); g.lineTo(W - 8, Y + .5); g.stroke();
+    dial.forEach(s => { g.fillStyle = s.active ? "rgba(150,90,220,.9)" : "rgba(94,104,112,.7)";
+      g.fillRect(sx(s.id) - .75, Y - 5, 1.5, 10); });
+    heard.forEach(k => { g.fillStyle = "rgba(150,90,220,.35)";
+      g.beginPath(); g.arc(sx(k.source_id), Y - 9, 1.6, 0, 7); g.fill(); });
+    fresh.forEach(k => { const a = .35 + .55 * (k.score || 0) / 100;   /* brightness IS score */
+      g.shadowColor = "rgba(150,90,220,.35)"; g.shadowBlur = 3;
+      g.fillStyle = `rgba(150,90,220,${a})`;
+      g.beginPath(); g.arc(sx(k.source_id), Y - 9, 1.6, 0, 7); g.fill();
+      g.shadowBlur = 0; });
+  };
+  if(!animate){ still(); return; }
+  /* THE LANDING — one-shot, strongest first, ≤1.4s, then a still instrument */
+  const seen = LR.seen();
+  const arcs = fresh.filter(s => lrCreatedMs(s) > seen).slice(0, 9);
+  if(!arcs.length){ still(); return; }
+  const cold = $("lrCold"); if(cold){ cold.classList.add("pre");
+    setTimeout(() => cold.classList.remove("pre"), 550); }
+  const t0 = performance.now(), DUR = 620, STAG = 90;
+  const step = now => {
+    still();
+    let live = false;
+    arcs.forEach((k, i) => {
+      const p = Math.min(1, Math.max(0, (now - t0 - i * STAG) / DUR));
+      if(p < 1) live = true;
+      if(p <= 0 || p >= 1){
+        if(p >= 1 && now - t0 - i * STAG < DUR + 180){   /* amber touchdown spark */
+          const f = 1 - (now - t0 - i * STAG - DUR) / 180;
+          g.fillStyle = `rgba(255,196,90,${.95 * f})`;
+          g.beginPath(); g.arc(sx(k.source_id), Y - 9, 2 + (1 - f) * 1.2, 0, 7); g.fill();
+          live = true;
+        }
+        return;
+      }
+      const x1 = sx(k.source_id), x0 = x1 + (i % 2 ? -1 : 1) * W * .3;
+      const e = 1 - Math.pow(1 - p, 3);
+      const x = x0 + (x1 - x0) * e, y = 6 + (Y - 9 - 6) * e * e;
+      g.strokeStyle = `rgba(150,90,220,${(.55 * (1 - p) + .2) * (.5 + .5 * (k.score || 0) / 100)})`;
+      g.beginPath(); g.moveTo(x0, 6); g.quadraticCurveTo((x0 + x1) / 2, 2, x, y); g.stroke();
+      g.fillStyle = "rgba(255,196,90,.95)";
+      g.beginPath(); g.arc(x, y, 2, 0, 7); g.fill();
+    });
+    LR.raf = live ? requestAnimationFrame(step) : (still(), 0);
+  };
+  LR.raf = requestAnimationFrame(step);
+}
+/* WAV byte envelope — DataView chunk-walk; LIST chunks handled, data never
+   assumed at 44. No AudioContext anywhere near playback (spec ruling). */
+function lrEnvelope(ab){
+  try{
+    const v = new DataView(ab);
+    if(v.getUint32(0) !== 0x52494646) return null;
+    let off = 12, dataOff = 0, dataLen = 0, bps = 16;
+    while(off + 8 <= v.byteLength){
+      const id = v.getUint32(off), len = v.getUint32(off + 4, true);
+      if(id === 0x666d7420) bps = v.getUint16(off + 22, true);
+      else if(id === 0x64617461){ dataOff = off + 8; dataLen = Math.min(len, v.byteLength - dataOff); break; }
+      off += 8 + len + (len & 1);
+    }
+    if(!dataOff || bps !== 16) return null;
+    const n = Math.floor(dataLen / 2), B = 160, per = Math.max(1, Math.floor(n / B));
+    const peaks = new Float32Array(B);
+    for(let b = 0; b < B; b++){
+      let m = 0; const stride = Math.max(1, Math.floor(per / 64));
+      for(let i = 0; i < per; i += stride){
+        const p = dataOff + (b * per + i) * 2;
+        if(p + 1 >= dataOff + dataLen) break;
+        const s = Math.abs(v.getInt16(p, true)) / 32768; if(s > m) m = s;
+      }
+      peaks[b] = m;
+    }
+    return peaks;
+  }catch(_){ return null; }
+}
+function lrPaintCarrier(){
+  const cv = $("lrCarrier"); if(!cv || !LR.env) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  if(cv.width !== cv.clientWidth * dpr){ cv.width = cv.clientWidth * dpr; cv.height = 28 * dpr; }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = cv.clientWidth, H = 28, B = LR.env.length, bw = W / B;
+  const frac = XMTR.el && XMTR.el.duration ? XMTR.el.currentTime / XMTR.el.duration : 0;
+  g.clearRect(0, 0, W, H);
+  for(let i = 0; i < B; i++){
+    const h = Math.max(1.5, LR.env[i] * (H - 4));
+    g.fillStyle = (i / B) <= frac ? "rgba(255,164,25,.9)" : "rgba(94,104,112,.5)";
+    g.fillRect(i * bw, (H - h) / 2, Math.max(1, bw - 1), h);
+  }
+}
+function lrLit(t){
+  const s = LR.queue[LR.qi], el = $("lrLit");
+  const tm = s && s.timing && s.timing.sentences;
+  if(!el || !tm || !tm.length) return;
+  let ix = LR.litIx;
+  for(let i = 0; i < tm.length; i++) if(t >= tm[i].t0 && t < tm[i].t1 + .28){ ix = i; break; }
+  if(ix !== LR.litIx){
+    LR.litIx = ix;
+    el.textContent = ix >= 0 ? tm[ix].text : "";
+    const dock = document.getElementById("lrDock");
+    if(dock && !dock.hidden){
+      dock.querySelectorAll(".lr-sent").forEach(x => x.classList.toggle("on", +x.dataset.i === ix));
+      const on = dock.querySelector(".lr-sent.on");
+      on && on.scrollIntoView({ block: "nearest", behavior: lrRM() ? "auto" : "smooth" });
+    }
+  }
+}
+async function lrFetchAir(id){
+  const r = await fetch(url(`/api/learning/signal/${id}/audio`), { headers: hdr() });
+  if(!r.ok) throw new Error("no air for signal " + id);
+  const ab = await r.arrayBuffer();
+  return { blob: new Blob([ab], { type: "audio/wav" }), env: lrEnvelope(ab) };
+}
+function lrDeckCold(){
+  const d = $("lrDeck"); if(!d) return;
+  d.classList.remove("hot");
+  const now = $("lrNow"); now && now.remove();
+  const a = $("lrAir"); a && (a.textContent = "▶ ON AIR", a.disabled = false);
+  $("room") && $("room").classList.remove("lr-onair");
+}
+function lrPaintDeckHot(){
+  if(XMTR.owner !== "learn") return;
+  lrPaintCarrier();
+  if(XMTR.el) lrLit(XMTR.el.currentTime);
+  $("room") && $("room").classList.add("lr-onair");
+}
+function lrMediaSession(on){
+  if(!("mediaSession" in navigator)) return;
+  const ms = navigator.mediaSession;
+  try{
+    ms.setActionHandler("play", on ? () => XMTR.el && XMTR.el.play() : null);
+    ms.setActionHandler("pause", on ? () => XMTR.el && XMTR.el.pause() : null);
+    ms.setActionHandler("nexttrack", on ? () => lrAdvance(true) : null);
+    ms.setActionHandler("previoustrack", on ? () => { if(XMTR.el) XMTR.el.currentTime = 0; } : null);
+    ms.setActionHandler("seekto", on ? d => { if(XMTR.el && d.seekTime != null) XMTR.el.currentTime = d.seekTime; } : null);
+  }catch(_){}
+}
+async function lrKeyup(){
+  const w = State.learn && State.learn.wire; if(!w) return;
+  const fresh = w.fresh || [];
+  const list = (LR.station ? fresh.filter(s => s.station === LR.station) : fresh).slice(0, 30);
+  if(!list.length){ toast("no traffic on the band"); return; }
+  LR.queue = list.map(s => ({ id: s.id, title: s.title, station: s.station,
+    score: s.score, timing: s.timing }));
+  LR.qi = -1; LR.workedThisSession = true; LR.heardNow = 0; LR.starredNow = 0;
+  lrMediaSession(true);
+  lrAdvance();
+}
+function lrSignOff(){
+  lrMediaSession(false);
+  LR.queue = []; LR.qi = -1; LR.env = null; LR.timing = null; LR.litIx = -1;
+  XMTR.stop();
+  lrDeckCold();
+}
+async function lrAdvance(skipped){
+  const i = LR.qi + 1;
+  if(i >= LR.queue.length){
+    /* the band is worked — the one earned celebration */
+    lrMediaSession(false);
+    XMTR.onstop = null; XMTR.stop();
+    LR.payoff = { heard: LR.heardNow, starred: LR.starredNow };
+    LR.qi = -1; LR.queue = [];
+    await lrRefetch(); lrMutate();
+    return;
+  }
+  LR.qi = i; LR.litIx = -1;
+  const s = LR.queue[i];
+  const air = $("lrAir"); air && (air.textContent = "TUNING…");
+  try{
+    const got = (LR.nextFor === s.id && LR.nextBlob) ? LR.nextBlob : await lrFetchAir(s.id);
+    LR.nextBlob = null; LR.nextFor = 0;
+    LR.env = got.env; LR.envFor = s.id;
+    const lit = Math.max(1, Math.min(9, Math.ceil((s.score || 0) / 11.12)));
+    XMTR.onstop = null;   /* our own advance is not a sign-off */
+    await XMTR.play(got.blob, "learn", {
+      rate: LR.rate,
+      meta: { title: s.title, artist: `S${lit} · ${s.station}`, album: "ALMANAC — THE LEARN ROOM" },
+      ontime: el => { lrPaintCarrier(); lrLit(el.currentTime);
+        try{ navigator.mediaSession.setPositionState({ duration: el.duration || 0,
+          playbackRate: el.playbackRate, position: el.currentTime }); }catch(_){} },
+      onend: () => {
+        LR.heardNow++;
+        fetch(url(`/api/learning/signal/${s.id}/heard`), { method: "POST",
+          headers: hdr({ "Content-Type": "application/json" }), body: "{}" })
+          .catch(() => toast("heard did not land on the spine"));
+        lrAdvance();
+      },
+      onstop: () => lrDeckCold()
+    });
+    if(skipped){ LR.heardNow++; }
+    lrDeckDress(s);
+    /* preload the next — the wheel's next-track must never stall */
+    const nx = LR.queue[i + 1];
+    if(nx) lrFetchAir(nx.id).then(b => { LR.nextBlob = b; LR.nextFor = nx.id; }).catch(() => {});
+  }catch(e){
+    toast(String(e.message || e));
+    if(LR.qi + 1 < LR.queue.length) lrAdvance(); else lrSignOff();
+  }
+}
+function lrDeckDress(s){
+  const d = $("lrDeck"); if(!d) return;
+  d.classList.add("hot");
+  if(!$("lrNow")){
+    const now = document.createElement("div");
+    now.className = "lr-now"; now.id = "lrNow"; now.title = "tap to read along";
+    now.innerHTML = `<div class="lr-nowt" id="lrNowT"></div>
+      <canvas id="lrCarrier" height="28"></canvas><div class="lr-lit" id="lrLit"></div>`;
+    d.prepend(now);
+    now.addEventListener("click", e => { e.stopPropagation(); lrReadAlong(); });
+  }
+  $("lrNowT").textContent = s.title;
+  const q = $("lrQ"); q && (q.textContent = `${LR.qi + 1} of ${LR.queue.length}`);
+  const a = $("lrAir"); a && (a.textContent = "■ SIGN OFF", a.disabled = false);
+  $("room") && $("room").classList.add("lr-onair");
+  lrPaintCarrier();
+}
+function lrDockEl(){
+  let d = document.getElementById("lrDock");
+  if(!d){
+    d = document.createElement("div");
+    d.id = "lrDock"; d.hidden = true;
+    d.addEventListener("click", e => { if(e.target === d) d.hidden = true; });
+    document.body.appendChild(d);
+  }
+  return d;
+}
+function lrReadAlong(){
+  const s = LR.queue[LR.qi]; if(!s) return;
+  const tm = (s.timing && s.timing.sentences) || [];
+  const d = lrDockEl();
+  d.innerHTML = `<div class="lr-dockin"><div class="cap" style="margin-bottom:10px">reading along — ${esc(lrCallsign(s.station))}</div>
+    <div class="lr-prose">${tm.length
+      ? tm.map((x, i) => `<span class="lr-sent${i === LR.litIx ? " on" : ""}" data-i="${i}">${esc(x.text)} </span>`).join("")
+      : `<span class="lr-sent">the clock for this signal has not been cut — the words follow the air next render.</span>`}</div>
+    <button class="lr-door" id="lrDockX">CLOSE</button></div>`;
+  d.hidden = false;
+  document.getElementById("lrDockX").onclick = () => { d.hidden = true; };
+}
+function lrStationDock(sid){
+  const w = State.learn && State.learn.wire; if(!w) return;
+  const s = (w.dial || []).find(x => x.id === sid); if(!s) return;
+  const d = lrDockEl();
+  d.innerHTML = `<div class="lr-dockin"><div class="cap" style="margin-bottom:8px">working the station</div>
+    <div class="lr-aimq">${esc(s.title)}</div>
+    <div class="lr-aimm" style="margin:4px 0 12px">${esc(s.why || s.handle || "")}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="lr-door" id="lrMute">${s.active ? "MUTE THE STATION" : "UNMUTE"}</button>
+      <button class="lr-door" id="lrDockX">CLOSE</button></div>
+    <div class="cap" style="margin:18px 0 8px">add a station to the dial</div>
+    <div class="lr-addrow"><input id="lrAddH" placeholder="@handle" autocapitalize="off">
+      <select id="lrAddL"><option value="ai">ai</option><option value="venture">venture</option>
+      <option value="body">body</option><option value="deep">deep</option></select>
+      <button class="lr-door" id="lrAddGo">VERIFY + ADD</button></div>
+    <div class="lr-aimm" id="lrAddSay">the handle is resolved to its own externalId and proven by its feed title before it boards.</div></div>`;
+  d.hidden = false;
+  document.getElementById("lrDockX").onclick = () => { d.hidden = true; };
+  document.getElementById("lrMute").onclick = async ev => {
+    const b = ev.target; b.disabled = true; b.textContent = "writing…";
+    try{
+      const r = await fetch(url(`/api/learning/source/${sid}/toggle`), { method: "POST",
+        headers: hdr({ "Content-Type": "application/json" }), body: "{}" });
+      const out = await r.json();
+      if(out.error) throw new Error(out.error);
+      d.hidden = true; await lrRefetch(); lrMutate();
+    }catch(e){ b.disabled = false; b.textContent = "MUTE FAILED"; toast(String(e.message || e)); }
+  };
+  document.getElementById("lrAddGo").onclick = async ev => {
+    const b = ev.target, h = document.getElementById("lrAddH").value.trim();
+    if(!h) return;
+    b.disabled = true; b.textContent = "verifying…";
+    try{
+      const r = await fetch(url("/api/learning/source"), { method: "POST",
+        headers: hdr({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ handle: h, lane: document.getElementById("lrAddL").value }) });
+      const out = await r.json();
+      if(!r.ok || out.error) throw new Error(out.error || r.status);
+      document.getElementById("lrAddSay").textContent = `on the dial: ${out.title}`;
+      b.textContent = "ADDED";
+      await lrRefetch(); lrMutate();
+    }catch(e){
+      b.disabled = false; b.textContent = "VERIFY + ADD";
+      document.getElementById("lrAddSay").textContent = String(e.message || e);
+    }
+  };
+}
+async function lrDoor(id, verb, btn){
+  btn.disabled = true; const old = btn.textContent; btn.textContent = "writing…";
+  try{
+    const r = await fetch(url(`/api/learning/signal/${id}/${verb}`), { method: "POST",
+      headers: hdr({ "Content-Type": "application/json" }), body: "{}" });
+    const out = await r.json().catch(() => ({}));
+    if(!r.ok || out.error) throw new Error(out.error || ("HTTP " + r.status));
+    if(verb === "star") LR.starredNow++;
+    await lrRefetch();
+    lrMutate();
+  }catch(e){ btn.textContent = old; btn.disabled = false; toast(String(e.message || e)); }
+}
+function wireLearn(){
+  LR.ac = new AbortController();
+  const sig = { signal: LR.ac.signal }, R = $("room");
+  const w = State.learn && State.learn.wire; if(!w) return;
+  const fresh = w.fresh || [];
+  /* the landing — ENTRY-keyed, high-water gated; re-renders draw the still */
+  const newest = Math.max(0, ...fresh.map(lrCreatedMs));
+  const wantAnim = LR.entryPending && newest > LR.seen();
+  LR.entryPending = false;
+  lrDrawScope(wantAnim && !lrRM());
+  if(newest) LR.stamp(newest);
+  /* the payoff class rides one render, then rests */
+  if(LR.payoff){
+    const sp = R.querySelector(".lr-scopep"); sp && sp.classList.add("worked");
+    const cold = $("lrCold");
+    cold && (cold.textContent = `band worked — ${LR.payoff.heard} heard, ${LR.payoff.starred} starred to the aim. conditions again tomorrow night.`);
+    LR.payoff = null;
+  }
+  /* the dial: tap tunes, a 620ms hold works the station */
+  R.querySelectorAll(".lr-chip").forEach(ch => {
+    let timer = 0;
+    ch.addEventListener("pointerdown", () => {
+      timer = setTimeout(() => { timer = 0;
+        if(ch.dataset.sid) lrStationDock(+ch.dataset.sid); }, 620);
+    }, sig);
+    ch.addEventListener("pointerup", () => {
+      if(!timer) return;
+      clearTimeout(timer); timer = 0;
+      LR.station = ch.dataset.st || "";
+      try{ localStorage.setItem("learn.station", LR.station); }catch(_){}
+      if(!lrRM()) navigator.vibrate?.(6);
+      renderRoom();
+    }, sig);
+    ch.addEventListener("pointerleave", () => { if(timer){ clearTimeout(timer); timer = 0; } }, sig);
+  });
+  /* rows: title expands, meter shows its work, doors write */
+  R.querySelectorAll(".lr-row").forEach(row => {
+    const id = +row.dataset.id;
+    row.querySelector(".lr-t").addEventListener("click", e => { e.stopPropagation();
+      LR.open.has(id) ? LR.open.delete(id) : LR.open.add(id); renderRoom(); }, sig);
+    row.querySelector(".lr-meter").addEventListener("click", e => { e.stopPropagation();
+      const r = row.querySelector(".lr-r"); r && (r.hidden = !r.hidden); }, sig);
+  });
+  R.querySelectorAll(".lr-door.star").forEach(b =>
+    b.addEventListener("click", e => { e.stopPropagation(); lrDoor(+b.dataset.id, "star", b); }, sig));
+  R.querySelectorAll(".lr-door.clear").forEach(b =>
+    b.addEventListener("click", e => { e.stopPropagation(); lrDoor(+b.dataset.id, "pass", b); }, sig));
+  /* the log fold */
+  const lf = R.querySelector(".lr-logfold");
+  lf && lf.addEventListener("click", e => { e.stopPropagation();
+    let f; try{ f = JSON.parse(localStorage.getItem("learn.folds") || "{}"); }catch(_){ f = {}; }
+    f.log = !f.log;
+    try{ localStorage.setItem("learn.folds", JSON.stringify(f)); }catch(_){}
+    renderRoom(); }, sig);
+  /* the deck */
+  const air = $("lrAir");
+  air && air.addEventListener("click", e => { e.stopPropagation();
+    XMTR.owner === "learn" ? lrSignOff() : lrKeyup(); }, sig);
+  R.querySelectorAll(".lr-rate").forEach(b =>
+    b.addEventListener("click", e => { e.stopPropagation();
+      LR.rate = +b.dataset.r || 1;
+      try{ localStorage.setItem("learn.rate", String(LR.rate)); }catch(_){}
+      if(XMTR.el) XMTR.el.playbackRate = LR.rate;
+      R.querySelectorAll(".lr-rate").forEach(x => x.classList.toggle("on", +x.dataset.r === LR.rate));
+    }, sig));
+  const tune = $("lrTune");
+  tune && tune.addEventListener("click", async e => { e.stopPropagation();
+    tune.disabled = true; tune.textContent = "SWEEPING…";
+    try{
+      const r = await fetch(url("/api/learning/sync"), { method: "POST",
+        headers: hdr({ "Content-Type": "application/json" }), body: "{}" });
+      const out = await r.json();
+      toast(out.started ? "the sweep is in the air — signals land as they are read"
+                        : (out.note || "a sweep is already in the air"));
+    }catch(_){ toast("the spine did not answer"); }
+    tune.textContent = "TUNE"; tune.disabled = false;
+  }, sig);
+  const now = $("lrNow");
+  now && now.addEventListener("click", e => { e.stopPropagation(); lrReadAlong(); }, sig);
+  /* a re-render mid-broadcast re-dresses the deck from module state */
+  if(XMTR.owner === "learn") lrPaintDeckHot();
+}
+
 /* The soul sections fold like the pile does (v52 idiom): content is coming to
    this page (his word, 2026-08-04), and a page that grows must tuck. His open/
    tuck choice per tier survives reloads; reference starts tucked because that
@@ -4689,6 +5337,7 @@ function renderRoom(){
   const foSel = foId && fo.selectionStart != null
     ? [fo.selectionStart, fo.selectionEnd] : null;
 
+  lrTeardown();   // the scope's rAF + listeners die before their canvas does
   R.innerHTML = o.room === "standing" ? standingRoom()
     : o.room === "work" ? workRoom()
     : o.room === "radio" ? radioRoom()
@@ -4714,6 +5363,7 @@ function renderRoom(){
     else { paintGauge(); wireFigs(); wireActs(); wireSnap(); wireScale(); }
   }
   if(o.room === "work"){ wireCards(); }
+  if(o.room === "learn"){ wireLearn(); }
   if(o.room === "ledger"){ wireFin();
     /* the strip rides every fin view — its stones paint on all four tabs */
     paintStripStones(); wireStripStones(); }
