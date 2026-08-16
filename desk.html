@@ -1098,6 +1098,18 @@ body.hot .act .h .n{color:var(--hot)}
 .pl-retime{min-height:34px;padding:0 9px;border:1px solid var(--line);border-radius:10px;background:none;color:var(--dim);font:700 8px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;cursor:pointer;flex:0 0 auto}
 .pl-del{min-width:34px;min-height:34px;border:none;background:none;color:var(--etch);font-size:12px;cursor:pointer;flex:0 0 auto}
 .pl-fin{display:block;width:100%;text-align:left;min-height:40px;margin-top:10px;border:none;border-top:1px solid var(--line);background:none;color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.14em;cursor:pointer}
+
+/* ── THE BULLETIN — the hotshot room's regulatory ticker ──────────── */
+.hb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dotted var(--line);text-decoration:none;min-height:40px}
+.hb-tag{flex:0 0 auto;font:700 8px/1 var(--mono);letter-spacing:.11em;border:1px solid var(--line);border-radius:10px;padding:5px 8px;color:var(--dim)}
+.hb-tag.ru{color:var(--hot);border-color:rgba(255,59,24,.5)}
+.hb-tag.pr{color:var(--amber);border-color:rgba(255,164,25,.45)}
+.hb-tag.no{color:var(--etch)}
+.hb-tag.nw{color:#60a5fa;border-color:rgba(96,165,250,.35)}
+.hb-t{flex:1;font:600 13px/1.4 var(--sans);color:var(--ink);min-width:0}
+.hb-src{flex:0 0 auto;font:700 8px/1 var(--mono);letter-spacing:.1em;color:var(--etch)}
+.hb-tgt{display:flex;justify-content:space-between;gap:10px;font:400 12.5px/1.6 var(--sans);color:var(--mid);padding:5px 0;border-bottom:1px dotted var(--line)}
+.hb-tgt i{font:700 8px/1.6 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--etch);font-style:normal}
 /* the practice on the canon card — below THE PAGE and ON AIR, his ask */
 .cml{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:11px;border-top:1px dotted var(--line)}
 .cml[hidden]{display:none}
@@ -2372,7 +2384,45 @@ function standingRoom(){
           p.earned ? Math.min(100, Math.round(100*(p.still_out||0)/p.earned)) : 0}%"></i></span>
           <span class="v">${p.still_out==null?"——":money(p.still_out)}</span></div>
       </div>
-    </div>` + pulseHTML() + quoteHTML() + actsHTML() + `</div>`;
+    </div>` + pulseHTML() + quoteHTML() + actsHTML() + bulletinHTML() + `</div>`;
+}
+/* THE BULLETIN (card #125) — DOT/FMCSA news, the Register's rule changes,
+   and his own compliance clock, at the bottom of the hotshot room. The
+   wire's road lane: headlines VERBATIM (no model, no paraphrase), each a
+   door out to the source. */
+function bulletinHTML(){
+  const b = State.hotshot && State.hotshot.bulletin;
+  const tag = r => {
+    const fr = (r.reasons || []).map(String).find(x => x.startsWith("the register"));
+    if(fr) return fr.includes("proposed") ? ["PROPOSED RULE", "pr"]
+      : fr.includes("rule") ? ["RULE", "ru"] : ["NOTICE", "no"];
+    return ["NEWS", "nw"];
+  };
+  const age = d => d < 1 ? "today" : d + "d ago";
+  const rows = b && b.items && b.items.length ? b.items.map(r => {
+    const [t, k] = tag(r);
+    const src = r.station === "The Federal Register — FMCSA" ? "the register" : r.station;
+    return `<a class="hb-row" href="${esc(r.url)}" target="_blank" rel="noopener"
+      title="${esc((r.summary || "").slice(0, 220))}">
+      <span class="hb-tag ${k}">${t}</span>
+      <span class="hb-t">${esc(r.title)}</span>
+      <span class="hb-src">${esc(src.toUpperCase())} · ${age(r.age_days | 0)}</span></a>`;
+  }).join("")
+  : `<p class="nodata">${b ? "the road is quiet — nothing regulatory standing." : "the spine has not answered with the bulletin"}</p>`;
+  /* his own clock — pulled from HIS list, labeled as such, never invented */
+  const pl = State.planner, targets = [];
+  if(pl && pl.tasks) (pl.tasks.open || []).forEach(t => {
+    if(t.category === "business" && /(\bdot\b|\bhut\b|\bucr\b|ifta|inspect|tax)/i.test(t.text))
+      targets.push(t);
+  });
+  const tHTML = targets.length
+    ? `<div class="cap" style="margin:13px 0 3px">your compliance targets — from your list</div>`
+      + targets.slice(0, 6).map(t =>
+        `<div class="hb-tgt">${esc(t.text)}<i>${esc(t.timeframe)}</i></div>`).join("")
+    : "";
+  return `<div class="panel" style="grid-column:1 / -1">
+    <div class="cap">the bulletin — dot · fmcsa · the register${b && b.fresh ? ` · ${b.fresh} standing` : ""}</div>
+    ${rows}${tHTML}</div>`;
 }
 /* THE ROAD PULSE — served whole by /api/hotshot; the page computes nothing.
    rpm renders UNKNOWN with the reason in words until two anchors cover the
