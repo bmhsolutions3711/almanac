@@ -68,12 +68,22 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .stage.entered .bar{padding:7px 26px 6px}
 .stage.entered .wm{font-size:11.5px;letter-spacing:.3em}
 .stage.entered .bar .d,.stage.entered .bar .hand{font-size:8.5px}
+.stage.entered .bar .hand{padding:4px 8px 3px}
 .stage.entered .why{padding:6px 12px;font-size:11.5px}
 .wm{font:700 14px/1 var(--mono);letter-spacing:.38em}
 .bar .d{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--dim)}
-.bar .hand{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--amber);cursor:pointer}
-.bar .hand:hover{text-decoration:underline;text-underline-offset:3px}
-.bar .hand.unk{color:var(--hot)}
+/* The docket door wears a handle (card #86): a bordered pill in the desk's
+   own chip language + a chevron that says "opens". A clean docket renders
+   empty text — :empty keeps the pill from standing as a hollow lozenge. */
+.bar .hand{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--amber);cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,164,25,.45);
+  border-radius:999px;padding:6px 11px 5px;white-space:nowrap;
+  transition:border-color .3s,background .3s}
+.bar .hand::after{content:"\25B8";font-size:8px;opacity:.75}
+.bar .hand:hover{border-color:var(--amber);background:rgba(255,164,25,.08)}
+.bar .hand:empty{display:none}
+.bar .hand:focus-visible{outline:2px solid var(--mid);outline-offset:2px}
+.bar .hand.unk{color:var(--hot);border-color:rgba(255,80,60,.5)}
 /* ══ THE DOCKET — the clipboard at the dock ═══════════════════════════ */
 .dockwrap{position:fixed;inset:0;z-index:60}
 .dockback{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
@@ -1361,7 +1371,7 @@ body.hot .act .h .n{color:var(--hot)}
   <div class="bar">
     <span class="wm">ALMANAC</span>
     <span class="d" id="dateline"></span>
-    <span class="hand" id="hand"></span>
+    <span class="hand" id="hand" role="button" tabindex="0"></span>
     <span class="right">
       <button class="readstamp" id="shellv"
         title="the shell this device is serving — tap to fetch the newest and reload">&#8203;</button>
@@ -2310,6 +2320,9 @@ function renderDocket(){
   });
 }
 $("hand").addEventListener("click", openDocket);
+$("hand").addEventListener("keydown", e => {   /* the handle answers the keyboard too (#86) */
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openDocket(); }
+});
 /* warm path: the desk is already open when a push's #hand arrives — a hash
    change reloads nothing, so the listener is the door (cold path lives at
    the end of load()). Refetch FIRST: the drawer a push opens must show the
