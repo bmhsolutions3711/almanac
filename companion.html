@@ -65,6 +65,22 @@ body{
   cursor:pointer}
 .sc-door:hover,.sc-visorbtn:hover{color:var(--ink)}
 
+/* ── the mode selector — one set, three voices (card #131) ──
+   the dial light IS the mode: every glow on the page rides --key, so
+   flipping the mode re-lights the whole room. moonglass = analysis,
+   sky = chat, candle = the therapist room. */
+body[data-mode="chat"]{--key:126,198,236}
+body[data-mode="therapist"]{--key:228,188,140}
+.sc-modes{flex:0 0 auto;display:flex;gap:6px;padding:8px 0 1px;align-items:center}
+.sc-mode{font:700 9.5px/1 var(--mono);letter-spacing:.16em;color:var(--dim);
+  background:transparent;border:1px solid var(--line);border-radius:3px;
+  corner-shape:bevel;padding:8px 12px;cursor:pointer;min-height:32px;
+  transition:color .3s,border-color .3s,background .3s,box-shadow .3s}
+.sc-mode:hover{color:var(--ink)}
+.sc-mode.on{color:rgb(var(--key));border-color:rgba(var(--key),.55);
+  background:rgba(var(--key),.09);box-shadow:0 0 16px -6px rgba(var(--key),.6)}
+.sc-mode:focus-visible{outline:2px solid var(--mid);outline-offset:1px}
+
 /* ── runs rail — tuning ── */
 .sc-rail{flex:0 0 auto;display:flex;gap:7px;overflow-x:auto;padding:9px 0 7px;
   scroll-snap-type:x proximity;scrollbar-width:none}
@@ -201,6 +217,12 @@ body.sc-keyed .sc-wire,body.sc-keyed .sc-rail{opacity:.55;transition:opacity .28
     <button class="sc-door" id="door" title="back to the desk">◂ THE DESK</button>
   </div>
 
+  <div class="sc-modes" role="radiogroup" aria-label="mode" id="modes">
+    <button class="sc-mode" data-mode="analysis" role="radio" title="the full read — a voice that knows your numbers">ANALYSIS</button>
+    <button class="sc-mode" data-mode="chat" role="radio" title="off the clock — quick voice, no ledger">CHAT</button>
+    <button class="sc-mode" data-mode="therapist" role="radio" title="the inner room — walled from the work">THERAPIST</button>
+  </div>
+
   <div class="sc-rail" id="rail"></div>
   <div class="sc-wire" id="wire"></div>
   <div class="sc-carrier" id="carrier"><canvas id="cglass"></canvas><canvas id="ctrace"></canvas></div>
@@ -326,7 +348,38 @@ const S = {
   peaks: new Map(),       // msg id -> [0..1] buckets (this glass's tape memory)
   rec: null,              // {stream, ctx, proc, analyser, chunks, t0, key}
   vuRaf: 0, holdT: 0,
+  mode: localStorage.getItem("almanac_sc_mode") || "analysis",  // card #131
 };
+
+/* ══ the mode selector — one set, three voices (card #131) ══ */
+const MODE_PLACEHOLDER = {
+  analysis:  "say it — or tap TALK and just speak; quiet sends it",
+  chat:      "shoot the breeze — quick voice, no ledger",
+  therapist: "say what's on you — this room holds it",
+};
+const MODE_QUIET = {
+  analysis:  "a fresh run — say something into the dark. the operation answers in a voice that knows your numbers.",
+  chat:      "a fresh run — say anything. off the clock, no ledger, quick voice.",
+  therapist: "a fresh run — say what's on you. this room is walled from the work.",
+};
+function setMode(m, first){
+  if(!MODE_PLACEHOLDER[m]) m = "analysis";
+  S.mode = m;
+  localStorage.setItem("almanac_sc_mode", m);
+  document.body.dataset.mode = m;
+  for(const b of document.querySelectorAll(".sc-mode")){
+    const on = b.dataset.mode === m;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  }
+  $("say").placeholder = MODE_PLACEHOLDER[m];
+  if(!first && !S.msgs.length) renderWire();     // the quiet line speaks the mode
+}
+function wireModes(){
+  for(const b of document.querySelectorAll(".sc-mode"))
+    b.addEventListener("click", () => { if(b.dataset.mode !== S.mode){ buzz([10]); setMode(b.dataset.mode); } });
+  setMode(S.mode, true);
+}
 
 /* ══ the arc glyph — a state diagram that cannot lie ══ */
 function arc(pole, on){
@@ -389,8 +442,12 @@ function spikeRun(grains){
 /* ══ the log ══ */
 function stampFor(m, dur){
   const who = m.kind === "answer" ? "ATLAS" : m.kind === "undelivered" ? "ATLAS" : "BRYAN";
+  /* the record knows which voice spoke (card #131); analysis stays unbadged —
+     it is the old default and the stamp stays clean for the common case */
+  const md = (m.mode && m.mode !== "analysis" && who === "ATLAS")
+    ? ` · ${esc(String(m.mode).toUpperCase())}` : "";
   const len = dur ? ` · ${mmss(dur)}` : "";
-  return `${who} · ${esc(rel(m.at))}${len}`;
+  return `${who}${md} · ${esc(rel(m.at))}${len}`;
 }
 function wireRow(m){
   const el = document.createElement("div");
@@ -426,7 +483,7 @@ function renderWire(){
   const w = $("wire"); w.textContent = "";
   if(!S.msgs.length){
     const q = document.createElement("div"); q.className = "sc-quiet";
-    q.textContent = "a fresh run — say something into the dark. the operation answers in a voice that knows your numbers.";
+    q.textContent = MODE_QUIET[S.mode] || MODE_QUIET.analysis;
     w.appendChild(q); return;
   }
   const rows = S.msgs.slice().reverse();          // column-reverse: first = newest = bottom
@@ -733,13 +790,13 @@ async function sendTurn(body, key){
     const r = await fetch(url(`/api/threads/${S.run}/say`), { method:"POST",
       headers: hdr({"Content-Type":"application/json",
         "Idempotency-Key": key || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()))}),
-      body: JSON.stringify({ body }), signal: ctrl.signal });
+      body: JSON.stringify({ body, mode: S.mode }), signal: ctrl.signal });
     clearTimeout(abortT);
     const d = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
     rogerBeep(); buzz([14,26,14]);
     appendTurn({ id: d.id, at: new Date().toISOString(), sender:"bryan",
-                 kind:"say", body, thread_id: S.run });
+                 kind:"say", body, thread_id: S.run, mode: S.mode });
     if(d.answering) startWait(d.id);
     else toast("sent — but ATLAS could not take the mic; the turn stands");
     loadRuns();
@@ -1047,7 +1104,7 @@ addEventListener("pagehide", () => {
   stopPlayback(); clearWait(); sweepVox();
   try{ AC && AC.close(); }catch(e){}
 });
-wireKey(); wireTalk(); wireVisor();
+wireKey(); wireTalk(); wireVisor(); wireModes();
 if(TOK === "" && !API) connect(); else boot();
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
