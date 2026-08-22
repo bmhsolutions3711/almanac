@@ -4623,7 +4623,7 @@ function finBooks(){
       grid-template-columns:1fr 1fr;gap:8px">
     <div class="drop" id="dropCsv" style="margin:0">
       <div class="dl">drop a transactions csv</div>
-      <div class="ds">LoadPay or PNC · deduped by the importer</div></div>
+      <div class="ds">LoadPay, PNC or Gemini card · deduped by the importer</div></div>
     <div class="drop" id="dropShot" tabindex="0" style="margin:0">
       <div class="dl">balances &amp; statements</div>
       <div class="ds">click then &#8984;V, or drop an image</div>
@@ -6834,10 +6834,11 @@ async function sendCsv(file){
   const text = await file.text();
   const head = (text.split("\n")[0] || "").toLowerCase();
   const source = head.includes("transaction id") || /loadpay/i.test(file.name) ? "loadpay"
+               : head.includes("reference number") && head.includes("post date") ? "gemini"
                : /pnc|account\s*activity/i.test(file.name) || head.includes("balance") ? "pnc" : null;
   if(!source){
     dropState(el, "bad", "cannot tell which bank this is",
-      "name it LoadPay… or PNC… — the parsers are not interchangeable");
+      "name it LoadPay…, PNC… or a Gemini statement — the parsers are not interchangeable");
     return;
   }
   dropState(el, "busy", `importing ${source}…`, file.name);
