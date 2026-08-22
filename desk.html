@@ -6268,12 +6268,25 @@ function wireFin(){
         await payMonthlyByHand(bt, bid, z);
         return;
       }
+      if(String(data).startsWith("move:")){
+        /* a placed portion re-aimed (card #136): same drag, new assertion */
+        const [, txn, from] = String(data).split(":");
+        if(z.dataset.row === "monthly"){
+          finSay("that's a placed cost, not a bill — take it off the load first if it should settle MONTHLY", true);
+          return;
+        }
+        await movePlacement(Number(txn), Number(from), Number(z.dataset.row), z);
+        return;
+      }
       if(z.dataset.row === "monthly") await payMonthly(Number(data), null, null, z);
       else await assignTxn(Number(data), Number(z.dataset.row), z);
     });
   });
   /* click something already in a box to take it back out; RIGHT-click to send
-     it somewhere else without first putting it down */
+     it somewhere else without first putting it down; DRAG it to the load it
+     actually belongs to (his ask 08-22, card #136) — placing wrong is fixed
+     by the same gesture that placed it, aimed again. Fold path stays the
+     tap/right-click menu (the 08-03 ruling: no HTML5 drag on the phone). */
   R.querySelectorAll(".lane .drop-in[data-txn]").forEach(p => {
     const lane = p.closest(".lane");
     const txn = Number(p.dataset.txn);
@@ -6283,6 +6296,16 @@ function wireFin(){
       movePlacement(txn, from, null, lane);
     });
     p.addEventListener("contextmenu", ev => { ev.preventDefault(); openMove(ev, txn, from); });
+    if(from != null){
+      p.draggable = true;
+      p.addEventListener("dragstart", ev => {
+        FIN.drag = `move:${txn}:${from}`; p.classList.add("dragging");
+        ev.dataTransfer.effectAllowed = "move";
+        ev.dataTransfer.setData("text/plain", FIN.drag);
+        ev.stopPropagation();                  // the lane under it must not also drag
+      });
+      p.addEventListener("dragend", () => { p.classList.remove("dragging"); FIN.drag = null; });
+    }
   });
 
   /* THE STAB. The machine fills the sheet in; he checks it. Both are one call
