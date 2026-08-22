@@ -2142,7 +2142,6 @@ function closeDocket(){ $("dockWrap").hidden = true; }
    The almanac's daily page. Every money line is a SERVED sentence from
    /api/standing (one producer — the page computed nothing); weather, recap,
    voice and the proverb ride /api/brief. His CLOSE stamps the day read. */
-const PAGE_KEY = "almanac_page_read";
 function pageDeg(v){ return v == null ? "—" : `<span class="deg">${Math.round(v)}°</span>`; }
 function wxLine(f){
   if(!f) return "";
@@ -2264,7 +2263,6 @@ function openPage(){
   $("pageClose").onclick = closePage;
 }
 function closePage(){
-  if(State.brief && State.brief.day) localStorage.setItem(PAGE_KEY, State.brief.day);
   /* the air keeps playing — reading done ≠ listening done; SIGN OFF is its own act */
   $("pageWrap").hidden = true;
 }
@@ -7045,13 +7043,9 @@ async function load(keep){
       history.replaceState(null, "", location.pathname + location.search);
       openDocket();
     }
-    /* THE WAKE-UP (card #113): the first open of the day loads the morning
-       page — his ask 2026-08-15. A push deep-link (#hand) outranks it; his
-       CLOSE stamps the day and later opens go straight to the field. */
-    else if(State.brief && State.brief.day
-            && localStorage.getItem(PAGE_KEY) !== State.brief.day){
-      openPage();
-    }
+    /* The wake-up auto-open (card #113, his 08-15 ask) is GONE by his own
+       QA ruling 2026-08-22 (card #133): the page ambushing every first open
+       cost the desk its resting frame. THE PAGE button is the only door. */
     if(ACTIVE !== null) renderRoom();
   }catch(e){
     State.err = String(e.message || e);
