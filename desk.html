@@ -3691,7 +3691,24 @@ function finFloor(){
      vanish, the pile is a checklist — but the checked-off lines now tuck
      behind one line wearing their count and their dollars, one tap from
      visible. The work stays on top, bare. */
-  const doneRow = t => (t.placements || []).length || t.accounted;
+  /* THE 2-DAY SHELF (his ruling 08-22, card #137: "these should only hold
+     for 2 days and then be filed. want to keep this area clean"). A row
+     whose state is TERMINAL — nothing left for his hand — holds visible for
+     two days so the event is SEEN, then files into the fold. Filed is never
+     gone: one tap opens the fold, and the books' record carries every row.
+     sqlite stamps updated_at in UTC without a Z — normalize before math
+     (the MI mirror-age precedent). */
+  const aged = (iso, days) => {
+    if(!iso) return false;
+    const d = new Date(iso.length > 10 && !iso.includes("T")
+      ? iso.replace(" ", "T") + "Z" : iso);
+    return !isNaN(d) && (Date.now() - d.getTime()) > days * 86400e3;
+  };
+  const filed = t =>
+    (t.expired && aged(t.updated_at || t.date, 2))
+    || (t.deposit_refund && aged(t.deposit_refund.refund_date || t.date, 2))
+    || ((t.undraggable_because || "").startsWith("cash") && aged(t.date, 2));
+  const doneRow = t => (t.placements || []).length || t.accounted || filed(t);
   const work = pile.filter(t => !doneRow(t)).sort((a,b) => tier(a) - tier(b));
   const folded = pile.filter(doneRow).sort((a,b) => tier(a) - tier(b));
   const foldSum = folded.reduce((s,t) => s + Math.abs(t.amount || 0), 0);
@@ -3713,7 +3730,7 @@ function finFloor(){
             : folded.length ? "" : `<p class="nodata">nothing in the window</p>`}${
           folded.length ? `<div class="fold" id="pileFold" title="${
               FIN.pileOpen ? "tap to tuck them back away" : "tap to see every one"}">
-            <span>placed &amp; marked — ${folded.length} row${folded.length===1?"":"s"} · ${
+            <span>placed &amp; filed — ${folded.length} row${folded.length===1?"":"s"} · ${
               money(foldSum)}</span><i>${FIN.pileOpen ? "tuck away" : "open"}</i></div>${
             FIN.pileOpen ? folded.map(finLine).join("") : ""}` : ""}</div>
         ${e.blind_days ? `<div class="cap" style="margin-top:8px;color:var(--hot)">
