@@ -2174,7 +2174,20 @@ function pageHTML(){
     /* the trip's SHAPE (card #117): anchor legs + HOS leave-by, served words */
     + (br.plan && br.plan.ok && br.plan.words
         ? br.plan.words.map(s => `<div class="sv dim2">${esc(s)}</div>`).join("")
-        : "");
+        : "")
+    /* the rate con's to-knows (card #140): served rows, full text — the radio
+       trims, the page never does */
+    + (() => {
+        const tl = br.the_load;
+        if (tl && tl.ok === false) return `<div class="sv dim2">${esc(tl.unavailable || "to-knows unavailable")}</div>`;
+        return ((tl && tl.loads) || []).map(l =>
+          `<div class="sv" style="margin-top:7px"><b>${esc(l.role || "")}</b>`
+          + ` — ${esc(l.broker || "—")}${l.load ? ` · #${esc(l.load)}` : ""}</div>`
+          + (l.route ? `<div class="sv dim2">${esc(l.route)}</div>` : "")
+          + (l.freight ? `<div class="sv dim2">${esc(l.freight)}</div>` : "")
+          + (l.to_knows ? `<div class="sv dim2" style="font-size:.9em;line-height:1.45">${esc(l.to_knows)}</div>` : "")
+        ).join("");
+      })();
   /* yesterday */
   const le = rc.last_entry;
   const mv = rc.moves || {};
