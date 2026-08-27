@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#07080A">
+<meta name="theme-color" content="#07080A" id="metaTheme">
 <title>Almanac — the desk</title>
+<script>/* PAPER MODE boots before first paint — a flash of the wrong theme reads
+as a broken instrument. The class lands on <html> so every :root.paper rule
+and every canvas ink helper can read one source of truth. */
+try{ if(localStorage.getItem("almanac_theme")==="paper")
+  document.documentElement.classList.add("paper"); }catch(e){}</script>
 <link rel="icon" href="icons/icon-192.png" type="image/png">
 <!-- Leaflet, vendored (sw-cached): the book's live map — OSM tiles, no key,
      $0 by design. The static-bytes map remains the fallback words. -->
@@ -37,8 +42,27 @@
   --ink:#E9EDF0; --mid:#AEB8C0; --dim:#8B96A0; --etch:#5E6870;
   --amber:#FFA419; --hot:#FF3B18; --unknown:#6E6E6E;
   --key:255,164,25;
+  /* triplets so alpha stays local: wash = hairline/label ink over the ground,
+     hot-rgb = the signal red, panel/panel2 = tooltip + input surfaces */
+  --wash:255,255,255; --hot-rgb:255,59,24;
+  --panel:#12161c; --panel2:#101317;
   --mono:ui-monospace,"SF Mono","Roboto Mono",Menlo,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+/* ══ PAPER MODE — the same almanac, printed ═══════════════════════════
+   The night desk is the barn after dark; paper is the book itself — aged
+   stock, iron-gall ink, ochre where the night ran amber, a deeper signal
+   red that still reads on cream. HUE stays identity, TEMPERATURE stays
+   state — only the ground changes. Toggled by the masthead lamp, kept in
+   localStorage(almanac_theme), booted before first paint in <head>. */
+:root.paper{
+  --void:#EAE0C9; --glass:rgba(247,240,224,.92); --glass2:rgba(243,235,215,.94);
+  --line:rgba(70,56,32,.24);
+  --ink:#221A0E; --mid:#4E4230; --dim:#6E5F45; --etch:#8A7A5C;
+  --amber:#8F5A00; --hot:#B3271A; --unknown:#7A756B;
+  --key:143,90,0;
+  --wash:34,26,12; --hot-rgb:179,39,26;
+  --panel:#F3EBD6; --panel2:#EFE6CE;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none !important}
@@ -76,11 +100,11 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
    own chip language + a chevron that says "opens". A clean docket renders
    empty text — :empty keeps the pill from standing as a hollow lozenge. */
 .bar .hand{font:700 10px/1 var(--mono);letter-spacing:.19em;color:var(--amber);cursor:pointer;
-  display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,164,25,.45);
+  display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(var(--key),.45);
   border-radius:999px;padding:6px 11px 5px;white-space:nowrap;
   transition:border-color .3s,background .3s}
 .bar .hand::after{content:"\25B8";font-size:8px;opacity:.75}
-.bar .hand:hover{border-color:var(--amber);background:rgba(255,164,25,.08)}
+.bar .hand:hover{border-color:var(--amber);background:rgba(var(--key),.08)}
 .bar .hand:empty{display:none}
 .bar .hand:focus-visible{outline:2px solid var(--mid);outline-offset:2px}
 .bar .hand.unk{color:var(--hot);border-color:rgba(255,80,60,.5)}
@@ -89,7 +113,7 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .dockback{position:absolute;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
 .docket{position:absolute;top:0;right:0;bottom:0;width:min(430px,94vw);
   background:linear-gradient(200deg,rgba(30,26,20,.99),rgba(14,13,11,.99));
-  border-left:1px solid rgba(255,164,25,.35);box-shadow:-18px 0 48px rgba(0,0,0,.55);
+  border-left:1px solid rgba(var(--key),.35);box-shadow:-18px 0 48px rgba(0,0,0,.55);
   overflow-y:auto;padding:16px 14px 24px;display:flex;flex-direction:column;gap:10px}
 .docket .dhead{display:flex;align-items:baseline;gap:10px}
 .docket .dhead .t{font:700 13px/1 var(--mono);letter-spacing:.22em;color:var(--amber)}
@@ -102,7 +126,7 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 /* dchip/dwhy/t-front, NOT chip/why/front — the desk styles those names
    globally and the collision uppercased every fold row (review of #84) */
 .docket .drow{display:flex;align-items:center;gap:10px;padding:8px 2px;
-  border-bottom:1px dashed rgba(255,255,255,.07)}
+  border-bottom:1px dashed rgba(var(--wash),.07)}
 .docket .drow .dchip{flex:0 0 auto;font:700 8.5px/1 var(--mono);letter-spacing:.08em;
   color:var(--dim);border:1px solid var(--line);border-radius:4px;padding:3px 5px}
 .docket .drow.t-front .dchip{color:var(--hot);border-color:rgba(255,80,60,.5)}
@@ -130,7 +154,7 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .readstamp:focus-visible{outline:2px solid var(--mid);outline-offset:2px}
 .pill{font:700 9px/1 var(--mono);letter-spacing:.16em;padding:8px 12px;border-radius:20px;
   border:1px solid var(--line);color:var(--dim);transition:all .6s}
-.pill.on{color:var(--hot);border-color:rgba(255,59,24,.55);box-shadow:0 0 18px -5px rgba(255,59,24,.65)}
+.pill.on{color:var(--hot);border-color:rgba(var(--hot-rgb),.55);box-shadow:0 0 18px -5px rgba(var(--hot-rgb),.65)}
 .btn{background:var(--glass);border:1px solid var(--line);border-radius:3px;color:var(--mid);
   font:700 9px/1 var(--mono);letter-spacing:.14em;padding:9px 13px;cursor:pointer;backdrop-filter:blur(8px)}
 .btn:hover{color:var(--ink);border-color:rgba(var(--key),.5)}
@@ -147,7 +171,7 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .orb:hover .ball{filter:brightness(1.18)}
 .orb .fig{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none;transition:opacity .4s}
 .orb .fig .n{font:700 20px/1 var(--mono);color:#fff;text-shadow:0 0 16px rgba(0,0,0,.65)}
-.orb .fig .u{display:block;margin-top:3px;font:700 7px/1 var(--mono);letter-spacing:.15em;color:rgba(255,255,255,.75)}
+.orb .fig .u{display:block;margin-top:3px;font:700 7px/1 var(--mono);letter-spacing:.15em;color:rgba(var(--wash),.75)}
 .orb .name{font:700 10px/1 var(--mono);letter-spacing:.2em;text-shadow:0 2px 10px rgba(0,0,0,.85);
   transition:font-size .5s,color .3s}
 .orb .sig{font:600 9px/1 var(--mono);letter-spacing:.1em;color:var(--dim);transition:opacity .4s;white-space:nowrap;
@@ -199,23 +223,23 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
   transition:opacity .45s,transform .45s}
 .stage.entered .consider{opacity:0;transform:translateX(-50%) translateY(26px);pointer-events:none}
 .consider .lbl{display:inline-block;font:700 8px/1 var(--mono);letter-spacing:.19em;color:var(--amber);
-  border:1px solid rgba(255,164,25,.35);border-radius:20px;padding:6px 10px}
+  border:1px solid rgba(var(--key),.35);border-radius:20px;padding:6px 10px}
 .consider .q{margin-top:11px;font:600 17px/1.4 var(--sans);text-wrap:balance}
 .consider .rz{margin-top:7px;font:400 12px/1.5 var(--sans);color:var(--dim)}
 .consider .acts{margin-top:12px;display:flex;gap:8px}
-.consider .btn.go{color:var(--amber);border-color:rgba(255,164,25,.4)}
+.consider .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
 .consider .att{margin-top:6px;font:700 8.5px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
 
 /* ══ THE DOCKET BREATHES (card #114) — a slow glow when NEW items wait,
    stilled the moment he opens the drawer. Animation exists only while the
    .fresh class does (a resting masthead costs nothing). ═══════════════ */
 @keyframes handbreathe{
-  0%,100%{text-shadow:0 0 2px rgba(255,164,25,.25);opacity:.82}
-  50%{text-shadow:0 0 14px rgba(255,164,25,.95),0 0 28px rgba(255,164,25,.35);opacity:1}
+  0%,100%{text-shadow:0 0 2px rgba(var(--key),.25);opacity:.82}
+  50%{text-shadow:0 0 14px rgba(var(--key),.95),0 0 28px rgba(var(--key),.35);opacity:1}
 }
 .bar .hand.fresh{animation:handbreathe 3.8s ease-in-out infinite}
 @media (prefers-reduced-motion: reduce){
-  .bar .hand.fresh{animation:none;text-shadow:0 0 10px rgba(255,164,25,.8)}
+  .bar .hand.fresh{animation:none;text-shadow:0 0 10px rgba(var(--key),.8)}
 }
 
 /* ══ THE MORNING PAGE (cards #112/#113) — the almanac's daily page ═════ */
@@ -224,14 +248,14 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .page{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   width:min(560px,94vw);max-height:min(760px,92vh);overflow-y:auto;
   background:linear-gradient(196deg,rgba(30,27,21,.99),rgba(13,12,10,.99));
-  border:1px solid rgba(255,164,25,.35);border-radius:12px;
+  border:1px solid rgba(var(--key),.35);border-radius:12px;
   box-shadow:0 40px 90px -20px rgba(0,0,0,.9);padding:20px 20px 16px;
   display:flex;flex-direction:column;gap:13px}
-.page .phead{text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(255,164,25,.25)}
+.page .phead{text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(var(--key),.25)}
 .page .phead .pt{font:700 15px/1 var(--mono);letter-spacing:.34em;color:var(--amber)}
 .page .phead .pd{margin-top:7px;font:700 9px/1 var(--mono);letter-spacing:.22em;color:var(--dim)}
 .page .sect .sl{font:700 8.5px/1 var(--mono);letter-spacing:.22em;color:var(--amber);
-  padding-bottom:5px;border-bottom:1px dashed rgba(255,255,255,.09);margin-bottom:7px}
+  padding-bottom:5px;border-bottom:1px dashed rgba(var(--wash),.09);margin-bottom:7px}
 .page .sect .sv{font:400 12.5px/1.55 var(--sans);color:var(--ink)}
 .page .sect .sv b{color:var(--amber)}
 .page .sect .dim2{color:var(--dim);font-size:11px;line-height:1.5}
@@ -240,14 +264,14 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .page .wxrow .wv{font:400 12.5px/1.4 var(--sans)}
 .page .wxrow .wv .deg{color:var(--amber);font-weight:600}
 .page .voice{font:400 12.5px/1.65 var(--sans);color:var(--ink);white-space:pre-wrap;
-  border-left:2px solid rgba(255,164,25,.4);padding-left:11px}
+  border-left:2px solid rgba(var(--key),.4);padding-left:11px}
 .page .proverb{text-align:center;padding:8px 6px 2px}
 .page .proverb .pq{font:600 13.5px/1.5 var(--sans);text-wrap:balance}
 .page .proverb .pa{margin-top:7px;font:700 8.5px/1 var(--mono);letter-spacing:.18em;color:var(--dim)}
 .page .pacts{display:flex;justify-content:center;padding-top:4px}
-.page .pacts .btn{color:var(--amber);border-color:rgba(255,164,25,.4);min-height:42px;padding:12px 22px;
-  font:700 10px/1 var(--mono);letter-spacing:.16em;background:rgba(255,164,25,.08);
-  border:1px solid rgba(255,164,25,.4);border-radius:7px;cursor:pointer}
+.page .pacts .btn{color:var(--amber);border-color:rgba(var(--key),.4);min-height:42px;padding:12px 22px;
+  font:700 10px/1 var(--mono);letter-spacing:.16em;background:rgba(var(--key),.08);
+  border:1px solid rgba(var(--key),.4);border-radius:7px;cursor:pointer}
 
 .room{flex:1 1 auto;min-height:0;padding:0 22px 16px;display:flex;flex-direction:column;gap:10px;
   opacity:0;transform:translateY(22px);pointer-events:none;transition:opacity .5s .18s, transform .5s .18s}
@@ -255,17 +279,17 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .why{flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:9px 14px;border-radius:4px;
   background:rgba(var(--key),.09);border-left:3px solid rgba(var(--key),.8);
   font:400 12px/1.4 var(--sans);color:var(--mid);transition:all .6s}
-body.hot .why{background:rgba(255,59,24,.11);border-left-color:var(--hot)}
+body.hot .why{background:rgba(var(--hot-rgb),.11);border-left-color:var(--hot)}
 .why b{color:var(--ink)}
 .why .tag{font:700 8px/1 var(--mono);letter-spacing:.16em;color:rgba(var(--key),1);flex:0 0 auto}
 body.hot .why .tag{color:var(--hot)}
 
 .panel{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:12px 15px;
   backdrop-filter:blur(10px);min-width:0;display:flex;flex-direction:column;transition:border-color .6s}
-body.hot .panel{border-color:rgba(255,59,24,.22)}
+body.hot .panel{border-color:rgba(var(--hot-rgb),.22)}
 .cap{font:700 8px/1 var(--mono);letter-spacing:.2em;color:var(--etch);text-transform:uppercase;flex:0 0 auto}
 .big{margin-top:8px;font:700 32px/1 var(--mono);color:rgba(var(--key),1);text-shadow:0 0 28px rgba(var(--key),.45)}
-body.hot .big{color:var(--hot);text-shadow:0 0 30px rgba(255,59,24,.5)}
+body.hot .big{color:var(--hot);text-shadow:0 0 30px rgba(var(--hot-rgb),.5)}
 .big.unk{color:var(--unknown);font-weight:400;letter-spacing:.1em;text-shadow:none}
 .sm{margin-top:5px;font:400 11px/1.4 var(--sans);color:var(--dim)}
 
@@ -290,19 +314,19 @@ body.hot .big{color:var(--hot);text-shadow:0 0 30px rgba(255,59,24,.5)}
 body.hot .gread .n{color:var(--hot)}
 .gread .u{margin-top:3px;font:700 7px/1 var(--mono);letter-spacing:.17em;color:var(--dim)}
 .figs{display:flex;gap:2px;margin-top:8px;flex:0 0 auto}
-.fg{flex:1;min-width:0;background:rgba(255,255,255,.03);border-radius:3px;padding:7px 8px;cursor:pointer}
-.fg:hover{background:rgba(255,255,255,.06)}
+.fg{flex:1;min-width:0;background:rgba(var(--wash),.03);border-radius:3px;padding:7px 8px;cursor:pointer}
+.fg:hover{background:rgba(var(--wash),.06)}
 .fg.on{background:rgba(var(--key),.12);box-shadow:inset 0 -2px 0 rgba(var(--key),1)}
 .fg .k{font:700 7px/1 var(--mono);letter-spacing:.14em;color:var(--etch);text-transform:uppercase}
 .fg .v{margin-top:4px;font:700 12px/1 var(--mono);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fg.short .v{color:var(--hot)}
 .wk{margin-top:8px;padding:9px 11px;background:rgba(0,0,0,.35);border-radius:4px;flex:0 0 auto}
 .wk .wr{display:flex;justify-content:space-between;gap:12px;padding:2px 0;font:400 11.5px/1.5 var(--sans);
-  color:var(--dim);border-bottom:1px dotted rgba(255,255,255,.07)}
+  color:var(--dim);border-bottom:1px dotted rgba(var(--wash),.07)}
 .wk .wr:last-of-type{border-bottom:0}
 .wk .wr b{font:600 11.5px var(--mono);color:var(--ink)}
 .wk .tot{display:flex;justify-content:space-between;gap:12px;margin-top:4px;padding-top:5px;
-  border-top:3px double rgba(255,255,255,.14);font:600 11.5px var(--sans);color:var(--ink)}
+  border-top:3px double rgba(var(--wash),.14);font:600 11.5px var(--sans);color:var(--ink)}
 .wk .tot b{font:700 11.5px var(--mono)}
 .wk .prov{margin-top:6px;font:600 7.5px/1.4 var(--mono);letter-spacing:.1em;color:var(--etch);text-transform:uppercase}
 .wk .flag{display:inline-block;width:28px;height:9px;background:repeating-linear-gradient(135deg,#6E6E6E 0 5px,#8A8A8A 5px 10px)}
@@ -311,11 +335,11 @@ body.hot .gread .n{color:var(--hot)}
 .centre .lab{font:700 9.5px/1 var(--mono);letter-spacing:.26em;color:var(--dim)}
 .centre .n{margin:6px 0 3px;font:700 clamp(34px,4vw,58px)/.9 var(--mono);letter-spacing:-.03em;
   color:var(--ink);text-shadow:0 0 60px rgba(var(--key),.4)}
-body.hot .centre .n{color:var(--hot);text-shadow:0 0 70px rgba(255,59,24,.55)}
+body.hot .centre .n{color:var(--hot);text-shadow:0 0 70px rgba(var(--hot-rgb),.55)}
 .centre .u{font:700 10px/1 var(--mono);letter-spacing:.28em;color:var(--dim)}
 .centre .weeks{margin-top:9px;display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
-.centre .weeks i{width:14px;height:6px;border-radius:1px;background:rgba(255,255,255,.12)}
-.centre .weeks i.gone{background:rgba(255,255,255,.3)}
+.centre .weeks i{width:14px;height:6px;border-radius:1px;background:rgba(var(--wash),.12)}
+.centre .weeks i.gone{background:rgba(var(--wash),.3)}
 .centre .weeks i.now{background:rgba(var(--key),1);box-shadow:0 0 10px -2px rgba(var(--key),1)}
 body.hot .centre .weeks i.now{background:var(--hot);box-shadow:0 0 10px -2px var(--hot)}
 .centre .sub{margin-top:8px;font:400 11.5px/1.45 var(--sans);color:var(--mid);max-width:46ch}
@@ -345,14 +369,14 @@ body.hot .centre .weeks i.now{background:var(--hot);box-shadow:0 0 10px -2px var
 .snapline .mis:hover{color:var(--hot)}
 .rows{flex:0 0 auto;display:flex;flex-direction:column;gap:5px;margin-top:8px}
 .rw{display:flex;align-items:center;gap:9px;font:400 11px/1.3 var(--sans);color:var(--mid)}
-.rw .b{flex:1;height:4px;background:rgba(255,255,255,.09);border-radius:2px;overflow:hidden;min-width:18px}
+.rw .b{flex:1;height:4px;background:rgba(var(--wash),.09);border-radius:2px;overflow:hidden;min-width:18px}
 .rw .b i{display:block;height:100%;background:var(--mid)}
 .rw .b i.k{background:rgba(var(--key),1)}
 body.hot .rw .b i.k{background:var(--hot)}
 .rw .v{font:600 10.5px var(--mono);color:var(--ink);flex:0 0 auto}
 .chip{font:700 7px/1 var(--mono);letter-spacing:.11em;padding:4px 7px;border-radius:10px;
   border:1px solid var(--line);color:var(--dim);flex:0 0 auto}
-.chip.bad{color:var(--hot);border-color:rgba(255,59,24,.5)}
+.chip.bad{color:var(--hot);border-color:rgba(var(--hot-rgb),.5)}
 
 /* ══ THE MONEY ROOM ════════════════════════════════════════════════════
    The strip on top is FLIGHT STATUS, unchanged in meaning from the cockpit
@@ -383,7 +407,7 @@ body.hot .rw .b i.k{background:var(--hot)}
 .finbody{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:9px;
   overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .finbody::-webkit-scrollbar{width:6px}
-.finbody::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+.finbody::-webkit-scrollbar-thumb{background:rgba(var(--wash),.18);border-radius:3px}
 .finbar{flex:0 0 auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   padding:0 0 2px}
 .finbar .sp{flex:1}
@@ -393,7 +417,7 @@ body.hot .rw .b i.k{background:var(--hot)}
 .seg button:hover{color:var(--ink)}
 .seg button.on{background:rgba(var(--key),.16);color:rgba(var(--key),1);
   box-shadow:inset 0 -2px 0 rgba(var(--key),1)}
-body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shadow:inset 0 -2px 0 var(--hot)}
+body.hot .seg button.on{background:rgba(var(--hot-rgb),.16);color:var(--hot);box-shadow:inset 0 -2px 0 var(--hot)}
 
 .strip{flex:0 0 auto;display:grid;gap:9px;
   /* three equal seats, edge to edge (his ruling 08-15) */
@@ -424,14 +448,14 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
      you do. A headline may be scrolled away; work may not be squeezed. */
   .fin{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   .fin::-webkit-scrollbar{width:6px}
-  .fin::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+  .fin::-webkit-scrollbar-thumb{background:rgba(var(--wash),.18);border-radius:3px}
   .finbody{flex:0 0 auto;overflow:visible}          /* never a scroller inside a scroller */
   .finbar{position:sticky;top:0;z-index:6;padding:2px 0 6px;
     background:linear-gradient(180deg,var(--void) 66%,rgba(7,8,10,0))}
   .strip{grid-template-columns:none;display:flex;gap:8px;overflow-x:auto;
     overscroll-behavior-x:contain;padding-bottom:4px;max-height:180px}
   .strip::-webkit-scrollbar{height:4px}
-  .strip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:3px}
+  .strip::-webkit-scrollbar-thumb{background:rgba(var(--wash),.16);border-radius:3px}
   /* overflow-y:auto, never hidden — a clipped figure is a figure that lied by
      omission. The first pass hid the top and bottom of the readout, so
      "PROJECTED MONTH-END" and the day bar were simply gone. */
@@ -471,16 +495,16 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .rbig{font:600 clamp(21px,1.8vw,29px)/1 var(--mono);letter-spacing:-.01em}
 .rmid{font:600 clamp(14px,1.2vw,17px)/1.15 var(--mono);letter-spacing:.02em}
 .rsub{font:400 10.5px/1.35 var(--mono);color:var(--mid)}
-.daybar{margin-top:5px;height:5px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.daybar{margin-top:5px;height:5px;border-radius:3px;background:rgba(var(--wash),.1);overflow:hidden}
 .daybar i{display:block;height:100%;background:var(--mid);
   transition:width 1s cubic-bezier(.16,1,.3,1)}
 .strip .ln{display:flex;justify-content:space-between;gap:10px;padding:3px 0;
-  font:400 11.5px/1.5 var(--sans);color:var(--dim);border-bottom:1px dotted rgba(255,255,255,.07)}
+  font:400 11.5px/1.5 var(--sans);color:var(--dim);border-bottom:1px dotted rgba(var(--wash),.07)}
 .strip .ln:last-of-type{border-bottom:0}
 .strip .ln b{font:600 11.5px var(--mono);color:var(--ink)}
 .strip .ln b.up{color:rgba(var(--key),1)}
 .strip .ln b.dn{color:var(--hot)}
-.band{margin-top:7px;height:5px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden}
+.band{margin-top:7px;height:5px;border-radius:3px;background:rgba(var(--wash),.09);overflow:hidden}
 .band i{display:block;height:100%;background:rgba(var(--key),1)}
 .band i.red{background:var(--hot)}
 
@@ -500,7 +524,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .exp{max-height:52vh;overflow-y:auto;padding-right:3px}
 .exp::-webkit-scrollbar{width:0}
 .eline{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline;
-  padding:8px 9px;border-bottom:1px dotted rgba(255,255,255,.09);cursor:grab;
+  padding:8px 9px;border-bottom:1px dotted rgba(var(--wash),.09);cursor:grab;
   border-radius:3px;transition:background .15s,opacity .15s}
 .eline:hover{background:rgba(var(--key),.08)}
 .eline.dragging{opacity:.3}
@@ -512,7 +536,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .eline .ea.cr{color:#7ec87e}
 .eline .ed{grid-column:1;font:400 10px/1.3 var(--mono);letter-spacing:.06em;
   color:var(--etch);text-transform:uppercase}
-.eline.refused{border-color:var(--hot);background:rgba(255,59,24,.12)}
+.eline.refused{border-color:var(--hot);background:rgba(var(--hot-rgb),.12)}
 .eline.done{opacity:.62}
 .eline.done .em{color:var(--mid)}
 .ep{grid-column:1/-1;font:600 9.5px/1.3 var(--mono);letter-spacing:.05em;color:rgba(var(--key),1)}
@@ -569,12 +593,12 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 
 .lanes{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;min-height:290px}
 .lanes::-webkit-scrollbar{height:5px}
-.lanes::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:3px}
+.lanes::-webkit-scrollbar-thumb{background:rgba(var(--wash),.16);border-radius:3px}
 .lane{flex:0 0 254px;display:flex;flex-direction:column;border:1px solid var(--line);
-  border-radius:7px;background:rgba(255,255,255,.022);transition:all .18s}
+  border-radius:7px;background:rgba(var(--wash),.022);transition:all .18s}
 .lane.over{border-color:rgba(var(--key),1);background:rgba(var(--key),.11);
   box-shadow:0 0 0 1px rgba(var(--key),.5) inset}
-.lane.deny{border-color:var(--hot);background:rgba(255,59,24,.09)}
+.lane.deny{border-color:var(--hot);background:rgba(var(--hot-rgb),.09)}
 .lane .lh{padding:10px 11px 8px;border-bottom:1px solid var(--line)}
 .lane .lb{font:600 13px/1.25 var(--sans);color:var(--ink)}
 .lane .lr{float:right;font:700 13px var(--mono);color:var(--ink)}
@@ -587,7 +611,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .lane .drop-in{display:flex;justify-content:space-between;gap:8px;padding:5px 6px;
   margin-bottom:4px;border-radius:3px;background:rgba(var(--key),.1);
   border:1px solid rgba(var(--key),.26);cursor:pointer}
-.lane .drop-in:hover{background:rgba(255,59,24,.14);border-color:rgba(255,59,24,.5)}
+.lane .drop-in:hover{background:rgba(var(--hot-rgb),.14);border-color:rgba(var(--hot-rgb),.5)}
 .lane .drop-in span{font:400 11px/1.3 var(--sans);color:var(--mid);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lane .drop-in b{font:700 11px var(--mono);color:var(--ink);flex:0 0 auto}
@@ -604,7 +628,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .lane .lnut{padding:8px 11px 9px;border-bottom:1px solid var(--line);
   background:rgba(var(--key),.07);display:flex;justify-content:space-between;
   align-items:baseline;gap:8px}
-.lane .lnut.dn{background:rgba(255,59,24,.09)}
+.lane .lnut.dn{background:rgba(var(--hot-rgb),.09)}
 .lane .lnut span{font:400 9px/1.3 var(--mono);letter-spacing:.07em;
   color:var(--etch);text-transform:uppercase}
 .lane .lnut b{font:700 17px var(--mono);color:rgba(var(--key),1);letter-spacing:-.01em}
@@ -615,7 +639,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 /* MONTHLY stands apart from the loads — it is the other half of the month,
    not another load. Same box, different metal. */
 .lane.monthly{flex:0 0 262px;border-color:rgba(var(--key),.4);
-  background:linear-gradient(180deg,rgba(var(--key),.07),rgba(255,255,255,.02))}
+  background:linear-gradient(180deg,rgba(var(--key),.07),rgba(var(--wash),.02))}
 .lane.monthly .lb{color:rgba(var(--key),1);letter-spacing:.16em;font-weight:700;font-size:12px}
 .lane.monthly.over{border-color:rgba(var(--key),1);background:rgba(var(--key),.15)}
 .ask{display:flex;flex-direction:column;gap:5px}
@@ -636,18 +660,18 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .drop:hover,.drop.over{border-color:rgba(var(--key),.7);background:rgba(var(--key),.07)}
 .drop.busy{opacity:.6;border-style:solid}
 .drop.ok{border-color:rgba(120,200,120,.7);background:rgba(120,200,120,.08)}
-.drop.bad{border-color:var(--hot);background:rgba(255,59,24,.08)}
+.drop.bad{border-color:var(--hot);background:rgba(var(--hot-rgb),.08)}
 .drop .dl{font:700 8px/1 var(--mono);letter-spacing:.16em;color:var(--mid);text-transform:uppercase}
 .drop .ds{margin-top:5px;font:400 11px/1.4 var(--sans);color:var(--dim)}
 
 .card{border:1px solid var(--line);border-radius:4px;padding:8px 10px;margin-bottom:5px;
-  background:rgba(255,255,255,.03);cursor:grab;transition:all .18s;position:relative}
+  background:rgba(var(--wash),.03);cursor:grab;transition:all .18s;position:relative}
 .card:hover{border-color:rgba(var(--key),.5);background:rgba(var(--key),.06)}
 .card.dragging{opacity:.35;cursor:grabbing}
-.card.locked{cursor:not-allowed;opacity:.42;background:rgba(255,255,255,.015)}
-.card.locked:hover{border-color:var(--line);background:rgba(255,255,255,.015)}
+.card.locked{cursor:not-allowed;opacity:.42;background:rgba(var(--wash),.015)}
+.card.locked:hover{border-color:var(--line);background:rgba(var(--wash),.015)}
 .card.writing{border-color:rgba(var(--key),1);background:rgba(var(--key),.14)}
-.card.refused{border-color:var(--hot);background:rgba(255,59,24,.1);animation:refuse .4s}
+.card.refused{border-color:var(--hot);background:rgba(var(--hot-rgb),.1);animation:refuse .4s}
 @keyframes refuse{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .card .ct{display:flex;justify-content:space-between;gap:9px;align-items:baseline}
 .card .cm{font:600 12px/1.3 var(--sans);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -655,7 +679,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .card .cs{margin-top:3px;font:400 10px/1.4 var(--mono);letter-spacing:.06em;color:var(--etch);
   text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card .why{display:none;position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:2px;
-  padding:6px 9px;border-radius:3px;background:#12161c;border:1px solid var(--line);
+  padding:6px 9px;border-radius:3px;background:var(--panel);border:1px solid var(--line);
   font:400 10.5px/1.4 var(--sans);color:var(--dim);box-shadow:0 10px 24px rgba(0,0,0,.7)}
 .card.locked:hover .why{display:block}
 
@@ -664,12 +688,12 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .ltab th{font:700 7.5px var(--mono);letter-spacing:.15em;color:var(--etch);text-transform:uppercase;
   text-align:right;padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
 .ltab th:first-child,.ltab td:first-child{text-align:left}
-.ltab td{padding:6px 7px;border-bottom:1px dotted rgba(255,255,255,.07);text-align:right;
+.ltab td{padding:6px 7px;border-bottom:1px dotted rgba(var(--wash),.07);text-align:right;
   color:var(--mid);white-space:nowrap;font-variant-numeric:tabular-nums}
 .ltab td.m{font-family:var(--mono);color:var(--ink)}
 .ltab td.net{font-family:var(--mono);font-weight:700;color:rgba(var(--key),1)}
 .ltab td.unk{color:var(--unknown)}
-.ltab tr:hover td{background:rgba(255,255,255,.03)}
+.ltab tr:hover td{background:rgba(var(--wash),.03)}
 
 /* THE HOLD — his month as stones lying in the bottom of the phone, each body
    sized to its amount. He settles it the way you unload a trailer: one piece
@@ -679,7 +703,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
   background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.18))}
 .holdw canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer}
 .waterline{position:absolute;left:0;right:0;pointer-events:none;
-  border-top:1px solid rgba(255,255,255,.22)}
+  border-top:1px solid rgba(var(--wash),.22)}
 .waterline .wn{position:absolute;right:9px;bottom:5px;text-align:right}
 .waterline .wn b{font:700 clamp(20px,2.2vw,30px)/1 var(--mono);color:var(--ink)}
 .waterline .wn span{display:block;margin-top:2px;font:700 7.5px var(--mono);letter-spacing:.17em;
@@ -688,7 +712,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
   letter-spacing:.1em;color:var(--etch);text-transform:uppercase}
 .stone{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none}
 .hcard{position:absolute;z-index:6;left:50%;transform:translateX(-50%);bottom:12px;
-  width:min(420px,92%);background:#12161c;border:1px solid var(--line);border-radius:6px;
+  width:min(420px,92%);background:var(--panel);border:1px solid var(--line);border-radius:6px;
   padding:12px 14px;box-shadow:0 20px 50px rgba(0,0,0,.8)}
 .hcard .hn{font:600 14px/1.3 var(--sans);color:var(--ink)}
 .hcard .ha{margin-top:4px;font:700 24px/1 var(--mono);color:rgba(var(--key),1)}
@@ -705,7 +729,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .sthead b{font:700 15px/1 var(--mono);color:var(--ink)}
 .sthead span{display:block;margin-top:2px;font:700 7px/1.25 var(--mono);letter-spacing:.14em;
   color:var(--dim);text-transform:uppercase}
-.stonetip{position:fixed;z-index:50;background:#101317;border:1px solid var(--line);
+.stonetip{position:fixed;z-index:50;background:var(--panel2);border:1px solid var(--line);
   border-radius:5px;padding:6px 8px;font:400 10.5px/1.45 var(--mono);color:var(--ink);
   pointer-events:none;box-shadow:0 2px 10px rgba(0,0,0,.55)}
 .catchip{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:3px;
@@ -738,7 +762,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
   border-right:1px solid rgba(0,0,0,.5)}
 .nutseg:hover{background:rgba(var(--key),.85)}
 .nutline{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--hot);
-  box-shadow:0 0 6px rgba(255,59,24,.6)}
+  box-shadow:0 0 6px rgba(var(--hot-rgb),.6)}
 /* the nut, standing on the left — obligations, not transactions */
 .nut{margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--line)}
 .nut .bill{display:grid;grid-template-columns:1fr auto;gap:1px 10px;align-items:baseline;
@@ -775,23 +799,23 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .hgrp button.on{background:rgba(var(--key),.16);color:rgba(var(--key),1)}
 .hgrp button:hover{color:var(--ink)}
 
-.recbar{margin-top:7px;height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden}
+.recbar{margin-top:7px;height:6px;border-radius:3px;background:rgba(var(--wash),.09);overflow:hidden}
 .recbar i{display:block;height:100%;background:rgba(var(--key),1);transition:width .8s cubic-bezier(.16,1,.3,1)}
 .recline{margin-top:7px;display:flex;gap:18px;flex-wrap:wrap;font:400 12px/1.5 var(--sans);color:var(--dim)}
 .recline b{font:700 13px var(--mono);color:var(--ink)}
 .recline b.hot{color:var(--hot)}
 .held{margin-top:9px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .hchip{font:600 10px/1 var(--mono);padding:5px 8px;border-radius:10px;cursor:help;
-  border:1px solid rgba(255,59,24,.35);background:rgba(255,59,24,.08);color:var(--mid)}
+  border:1px solid rgba(var(--hot-rgb),.35);background:rgba(var(--hot-rgb),.08);color:var(--mid)}
 .hchip b{color:var(--ink);font-weight:700}
-.basis{margin-top:11px;padding-top:9px;border-top:1px dotted rgba(255,255,255,.1)}
+.basis{margin-top:11px;padding-top:9px;border-top:1px dotted rgba(var(--wash),.1)}
 .brow{display:grid;grid-template-columns:1fr auto minmax(0,190px);gap:12px;align-items:baseline;
   padding:3px 0;font:400 12px/1.5 var(--sans);color:var(--dim)}
 .brow b{font:700 14px var(--mono);color:var(--ink);text-align:right}
 .brow b.key{color:rgba(var(--key),1)}
 .brow b.up{color:#00E676}.brow b.dn{color:var(--hot)}
 .brow i{font:400 10.5px/1.4 var(--mono);color:var(--etch);font-style:normal}
-.brow.tot{margin-top:5px;padding-top:6px;border-top:3px double rgba(255,255,255,.14);color:var(--ink)}
+.brow.tot{margin-top:5px;padding-top:6px;border-top:3px double rgba(var(--wash),.14);color:var(--ink)}
 
 .acts{grid-column:1/-1;grid-row:4;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 
@@ -806,7 +830,7 @@ body.hot .seg button.on{background:rgba(255,59,24,.16);color:var(--hot);box-shad
 .qsc .mchip,.qsc .cchip{background:none;border:1px solid var(--line);border-radius:3px;color:var(--dim);
   font:700 8px/1 var(--mono);letter-spacing:.14em;padding:6px 10px;cursor:pointer}
 .qsc .mchip.on,.qsc .cchip.on{color:#fff;border-color:rgba(var(--key),.9);background:rgba(var(--key),.14)}
-body.hot .qsc .mchip.on,body.hot .qsc .cchip.on{border-color:rgba(255,59,24,.7);background:rgba(255,59,24,.12)}
+body.hot .qsc .mchip.on,body.hot .qsc .cchip.on{border-color:rgba(var(--hot-rgb),.7);background:rgba(var(--hot-rgb),.12)}
 .qsc .cchips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .qsc .cchip.add{border-style:dashed;letter-spacing:0}
 .qsc .cchips input{background:rgba(0,0,0,.5);border:1px solid rgba(var(--key),.7);border-radius:3px;
@@ -823,13 +847,13 @@ body.hot .qsc .mchip.on,body.hot .qsc .cchip.on{border-color:rgba(255,59,24,.7);
 .qsc .qchip input{width:76px;background:rgba(0,0,0,.5);border:1px solid rgba(var(--key),.7);
   border-radius:3px;color:#fff;font:700 11px var(--mono);padding:2px 4px;outline:none}
 .qsc .beamwrap{padding:16px 6px 44px}
-.qsc .rail{position:relative;height:5px;border-radius:3px;background:rgba(255,255,255,.07)}
+.qsc .rail{position:relative;height:5px;border-radius:3px;background:rgba(var(--wash),.07)}
 .qsc .seg{position:absolute;top:0;height:5px;border-radius:3px;transition:left .8s cubic-bezier(.2,1.3,.35,1),width .8s cubic-bezier(.2,1.3,.35,1)}
-.qsc .seg.cost{background:rgba(255,255,255,.2)}
+.qsc .seg.cost{background:rgba(var(--wash),.2)}
 .qsc .seg.day{background:linear-gradient(90deg,rgba(var(--key),.55),rgba(var(--key),1));
   box-shadow:0 0 14px -2px rgba(var(--key),.9)}
-body.hot .qsc .seg.day{background:linear-gradient(90deg,rgba(255,164,25,.55),rgba(255,164,25,1));box-shadow:0 0 14px -2px rgba(255,164,25,.9)}
-.qsc .seg.day.neg{background:linear-gradient(90deg,rgba(255,59,24,.55),rgba(255,59,24,1));box-shadow:0 0 14px -2px rgba(255,59,24,.95)}
+body.hot .qsc .seg.day{background:linear-gradient(90deg,rgba(var(--key),.55),rgba(var(--key),1));box-shadow:0 0 14px -2px rgba(var(--key),.9)}
+.qsc .seg.day.neg{background:linear-gradient(90deg,rgba(var(--hot-rgb),.55),rgba(var(--hot-rgb),1));box-shadow:0 0 14px -2px rgba(var(--hot-rgb),.95)}
 .qsc .mark{position:absolute;top:-5px;width:2px;height:15px;background:var(--ink);
   transition:left .8s cubic-bezier(.2,1.3,.35,1)}
 .qsc .mark i{position:absolute;top:17px;left:50%;transform:translateX(-50%);white-space:nowrap;max-width:none;
@@ -844,7 +868,7 @@ body.hot .qsc .seg.day{background:linear-gradient(90deg,rgba(255,164,25,.55),rgb
   .qsc .verdict{flex-basis:100%;text-align:left;margin-left:0}
 }
 .qsc .mark.ask{background:rgba(var(--key),1);box-shadow:0 0 10px rgba(var(--key),.9)}
-body.hot .qsc .mark.ask{background:var(--hot);box-shadow:0 0 10px rgba(255,59,24,.9)}
+body.hot .qsc .mark.ask{background:var(--hot);box-shadow:0 0 10px rgba(var(--hot-rgb),.9)}
 .qsc .askrow{display:flex;align-items:center;gap:10px;margin-top:2px;flex-wrap:wrap}
 .qsc .askrow .lbl{font:700 8px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
 .qsc .step{background:none;border:1px solid var(--line);border-radius:3px;color:var(--mid);
@@ -860,7 +884,7 @@ body.hot .qsc .verdict b{color:var(--amber)}
   font:600 8.5px/1 var(--mono);letter-spacing:.13em;color:var(--dim);text-transform:uppercase}
 .qsc .fold:hover{color:var(--mid)}
 .qsc .ticket .tr{display:flex;justify-content:space-between;gap:12px;padding:3px 0;
-  border-bottom:1px dotted rgba(255,255,255,.07);font:400 10.5px/1.5 var(--sans);color:var(--mid)}
+  border-bottom:1px dotted rgba(var(--wash),.07);font:400 10.5px/1.5 var(--sans);color:var(--mid)}
 .qsc .ticket .tr b{font:600 10.5px var(--mono);color:var(--ink)}
 .qsc .ticket .how{font:400 8.5px/1.4 var(--sans);color:var(--dim)}
 .qsc .ticket .basis{margin-top:6px;font:600 7.5px/1.5 var(--mono);letter-spacing:.09em;
@@ -870,7 +894,7 @@ body.hot .qsc .verdict b{color:var(--amber)}
 @media (prefers-reduced-motion: reduce){ .qsc .seg,.qsc .mark{transition:none} }
 .act{background:var(--glass2);border:1px solid var(--line);border-radius:7px;padding:11px 13px;
   display:flex;flex-direction:column;gap:6px;backdrop-filter:blur(10px);transition:border-color .6s}
-body.hot .act{border-color:rgba(255,59,24,.26)}
+body.hot .act{border-color:rgba(var(--hot-rgb),.26)}
 .act .h{display:flex;align-items:baseline;gap:9px}
 .act .h .n{font:700 8px/1 var(--mono);letter-spacing:.15em;color:rgba(var(--key),1)}
 body.hot .act .h .n{color:var(--hot)}
@@ -897,7 +921,7 @@ body.hot .act .h .n{color:var(--hot)}
 .kc .m{display:flex;align-items:center;gap:7px;margin-top:6px;font:700 8px/1 var(--mono);
   letter-spacing:.1em;color:var(--etch)}
 /* .pb, not .bar — the top bar owns .bar and its padding would swallow this */
-.kc .m .pb{flex:1;height:2px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;min-width:14px}
+.kc .m .pb{flex:1;height:2px;background:rgba(var(--wash),.1);border-radius:2px;overflow:hidden;min-width:14px}
 .kc .m .pb i{display:block;height:100%;background:var(--mid)}
 .kc .m .hi{color:var(--hot)}
 .kc .m .bry{color:var(--amber)}
@@ -909,7 +933,7 @@ body.hot .act .h .n{color:var(--hot)}
 .kdetail ul{margin:6px 0;padding-left:18px}
 .kdetail .kimp{font-style:italic;color:var(--dim)}
 .closer{position:relative;margin-top:8px;height:27px;border-radius:4px;overflow:hidden;cursor:pointer;
-  background:rgba(255,255,255,.05);border:1px solid var(--line);width:100%;display:grid;place-items:center;
+  background:rgba(var(--wash),.05);border:1px solid var(--line);width:100%;display:grid;place-items:center;
   touch-action:none}
 .closer .r2{position:absolute;inset:0;background:rgba(var(--key),.5);transform:scaleX(0);transform-origin:left center}
 .closer .cc{position:relative;z-index:2;font:700 8.5px/1 var(--mono);letter-spacing:.15em;color:var(--mid)}
@@ -932,7 +956,7 @@ body.hot .act .h .n{color:var(--hot)}
   align-items:center;justify-content:center;cursor:pointer}
 .capview img{max-width:92vw;max-height:92vh;border:1px solid var(--line);border-radius:4px}
 .tx.held{opacity:.55;font-style:italic}
-.sqline{flex:0 0 auto;position:relative;height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin:12px 0 4px}
+.sqline{flex:0 0 auto;position:relative;height:3px;border-radius:2px;background:rgba(var(--wash),.08);margin:12px 0 4px}
 .sqline::after{content:"SQUELCH · " attr(data-held) " HELD BELOW";position:absolute;right:0;top:-13px;
   font:700 7.5px/1 var(--mono);letter-spacing:.16em;color:var(--etch)}
 .lane{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:8px;
@@ -994,7 +1018,7 @@ body.hot .act .h .n{color:var(--hot)}
 .lr-meter i{display:block;width:64px;height:8px;position:relative;overflow:hidden;background:repeating-linear-gradient(90deg,rgba(94,104,112,.35) 0 5.1px,transparent 5.1px 7.1px)}
 .lr-meter i::after{content:"";position:absolute;inset:0;width:calc(var(--lit)/9*100%);background:repeating-linear-gradient(90deg,rgba(var(--key),.95) 0 5.1px,transparent 5.1px 7.1px)}
 .lr-meter b{font:700 8px/1 var(--mono);letter-spacing:.11em;color:var(--dim)}
-.lr-meter.s9 i{box-shadow:0 0 10px -2px rgba(255,164,25,.7)}
+.lr-meter.s9 i{box-shadow:0 0 10px -2px rgba(var(--key),.7)}
 .lr-flag{font:700 8px/1 var(--mono);letter-spacing:.11em;text-transform:uppercase;color:rgba(var(--key),.8)}
 .lr-t{font:600 13.5px/1.35 var(--sans);color:var(--ink);margin-top:7px;cursor:pointer}
 .lr-j{font:700 8px/1.5 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--etch);margin-top:4px}
@@ -1010,13 +1034,13 @@ body.hot .act .h .n{color:var(--hot)}
 .lr-door.clear{color:var(--dim)}
 .lr-fade{font:700 8px/1.6 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--etch);padding:14px 0;border-bottom:1px dotted var(--line)}
 .lr-deck{flex:0 0 auto;border:1px solid var(--line);border-top:1px solid rgba(var(--key),.35);border-radius:7px;background:rgba(20,25,31,.72);backdrop-filter:blur(8px);padding:10px 14px;display:flex;flex-direction:column;gap:9px}
-.lr-deck.hot{border-top-color:rgba(255,164,25,.75)}
+.lr-deck.hot{border-top-color:rgba(var(--key),.75)}
 .lr-now{cursor:pointer}
 .lr-nowt{font:600 13.5px/1.3 var(--sans);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #lrCarrier{display:block;width:100%;height:28px;margin:7px 0 2px}
 .lr-lit{font:400 12.5px/1.5 var(--sans);color:#FFD27A;min-height:19px}
 .lr-ctl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.lr-air{min-height:40px;padding:0 18px;border:1px solid rgba(255,164,25,.5);border-radius:3px;background:none;color:var(--amber);font:700 9px/1 var(--mono);letter-spacing:.14em;cursor:pointer}
+.lr-air{min-height:40px;padding:0 18px;border:1px solid rgba(var(--key),.5);border-radius:3px;background:none;color:var(--amber);font:700 9px/1 var(--mono);letter-spacing:.14em;cursor:pointer}
 .lr-q{font:700 8px/1 var(--mono);letter-spacing:.14em;color:var(--etch);text-transform:uppercase}
 .lr-rates{display:flex;gap:6px;margin-left:auto}
 .lr-rate,.lr-tune{min-height:40px;min-width:40px;padding:0 10px;border:1px solid var(--line);border-radius:3px;background:none;color:var(--dim);font:700 9px/1 var(--mono);letter-spacing:.11em;cursor:pointer}
@@ -1028,7 +1052,7 @@ body.hot .act .h .n{color:var(--hot)}
 #lrDock[hidden]{display:none}
 .lr-dockin{background:var(--glass);border:1px solid var(--line);border-radius:7px;max-width:560px;width:100%;max-height:72vh;overflow-y:auto;padding:16px 18px;user-select:text;-webkit-user-select:text}
 .lr-prose{font:400 14.5px/1.9 var(--sans);color:var(--mid);margin:6px 0 14px}
-.lr-sent.on{background:rgba(255,164,25,.16);color:#FFD27A}
+.lr-sent.on{background:rgba(var(--key),.16);color:#FFD27A}
 .lr-addrow{display:flex;gap:8px;flex-wrap:wrap}
 .lr-addrow input,.lr-addrow select{min-height:40px;background:var(--glass2);border:1px solid var(--line);border-radius:3px;color:var(--ink);font:400 13px var(--sans);padding:0 10px}
 .lr-addrow input{flex:1;min-width:140px}
@@ -1075,14 +1099,14 @@ body.hot .act .h .n{color:var(--hot)}
 .pl-swatch{width:34px;height:34px;border-radius:3px;border:1px solid var(--line);cursor:pointer}
 .pl-swatch.clear{background:none;color:var(--dim);font:700 12px var(--mono)}
 .pl-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font:700 8px/1.6 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--etch)}
-.pl-legend .dstk{color:rgba(255,59,24,.7)}
+.pl-legend .dstk{color:rgba(var(--hot-rgb),.7)}
 /* the lists — the bik Tasks grammar: inbox pair, then category columns
    carrying the four buckets */
 .pl-duo2,.pl-cols{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
 .pl-col{flex:1 1 300px;min-width:min(300px,100%)}
 .pl-colhead{display:flex;align-items:center;justify-content:space-between;font:700 9px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--ink);padding-bottom:8px;border-bottom:1px solid var(--line)}
 .pl-colhead b{font:700 10px var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:4px 8px}
-.pl-col.cquick{border-top:2px solid rgba(255,164,25,.55)}
+.pl-col.cquick{border-top:2px solid rgba(var(--key),.55)}
 .pl-col.cshop{border-top:2px solid rgba(34,197,94,.5)}
 .pl-col.cbiz{border-top:2px solid rgba(96,165,250,.5)}
 .pl-col.cper{border-top:2px solid rgba(167,139,250,.5)}
@@ -1112,8 +1136,8 @@ body.hot .act .h .n{color:var(--hot)}
 /* ── THE BULLETIN — the hotshot room's regulatory ticker ──────────── */
 .hb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dotted var(--line);text-decoration:none;min-height:40px}
 .hb-tag{flex:0 0 auto;font:700 8px/1 var(--mono);letter-spacing:.11em;border:1px solid var(--line);border-radius:10px;padding:5px 8px;color:var(--dim)}
-.hb-tag.ru{color:var(--hot);border-color:rgba(255,59,24,.5)}
-.hb-tag.pr{color:var(--amber);border-color:rgba(255,164,25,.45)}
+.hb-tag.ru{color:var(--hot);border-color:rgba(var(--hot-rgb),.5)}
+.hb-tag.pr{color:var(--amber);border-color:rgba(var(--key),.45)}
 .hb-tag.no{color:var(--etch)}
 .hb-tag.nw{color:#60a5fa;border-color:rgba(96,165,250,.35)}
 .hb-t{flex:1;font:600 13px/1.4 var(--sans);color:var(--ink);min-width:0}
@@ -1246,7 +1270,7 @@ body.hot .act .h .n{color:var(--hot)}
 .srow span i{display:block;font:400 9.5px/1.3 var(--mono);color:var(--etch);font-style:normal}
 .srow .samt{font:700 11.5px var(--mono);color:var(--amber);white-space:nowrap}
 .fold{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
-  padding:10px 2px 9px;border-top:3px double rgba(255,255,255,.14);margin-top:4px;
+  padding:10px 2px 9px;border-top:3px double rgba(var(--wash),.14);margin-top:4px;
   cursor:pointer;transition:background .25s}
 .fold:hover{background:rgba(var(--key),.05)}
 .fold span{font:700 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;
@@ -1277,7 +1301,7 @@ body.hot .act .h .n{color:var(--hot)}
 .srt.unk{color:var(--unknown);font-weight:400}
 .sdog{font:700 8px/1 var(--mono);letter-spacing:.14em;padding:4px 8px;border-radius:3px}
 .sdog.ok{color:rgba(var(--key),1);background:rgba(var(--key),.14)}
-.sdog.no{color:var(--hot);background:rgba(255,59,24,.12)}
+.sdog.no{color:var(--hot);background:rgba(var(--hot-rgb),.12)}
 .sdog.unk{color:var(--unknown);background:rgba(110,110,110,.14)}
 .sr2{color:var(--mid);font:400 10.5px/1.5 var(--sans)}
 .snote{color:var(--dim);font-style:italic}
@@ -1314,15 +1338,15 @@ body.hot .act .h .n{color:var(--hot)}
 .lpin{width:26px;height:26px;border-radius:50% 50% 50% 4px;transform:rotate(0deg);
   display:flex;align-items:center;justify-content:center;
   background:#2E9E5B;color:#04140b;font:700 11px/1 var(--mono);
-  border:2px solid rgba(255,255,255,.85);box-shadow:0 1px 6px rgba(0,0,0,.5)}
+  border:2px solid rgba(var(--wash),.85);box-shadow:0 1px 6px rgba(0,0,0,.5)}
 .lpin.pfuel2{background:var(--amber);color:#171000}
-.leaflet-tooltip.ltip,.leaflet-popup-content-wrapper{background:#101317;color:var(--ink);
+.leaflet-tooltip.ltip,.leaflet-popup-content-wrapper{background:var(--panel2);color:var(--ink);
   border:1px solid var(--line);border-radius:6px;font:400 11px/1.45 var(--mono)}
 .leaflet-tooltip.ltip{padding:7px 9px;box-shadow:0 2px 10px rgba(0,0,0,.55)}
 .leaflet-tooltip.ltip b{font-weight:700}
 .leaflet-tooltip-top.ltip::before{border-top-color:var(--line)}
 .leaflet-popup-content{margin:9px 11px;font:400 11px/1.5 var(--mono)}
-.leaflet-popup-tip{background:#101317;border:1px solid var(--line)}
+.leaflet-popup-tip{background:var(--panel2);border:1px solid var(--line)}
 .leaflet-popup-content .slink{margin-right:8px}
 .leaflet-container a.leaflet-popup-close-button{color:var(--dim)}
 /* the book's two chapters: proven roof pins go solid green, proven pump pins
@@ -1360,6 +1384,43 @@ body.hot .act .h .n{color:var(--hot)}
 .panelbox .msg{font:400 11.5px/1.5 var(--mono);color:var(--dim)}
 .panelbox .msg.bad{color:var(--hot)}
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+
+/* ══ PAPER MODE — the structural grounds ══════════════════════════════
+   Everything the variables can't reach: the sky's own gradients, the
+   ledger grid, the core, the drawers. Kept LAST so the cascade is the
+   whole argument. Night mode above is untouched. */
+:root.paper .sky{background:
+  radial-gradient(1100px 700px at 50% 40%, rgba(255,252,240,.8), transparent 70%),
+  radial-gradient(760px 520px at 14% 76%, rgba(196,160,96,.2), transparent 70%), var(--void)}
+:root.paper body.hot .sky{background:
+  radial-gradient(1200px 760px at 50% 30%, rgba(214,88,60,.3), transparent 70%),
+  radial-gradient(760px 520px at 14% 78%, rgba(179,39,26,.18), transparent 70%), #E3D0B0}
+:root.paper .grid{opacity:.5;background-image:
+  linear-gradient(rgba(88,66,28,.07) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(88,66,28,.07) 1px,transparent 1px)}
+/* the core: at night a moon; on paper the almanac's pressed seal */
+:root.paper .core{background:radial-gradient(circle at 38% 32%, rgba(255,250,235,.92),
+    rgba(228,209,168,.75) 42%, rgba(178,148,96,.55) 72%, rgba(134,106,62,.6));
+  box-shadow:0 0 90px -10px rgba(160,126,66,.55), inset 0 0 60px rgba(120,90,40,.2)}
+:root.paper .core .t{color:rgba(58,42,18,.95)}
+:root.paper .core .s{color:rgba(94,72,40,.8)}
+/* orb lettering: the halo flips to paper, the hue stays the identity —
+   inked deep enough to read on cream */
+:root.paper .orb .name{text-shadow:0 1px 8px rgba(255,250,235,.95),0 0 2px rgba(255,250,235,.9);
+  filter:brightness(.62) saturate(1.5)}
+:root.paper .orb.active .name{color:var(--ink);filter:none}
+:root.paper .orb .sig{text-shadow:0 1px 6px rgba(255,250,235,.9)}
+:root.paper .sysring{border-color:rgba(88,66,28,.28)}
+/* the drawers: docket + morning page print on vellum */
+:root.paper .docket{background:linear-gradient(200deg,rgba(248,241,226,.99),rgba(238,228,205,.99));
+  box-shadow:-18px 0 48px rgba(80,60,30,.3)}
+:root.paper .page{background:linear-gradient(196deg,rgba(250,244,230,.99),rgba(240,231,210,.99))}
+:root.paper .dockback,:root.paper .pageback{background:rgba(62,48,24,.42)}
+:root.paper .toast{background:rgba(247,240,224,.97)}
+:root.paper .panelbox{background:rgba(90,72,40,.55)}
+:root.paper .panelbox input{background:rgba(255,252,244,.75)}
+/* dark type on the amber/green map pins needs cream once amber runs deep */
+:root.paper .lpin.pfuel2,:root.paper .spin.pfuel{color:#FFF6E2}
 </style>
 </head>
 <body>
@@ -1373,6 +1434,8 @@ body.hot .act .h .n{color:var(--hot)}
     <span class="d" id="dateline"></span>
     <span class="hand" id="hand" role="button" tabindex="0"></span>
     <span class="right">
+      <button class="btn" id="lamp"
+        title="the lamp — the same almanac by night or on paper"></button>
       <button class="readstamp" id="shellv"
         title="the shell this device is serving — tap to fetch the newest and reload">&#8203;</button>
       <button class="readstamp" id="readstamp" title="click to pull the Load Log and re-read the spine"></button>
@@ -1436,6 +1499,15 @@ body.hot .act .h .n{color:var(--hot)}
 const $ = id => document.getElementById(id);
 const stage = $("stage");
 
+/* ── PAPER MODE inks — canvas fills can't take CSS var(), so every paint
+   that owns a hardcoded color asks these at draw time. One source of
+   truth: the .paper class the <head> boot script set. ─────────────── */
+const PAPER = () => document.documentElement.classList.contains("paper");
+const wash  = a => PAPER() ? `rgba(34,26,12,${a})`  : `rgba(255,255,255,${a})`;
+const inkc  = a => PAPER() ? `rgba(30,22,10,${a})`  : `rgba(237,240,238,${a})`;
+const hotc  = a => PAPER() ? `rgba(179,39,26,${a})` : `rgba(255,59,24,${a})`;
+const keyc  = a => PAPER() ? `rgba(143,90,0,${a})`  : `rgba(255,164,25,${a})`;
+
 /* ── config: same keys, same origin, same credentials as the plate ── */
 let API = localStorage.getItem("almanac_api") || "";
 let TOK = localStorage.getItem("almanac_token") || "";
@@ -1486,16 +1558,35 @@ $("toPlate").addEventListener("click", () => {
   location.href = "detent.html";
 });
 
-/* dust */
-(function(){
+/* ── THE LAMP — night barn or printed page, his call, kept per device.
+   The head boot script already classed <html> before first paint; this
+   only has to flip it live and repaint what canvas already drew. ──── */
+function setTheme(paper, atBoot){
+  document.documentElement.classList.toggle("paper", !!paper);
+  try{ localStorage.setItem("almanac_theme", paper ? "paper" : "night"); }catch(e){}
+  const mt = $("metaTheme"); if(mt) mt.setAttribute("content", paper ? "#EAE0C9" : "#07080A");
+  const b = $("lamp"); if(b) b.textContent = paper ? "☾ NIGHT" : "☀ PAPER";
+  if(atBoot) return;               /* nothing painted yet — the label was the job */
+  dust();
+  paintField(); paintConsider();
+  if(ACTIVE !== null) renderRoom();
+}
+$("lamp").addEventListener("click", () => setTheme(!PAPER()));
+setTheme(PAPER(), true);
+
+/* dust: stars over the night barn; foxing specks on the printed page */
+function dust(){
   const cv = $("stars"); cv.width = innerWidth; cv.height = innerHeight;
-  const g = cv.getContext("2d"); let s = 7;
+  const g = cv.getContext("2d"); g.clearRect(0,0,cv.width,cv.height); let s = 7;
   const rnd = () => { s = (s*1664525 + 1013904223) >>> 0; return s/4294967296; };
+  const paper = PAPER();
   for(let i=0;i<300;i++){
-    g.fillStyle = `rgba(200,218,240,${rnd()*0.45+0.05})`;
+    g.fillStyle = paper ? `rgba(120,94,48,${rnd()*0.22+0.03})`
+                        : `rgba(200,218,240,${rnd()*0.45+0.05})`;
     g.beginPath(); g.arc(rnd()*cv.width, rnd()*cv.height, rnd()*1.2+0.25, 0, 7); g.fill();
   }
-})();
+}
+dust();
 $("dateline").textContent = new Date().toLocaleDateString("en-US",
   { weekday:"long", month:"long", day:"numeric", year:"numeric" }).toUpperCase();
 
@@ -2794,15 +2885,16 @@ function paintGauge(){
   const cx = W/2, cy = H*0.88, R = Math.min(W*0.42, H*0.78);
   const A0 = Math.PI*1.04, A1 = Math.PI*1.96;
   const ang = v => A0 + (A1-A0)*Math.min(1, Math.max(0,v)/MAX);
-  const key = HOT ? "255,59,24" : (getComputedStyle(document.documentElement)
-                     .getPropertyValue("--key").trim() || "255,164,25");
+  const cs = getComputedStyle(document.documentElement);
+  const key = HOT ? (cs.getPropertyValue("--hot-rgb").trim() || "255,59,24")
+                  : (cs.getPropertyValue("--key").trim() || "255,164,25");
   const lw = Math.max(16, R*0.15);
   g.lineCap = "butt";
-  g.strokeStyle = "rgba(255,255,255,.05)"; g.lineWidth = lw+8;
+  g.strokeStyle = wash(.05); g.lineWidth = lw+8;
   g.beginPath(); g.arc(cx,cy,R,A0,A1); g.stroke();
   for(let i=0;i<=24;i++){
     const a = A0+(A1-A0)*(i/24), maj = i%4===0;
-    g.strokeStyle = maj?"rgba(255,255,255,.22)":"rgba(255,255,255,.1)"; g.lineWidth = maj?1.6:1;
+    g.strokeStyle = maj?wash(.22):wash(.1); g.lineWidth = maj?1.6:1;
     g.beginPath();
     g.moveTo(cx+Math.cos(a)*(R-lw/2-2), cy+Math.sin(a)*(R-lw/2-2));
     g.lineTo(cx+Math.cos(a)*(R+lw/2+(maj?6:3)), cy+Math.sin(a)*(R+lw/2+(maj?6:3))); g.stroke();
@@ -2812,13 +2904,13 @@ function paintGauge(){
   g.shadowColor = `rgba(${key},.5)`; g.shadowBlur = 20;
   g.beginPath(); g.arc(cx,cy,R,A0,aC); g.stroke(); g.shadowBlur = 0;
   if(aC < aN){                       /* the shortfall: unlit distance, red-edged */
-    g.strokeStyle = "rgba(255,59,24,.18)"; g.lineWidth = lw;
+    g.strokeStyle = hotc(.18); g.lineWidth = lw;
     g.beginPath(); g.arc(cx,cy,R,aC,aN); g.stroke();
-    g.strokeStyle = "rgba(255,59,24,.85)"; g.lineWidth = 2;
+    g.strokeStyle = hotc(.85); g.lineWidth = 2;
     g.beginPath(); g.arc(cx,cy,R+lw/2-1,aC,aN); g.stroke();
     g.beginPath(); g.arc(cx,cy,R-lw/2+1,aC,aN); g.stroke();
   }
-  g.strokeStyle = "#EDF0EE"; g.lineWidth = 3;
+  g.strokeStyle = inkc(1); g.lineWidth = 3;
   g.beginPath();
   g.moveTo(cx+Math.cos(aN)*(R-lw/2-4), cy+Math.sin(aN)*(R-lw/2-4));
   g.lineTo(cx+Math.cos(aN)*(R+lw/2+8), cy+Math.sin(aN)*(R+lw/2+8)); g.stroke();
@@ -2827,9 +2919,9 @@ function paintGauge(){
   const rawx = cx+Math.cos(aN)*(R+lw/2+26), ly = cy+Math.sin(aN)*(R+lw/2+26);
   const half = 42, lx = Math.max(half+2, Math.min(W-half-2, rawx));
   g.textAlign = "center";
-  g.fillStyle = "#EDF0EE"; g.font = "700 10px ui-monospace,Menlo,monospace";
+  g.fillStyle = inkc(1); g.font = "700 10px ui-monospace,Menlo,monospace";
   g.fillText("THE NUT", lx, ly-3);
-  g.fillStyle = "rgba(255,255,255,.62)"; g.font = "600 10px ui-monospace,Menlo,monospace";
+  g.fillStyle = wash(.62); g.font = "600 10px ui-monospace,Menlo,monospace";
   g.fillText(money(NUT), lx, ly+11);
   g.save(); g.translate(cx,cy); g.rotate(aC);
   const ng = g.createLinearGradient(0,-4,0,4);
@@ -2842,7 +2934,7 @@ function paintGauge(){
   g.fillStyle = hub; g.beginPath(); g.arc(cx,cy,15,0,7); g.fill();
   /* what the needle IS — set to the left, clear of the reading below the hub */
   g.textAlign = "left";
-  g.fillStyle = "rgba(255,255,255,.3)"; g.font = "700 8px ui-monospace,Menlo,monospace";
+  g.fillStyle = wash(.3); g.font = "700 8px ui-monospace,Menlo,monospace";
   g.fillText("NEEDLE = CONTRIBUTION", 10, cy - 6);
   g.fillText("EARNED MINUS ROAD", 10, cy + 6);
 }
@@ -3539,8 +3631,17 @@ function finStrip(){
    can be hot because a deadline is close while the month itself is CRUSHING;
    painting this needle red on a $2,880-over month would be the instrument
    lying to make the room consistent. */
-const C = { red:"#FF4444", yellow:"#FFD600", green:"#00E676",
-            chrome:"#C0C8D0", mid:"#86868b", track:"#1f1f1f" };
+/* getters, not constants: every C.x read happens at render time, so the
+   verdict palette follows the lamp — chalk on the night glass, deep ink
+   on paper (pale chrome and #FFD600 vanish on cream). */
+const C = {
+  get red(){    return PAPER() ? "#C62828" : "#FF4444"; },
+  get yellow(){ return PAPER() ? "#A67C00" : "#FFD600"; },
+  get green(){  return PAPER() ? "#1B7A3D" : "#00E676"; },
+  get chrome(){ return PAPER() ? "#4A4238" : "#C0C8D0"; },
+  get mid(){    return PAPER() ? "#6B6258" : "#86868b"; },
+  get track(){  return PAPER() ? "#D9CDAF" : "#1f1f1f"; },
+};
 let GAUGE_AT = null;
 const bandCol = b => b === "good" ? C.green : b === "warn" ? C.yellow
                    : b === "red" ? C.red : C.chrome;
@@ -3604,11 +3705,11 @@ function heroGauge(m){
     <circle cx="${cx}" cy="${cy}" r="5.5" fill="${col}"/>
     <text x="${cx}" y="150" fill="${C.mid}" font-family="var(--mono)" font-size="15"
       font-weight="700" letter-spacing="2.4" text-anchor="middle"
-      style="paint-order:stroke;stroke:#07080A;stroke-width:5px;stroke-linejoin:round"
+      style="paint-order:stroke;stroke:${PAPER()?"#EFE6CE":"#07080A"};stroke-width:5px;stroke-linejoin:round"
       >MTD REVENUE</text>
     <text x="${cx}" y="212" fill="${col}" font-family="var(--mono)" font-size="54"
       font-weight="600" text-anchor="middle"
-      style="paint-order:stroke;stroke:#07080A;stroke-width:8px;stroke-linejoin:round"
+      style="paint-order:stroke;stroke:${PAPER()?"#EFE6CE":"#07080A"};stroke-width:8px;stroke-linejoin:round"
       >${money(mtd)}</text>
   </svg>`;
 }
@@ -4072,7 +4173,7 @@ function finCharts(){
     return `<rect x="${x.toFixed(1)}" y="${(H-22-hr).toFixed(1)}" width="${w.toFixed(1)}"
         height="${Math.max(1,hr).toFixed(1)}" rx="1.5" fill="rgba(var(--key),${s.partial?".45":".85"})"/>
       <rect x="${(x+w+2).toFixed(1)}" y="${(H-22-hc).toFixed(1)}" width="${w.toFixed(1)}"
-        height="${Math.max(1,hc).toFixed(1)}" rx="1.5" fill="rgba(255,59,24,${s.partial?".3":".55"})"/>
+        height="${Math.max(1,hc).toFixed(1)}" rx="1.5" fill="${hotc(s.partial?.3:.55)}"/>
       <text x="${(x+w+1).toFixed(1)}" y="${H-8}" fill="var(--etch)" font-size="8"
         font-family="ui-monospace,Menlo,monospace" text-anchor="middle">${esc(s.label)}</text>`;
   }).join("");
@@ -4194,6 +4295,9 @@ function drawStone(g, p, o){
                                      p.cx, p.cy, p.R);
   if(o.hot){ grd.addColorStop(0,`rgba(255,120,90,${0.98*a})`); grd.addColorStop(.55,`rgba(196,39,26,${0.8*a})`);
              grd.addColorStop(1,`rgba(60,12,8,${0.95*a})`); }
+  else if(PAPER()){ /* warm river stone — light crown keeps the dark figure legible */
+             grd.addColorStop(0,`rgba(206,192,160,${0.95*a})`); grd.addColorStop(.55,`rgba(148,132,102,${0.8*a})`);
+             grd.addColorStop(1,`rgba(66,54,36,${0.96*a})`); }
   else     { grd.addColorStop(0,`rgba(214,222,232,${0.95*a})`); grd.addColorStop(.55,`rgba(140,152,166,${0.72*a})`);
              grd.addColorStop(1,`rgba(22,28,36,${0.96*a})`); }
   g.fillStyle = grd;
@@ -4210,8 +4314,9 @@ function paintHold(){
   cv.width = W*2; cv.height = H*2;
   const g = cv.getContext("2d"); g.scale(2,2);
   g.clearRect(0,0,W,H);
-  const key = HOT ? "255,59,24" : (getComputedStyle(document.documentElement)
-                     .getPropertyValue("--key").trim() || "255,164,25");
+  const hcs = getComputedStyle(document.documentElement);
+  const key = HOT ? (hcs.getPropertyValue("--hot-rgb").trim() || "255,59,24")
+                  : (hcs.getPropertyValue("--key").trim() || "255,164,25");
   const placed = packStones(st, W, H - 16, {rMin: 13, rMax: Math.min(52, H*0.2)});
   State.fin.placed = placed;
   const top = placed.length ? Math.min(...placed.map(p => p.cy - p.R)) : H - 20;
@@ -4278,6 +4383,9 @@ function drawRock(g, x, y, R, lumps, o){
   const grd = g.createRadialGradient(x - R*0.34, y - R*0.36, R*0.1, x, y, R*1.05);
   if(o.hot){ grd.addColorStop(0,`rgba(255,120,90,${0.98*a})`); grd.addColorStop(.55,`rgba(196,39,26,${0.8*a})`);
              grd.addColorStop(1,`rgba(60,12,8,${0.95*a})`); }
+  else if(PAPER()){ /* warm river stone — light crown keeps the dark figure legible */
+             grd.addColorStop(0,`rgba(206,192,160,${0.95*a})`); grd.addColorStop(.55,`rgba(148,132,102,${0.8*a})`);
+             grd.addColorStop(1,`rgba(66,54,36,${0.96*a})`); }
   else     { grd.addColorStop(0,`rgba(214,222,232,${0.95*a})`); grd.addColorStop(.55,`rgba(140,152,166,${0.72*a})`);
              grd.addColorStop(1,`rgba(22,28,36,${0.96*a})`); }
   g.fillStyle = grd; g.fill();
@@ -4366,7 +4474,7 @@ function simStep(){
 function simPaint(){
   const {g, W, H, lineY, rocks} = SIM;
   g.clearRect(0,0,W,H);
-  g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1;
+  g.strokeStyle = wash(.22); g.lineWidth = 1;
   g.beginPath(); g.moveTo(6, lineY + .5); g.lineTo(W - 6, lineY + .5); g.stroke();
   for(const r of rocks.values()){
     drawRock(g, r.x, r.y, r.R, r.lumps,
@@ -5178,7 +5286,7 @@ function lrPaintCarrier(){
   g.clearRect(0, 0, W, H);
   for(let i = 0; i < B; i++){
     const h = Math.max(1.5, LR.env[i] * (H - 4));
-    g.fillStyle = (i / B) <= frac ? "rgba(255,164,25,.9)" : "rgba(94,104,112,.5)";
+    g.fillStyle = (i / B) <= frac ? keyc(.9) : "rgba(94,104,112,.5)";
     g.fillRect(i * bw, (H - h) / 2, Math.max(1, bw - 1), h);
   }
 }
