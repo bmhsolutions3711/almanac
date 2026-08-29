@@ -3794,8 +3794,13 @@ function finFloor(){
      silently reads as lost. The books' record still carries every row. */
   const billBound = t => t.monthly_candidate || (t.monthly_pay || []).length;
   /* transfers are money MOVED, not work — no workbench at all; the books'
-     record is their one home (Bryan, 2026-08-04) */
-  const pile = (e.transactions || []).filter(t => !billBound(t) && !t.transfer);
+     record is their one home (Bryan, 2026-08-04). His 08-29 ruling extends
+     the same sentence to maintenance and books-only rows (Bank Fees /
+     Interest): "this column is only for placing Gas, Food, and Lodging
+     expenses for loads" — not even greyed. The books tab carries them. */
+  const pile = (e.transactions || []).filter(t => !billBound(t) && !t.transfer
+      && !t.maintenance
+      && !(t.undraggable_because || "").startsWith("books-only"));
   const trayN = (e.transactions || []).filter(billBound).length;
   const tier = t => t.accounted ? 2
     : (t.trip_direct && !t.personal) ? 0
