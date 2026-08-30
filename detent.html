@@ -1230,7 +1230,10 @@ async function seat(){
     return;
   }
   const path = node.kind === "close" ? "/api/entry/close" : "/api/messages";
-  const body = node.kind === "close" ? {} : { body: $("mic").value.trim() };
+  /* the close names its page (card #164): sessions run side by side, and the
+     hold closes exactly the book the stone displayed — never "latest open" */
+  const body = node.kind === "close" ? { entry_id: node.c && node.c.entry_id }
+                                     : { body: $("mic").value.trim() };
   const net = new AbortController();
   const kill = setTimeout(() => net.abort("timeout"), 9000);
   try{
