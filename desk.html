@@ -230,6 +230,60 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .consider .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
 .consider .att{margin-top:6px;font:700 8.5px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
 
+/* THE DAY CARD (card #171, ep-ab1428) — today's freight, stacked above the
+   consider card. Its bottom is set by paintDay EVERY paint cycle (the
+   consider card's height is dynamic — the same trap the consider paint
+   comments). Height capped so a long day never starves the orbs of field
+   (separate()'s shrink math does not count obstacle area). */
+.daycard{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);width:min(620px,86%);
+  background:var(--glass);border:1px solid var(--line);border-radius:9px;padding:12px 19px 11px;
+  backdrop-filter:blur(11px);box-shadow:0 26px 60px -20px rgba(0,0,0,.9);
+  transition:opacity .45s,transform .45s;max-height:30vh;overflow-y:auto}
+.stage.entered .daycard{opacity:0;transform:translateX(-50%) translateY(26px);pointer-events:none}
+.daycard.dim{opacity:.08;pointer-events:none}
+.daycard .lbl{display:inline-block;font:700 8px/1 var(--mono);letter-spacing:.19em;color:var(--amber);
+  border:1px solid rgba(var(--key),.35);border-radius:20px;padding:6px 10px}
+.daycard .ln{margin-top:7px;font:600 13px/1.45 var(--sans)}
+.daycard .warn{margin-top:8px;font:600 12.5px/1.45 var(--sans);color:var(--amber)}
+.daycard .sub{margin-top:7px;font:400 10px/1.5 var(--mono);color:var(--dim)}
+.daycard .acts{margin-top:10px;display:flex;gap:10px;align-items:center}
+.daycard .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
+@media (max-height:720px){.daycard{max-height:24vh}}
+
+/* THE HAUL (card #171) — the operations tab's full picture, in the room */
+.hlHero{background:var(--glass);border:1px solid var(--line);border-radius:9px;padding:16px 18px;margin-top:10px}
+.hlTop{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hlNum{font:800 24px/1 var(--mono);color:var(--amber)}
+.hlRate{font:800 20px/1 var(--mono)}
+.hlBroker{font:600 13px/1.2 var(--sans);color:var(--dim)}
+.hlPaid{margin-left:auto;font:800 10px/1 var(--mono);letter-spacing:.14em;padding:5px 9px;border-radius:20px;border:1px solid}
+.hlPaid.unpaid{color:var(--amber);border-color:rgba(var(--key),.45)}
+.hlPaid.paid{color:var(--ok,#7dc98f);border-color:rgba(125,201,143,.45)}
+.hlChip{font:700 8.5px/1 var(--mono);letter-spacing:.16em;color:var(--dim);border:1px solid var(--line);border-radius:20px;padding:5px 9px}
+.hlTags{margin-top:10px;display:flex;gap:7px;flex-wrap:wrap}
+.hlTags span{font:600 10px/1 var(--mono);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--dim)}
+.hlStops{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:760px){.hlStops{grid-template-columns:1fr}}
+.hlStop{border:1px solid var(--line);border-left:3px solid rgba(var(--key),.5);border-radius:8px;padding:11px 13px}
+.hlStop .role{font:700 8.5px/1 var(--mono);letter-spacing:.19em;color:var(--amber)}
+.hlStop .pu{display:inline-block;margin-left:8px;font:800 9px/1 var(--mono);letter-spacing:.1em;color:#0a0e18;background:var(--amber);border-radius:4px;padding:4px 7px}
+.hlStop .co{margin-top:7px;font:700 13px/1.3 var(--sans)}
+.hlStop .ad{margin-top:3px;font:400 11.5px/1.45 var(--sans);color:var(--dim)}
+.hlStop .ad a{color:inherit}
+.hlStop .when{margin-top:6px;font:700 11px/1 var(--mono)}
+.hlStop .who{margin-top:6px;font:400 10.5px/1.4 var(--mono);color:var(--dim)}
+.hlStop .who a{color:var(--amber);text-decoration:none}
+.hlSpec{margin-top:11px;border-left:3px solid rgba(var(--key),.5);background:rgba(var(--key),.06);border-radius:0 8px 8px 0;padding:10px 13px;font:400 11.5px/1.55 var(--sans);color:var(--dim)}
+.hlBrokerLn{margin-top:10px;font:400 10.5px/1.5 var(--mono);color:var(--dim)}
+.hlBrokerLn a{color:var(--amber);text-decoration:none}
+.hlPeek{margin-top:8px}
+.hlRow{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;margin-top:6px;cursor:pointer}
+.hlRow:hover{border-color:rgba(var(--key),.4)}
+.hlRow .n{font:700 12px/1 var(--mono);color:var(--amber)}
+.hlRow .d{font:600 11px/1.3 var(--sans);color:var(--dim)}
+.hlRow .w{margin-left:auto;font:700 9.5px/1 var(--mono);color:var(--dim)}
+.hlStamp{margin-top:10px;display:flex;gap:10px;align-items:center;font:700 8.5px/1 var(--mono);letter-spacing:.14em;color:var(--dim)}
+
 /* ══ THE DOCKET BREATHES (card #114) — a slow glow when NEW items wait,
    stilled the moment he opens the drawer. Animation exists only while the
    .fresh class does (a resting masthead costs nothing). ═══════════════ */
@@ -1469,6 +1523,11 @@ body.hot .act .h .n{color:var(--hot)}
     <div class="core"><div><div class="t">THE SPINE</div>
       <div class="s">one service &middot; one database<br>everything above is served</div></div></div>
     <div id="orbs"></div>
+    <div class="daycard" id="daycard" hidden>
+      <span class="lbl">THE DAY</span>
+      <div id="dbody"></div>
+      <div class="acts"><button class="btn go" id="dreplan">REPLAN FROM HERE</button></div>
+    </div>
     <div class="consider" id="consider">
       <span class="lbl" id="clbl">THE SPINE PUT THIS IN FRONT OF YOU</span>
       <div class="q" id="cq">reading&#8230;</div>
@@ -1726,7 +1785,7 @@ function separate(){
      panel is still unreadable. */
   const fr = field.getBoundingClientRect();
   const obstacles = [];
-  for(const sel of [".consider", ".core"]){
+  for(const sel of [".consider", ".core", ".daycard"]){
     const el = document.querySelector(sel);
     if(!el || el.hidden) continue;
     const r = el.getBoundingClientRect();
@@ -1928,7 +1987,36 @@ function paintField(){
      got in: it read clean on first paint and collided once real numbers and a
      real question arrived. */
   paintConsider();
+  paintDay();
   if(!stage.classList.contains("entered")) separate();
+}
+
+/* THE DAY CARD (card #171): today's freight in words, stacked above the
+   consider card. Bottom recomputed HERE, every cycle — the consider card's
+   height moves with its question (the comment above already caught that
+   trap once). Hidden when today is quiet AND fresh; when the log is stale
+   enough that today may be unknowable, it says that instead of vanishing. */
+function paintDay(){
+  const el = $("daycard");
+  if(!el) return;
+  const d = State.day;
+  const stale = d && d.sync_stale_hours != null && d.sync_stale_hours > 24;
+  const show = d && d.ok && (!d.quiet || stale);
+  el.hidden = !show;
+  if(!show){ el.style.bottom = ""; return; }
+  const rows = (d.words || []).map(w =>
+    w.startsWith("⚠") ? `<div class="warn">${esc(w)}</div>`
+                      : `<div class="ln">${esc(w)}</div>`).join("");
+  const subs = [];
+  if(d.eta_basis && !d.quiet) subs.push(d.eta_basis);
+  if(d.hos_note && !d.quiet) subs.push(d.hos_note);
+  if(GEO.why && !GEO.fix) subs.push("no device fix — " + GEO.why);
+  $("dbody").innerHTML = rows +
+    subs.map(s => `<div class="sub">${esc(s)}</div>`).join("");
+  $("dreplan").hidden = !!d.quiet;
+  /* stack above the consider card, measured fresh */
+  const c = $("consider");
+  el.style.bottom = ((c ? c.offsetHeight + 6 : 0) + 16) + "px";
 }
 
 /* the ONE thing the spine puts in front of him — chosen by a stated rule,
@@ -2074,6 +2162,7 @@ function openSys(){
   void host.offsetWidth;
   layoutSys();   // owns position, scale, depth-opacity — the fade-in rides it
   $("consider").classList.add("dim");
+  $("daycard").classList.add("dim");   // the orbit's lower arc reaches its band
   wireSpin();
   paintSys();
   /* the repeater's truth rides in when asked — never blocks the fall */
@@ -2084,6 +2173,7 @@ function closeSys(silent){
   SYS = false;
   stage.classList.remove("insys");
   $("consider").classList.remove("dim");
+  $("daycard").classList.remove("dim");
   unwireSpin();
   const P = D[2];
   if(ACTIVE === null) P.el.classList.remove("active");
@@ -2464,8 +2554,9 @@ function standingRoom(){
      A room-level tab is not a new domain (the orb constitution governs
      ORBS); the stops book is hotshot's road tool, ruled 2026-08-08. */
   const hsBar = `<div class="finbar"><div class="seg" id="hsView">${
-    [["standing","the standing"],["stops","find a stop"],["book","the book"]].map(([k,l]) =>
+    [["standing","the standing"],["haul","the haul"],["stops","find a stop"],["book","the book"]].map(([k,l]) =>
       `<button data-v="${k}" class="${HS.view === k ? "on" : ""}">${l}</button>`).join("")}</div></div>`;
+  if(HS.view === "haul") return whyBar() + hsBar + haulHTML();
   if(HS.view === "stops") return whyBar() + hsBar + stopsHTML();
   if(HS.view === "book") return whyBar() + hsBar + bookHTML();
   return whyBar() + hsBar + `<div class="rgrid">
@@ -3094,7 +3185,9 @@ const HS = { view:"standing", q:"", bookq:"", ans:null, book:null, err:null,
              busy:false, loaded:false, addOpen:false,
              mode:"route", kind:"hotel", dest:"", gps:null, mapObj:null,
              bookMapObj:null, bookMapWhy:"",
-             sa:{ name:"", link:"", note:"", kind:"hotel" } };
+             sa:{ name:"", link:"", note:"", kind:"hotel" },
+             haul:null, haulErr:null, haulLoaded:false, haulBusy:false,
+             haulOpen:null };
 
 async function loadStops(q){
   /* the last fetch wins, not the last to arrive (loadFin's law) */
@@ -3456,11 +3549,130 @@ function wireBookMap(){
   m.on("moveend", () => { HS.mapView = {c: m.getCenter(), z: m.getZoom()}; });
 }
 
+/* ── THE HAUL (card #171, ep-ab1428): the old Operations tab's whole
+   picture, served from the loads home. Every field the sheet carries, or
+   "——" — never a guess. Paid is read-only here: his hand edits the sheet. */
+async function loadHaul(){
+  try{ HS.haul = await grab("/api/hotshot/loads"); HS.haulErr = null; }
+  catch(e){ HS.haulErr = String(e.message || e); }
+}
+
+function haulStamp(d){
+  const h = d && d.sync_stale_hours;
+  const word = h == null ? "read age unknown"
+    : h < 0.1 ? "read just now" : `read ${h}h ago`;
+  return `<div class="hlStamp"><span>${esc(word)}</span>
+    <button class="btn" id="hlRefresh"${HS.haulBusy ? " disabled" : ""}>${HS.haulBusy ? "READING…" : "REFRESH"}</button>
+    ${d && d.sidecar_loads ? `<span>· ${d.sidecar_loads} load${d.sidecar_loads===1?" has":"s have"} multi-drop paperwork not yet ingested (#173)</span>` : ""}</div>`;
+}
+
+function haulStopHTML(s, pu){
+  const place = [s.city, s.state].filter(Boolean).join(", ") + (s.zip ? " " + s.zip : "");
+  const q = encodeURIComponent([s.address, s.city, s.state, s.zip].filter(Boolean).join(", "));
+  const when = [s.date_raw || s.date, s.time_window].filter(Boolean).join(" · ");
+  return `<div class="hlStop">
+    <span class="role">${s.kind === "pickup" ? "PICKUP" : "DELIVERY"}${
+      s.final && s.seq > 1 ? ` · DROP ${s.seq}` : ""}</span>${
+      s.kind === "pickup" && pu ? `<span class="pu">PU# ${esc(pu)}</span>` : ""}
+    <div class="co">${esc(s.company) || "——"}</div>
+    <div class="ad">${s.address ? `<a href="https://maps.google.com/?q=${q}" target="_blank" rel="noopener">${esc(s.address)}</a><br>` : ""}${esc(place) || "——"}</div>
+    <div class="when">${esc(when) || "——"}</div>
+    <div class="who">${esc(s.contact) || "——"}${s.phone ? ` · <a href="tel:${esc(s.phone)}">${esc(s.phone)}</a>` : ""}</div>
+  </div>`;
+}
+
+function haulCard(l){
+  const pill = l.paid === "1" ? `<span class="hlPaid paid">PAID</span>`
+    : l.paid === "2" ? `<span class="hlPaid">WRITE-OFF</span>`
+    : `<span class="hlPaid unpaid">UNPAID</span>`;
+  const chip = { current: "ON THE HOOK NOW", next: "BOOKED — NEXT",
+                 delivered: "✓ DELIVERED", undated: "NO DATES ON THE SHEET" }[l.status] || l.status;
+  const drops = l.stops.filter(s => s.kind === "drop");
+  const tags = [l.equipment_type, l.commodity, l.dimensions,
+                l.weight_lbs ? l.weight_lbs + " lbs" : ""].filter(Boolean);
+  const broker = [
+    l.broker_agent && esc(l.broker_agent),
+    l.broker_phone && `<a href="tel:${esc(l.broker_phone)}">${esc(l.broker_phone)}</a>`,
+    l.broker_email && `<a href="mailto:${esc(l.broker_email)}">${esc(l.broker_email)}</a>`,
+    l.payment_terms && esc(l.payment_terms),
+    l.invoice && `inv ${esc(l.invoice)}`,
+    l.po_number && `PO ${esc(l.po_number)}`].filter(Boolean).join(" · ");
+  return `<div class="hlHero">
+    <div class="hlTop"><span class="hlChip">${esc(chip)}</span>
+      <span class="hlNum">#${esc(l.load_number) || "——"}</span>
+      <span class="hlRate">${l.rate == null ? "——" : money(l.rate)}</span>
+      <span class="hlBroker">${esc(l.broker) || "——"}</span>${pill}</div>
+    ${tags.length ? `<div class="hlTags">${tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
+    <div class="hlStops">${l.stops.map(s => haulStopHTML(s, l.pu_number)).join("")}</div>
+    ${drops.length > 1 ? `<div class="hlBrokerLn">${drops.length} drops on this load</div>` : ""}
+    ${l.instructions_rest ? `<div class="hlSpec">${esc(l.instructions_rest)}</div>` : ""}
+    ${broker ? `<div class="hlBrokerLn">${broker}</div>` : ""}
+    ${l.drive_folder_link ? `<div class="hlBrokerLn"><a href="${esc(l.drive_folder_link)}" target="_blank" rel="noopener">THE PAPERS — rate con, BOL, invoice</a></div>` : ""}
+  </div>`;
+}
+
+function haulHTML(){
+  const d = HS.haul;
+  if(HS.haulErr) return `<div class="panel" style="margin-top:10px">
+    <div class="cap">the haul</div>
+    <div class="hlBrokerLn">the loads home is unreachable — ${esc(HS.haulErr)}</div></div>`;
+  if(!d) return `<div class="panel" style="margin-top:10px">
+    <div class="cap">the haul</div><div class="hlBrokerLn">reading the log…</div></div>`;
+  const act = d.active || [];
+  if(!act.length) return `<div class="panel" style="margin-top:10px">
+    <div class="cap">the haul</div>
+    <div class="hlBrokerLn">nothing on the hook and nothing booked — the log is empty of live loads</div>
+    ${haulStamp(d)}</div>`;
+  const openId = HS.haulOpen;
+  const hero = act.find(l => l.id === openId) || act[0];
+  const rest = act.filter(l => l.id !== hero.id);
+  const peek = rest.map(l => {
+    const dest = [l.delivery_city, l.delivery_state].filter(Boolean).join(", ");
+    const when = l.status === "next" ? (l.pickup_date_raw || l.pickup_date || "")
+                                     : (l.delivery_date_raw || l.delivery_date || "");
+    const w = l.paid === "1" ? "PAID" : l.paid === "2" ? "W/O" : "UNPAID";
+    return `<div class="hlRow" data-h="${l.id}">
+      <span class="n">#${esc(l.load_number) || "——"}</span>
+      <span class="d">→ ${esc(dest) || "——"} · ${esc(l.broker)}</span>
+      <span class="w">${esc(when)} · ${w}</span></div>`;
+  }).join("");
+  return `<div style="margin-top:2px">
+    ${haulCard(hero)}
+    ${rest.length ? `<div class="hlPeek"><div class="cap" style="margin-top:12px">${rest.length} more on the book — tap one to open it</div>${peek}</div>` : ""}
+    ${haulStamp(d)}
+  </div>`;
+}
+
+function wireHaul(){
+  const R = $("room");
+  const rf = R.querySelector("#hlRefresh");
+  if(rf) rf.addEventListener("click", async e => {
+    e.stopPropagation();
+    HS.haulBusy = true; renderRoom();
+    try{
+      await fetch(url("/api/loads/refresh"), { method:"POST",
+        headers: hdr({"Content-Type":"application/json"}), body:"{}" });
+      await loadHaul();
+    }catch(err){ HS.haulErr = String(err.message || err); }
+    HS.haulBusy = false; renderRoom();
+  });
+  R.querySelectorAll(".hlRow").forEach(row =>
+    row.addEventListener("click", e => {
+      e.stopPropagation();
+      HS.haulOpen = Number(row.dataset.h);
+      renderRoom();
+    }));
+}
+
 function wireHsTabs(){
   $("room").querySelectorAll("#hsView button").forEach(b =>
     b.addEventListener("click", e => {
       e.stopPropagation();
       HS.view = b.dataset.v;
+      if(HS.view === "haul" && !HS.haulLoaded){
+        HS.haulLoaded = true;
+        loadHaul().then(renderRoom).catch(() => {});
+      }
       if((HS.view === "stops" || HS.view === "book") && !HS.loaded){
         HS.loaded = true;
         loadStops().then(renderRoom).catch(() => {});
@@ -5982,6 +6194,10 @@ function renderRoom(){
     wireHsTabs();
     if(HS.view === "stops" || HS.view === "book"){ wireStops();
       if(HS.view === "book") wireBookMap(); }
+    else if(HS.view === "haul"){ wireHaul(); }
+    /* the haul gets its OWN arm — the else arm below wires the standing
+       gauge and wireScale fires the quote-scale POSTs; on a haul render
+       that would be phantom traffic against markup with no scale */
     else { paintGauge(); wireFigs(); wireActs(); wireSnap(); wireScale(); }
   }
   if(o.room === "work"){ wireCards(); }
@@ -7185,6 +7401,39 @@ async function grab(path){
   if(!r.ok) throw new Error(r.status + " " + (await r.text()).slice(0,120));
   return r.json();
 }
+/* THE DEVICE'S FIX (his ruling 2026-09-01, amending the tap-only pattern for
+   the day card alone): pulled once per open — silent after the one-time
+   browser grant — held in page state, sent per-request in POST bodies, and
+   NEVER persisted server-side. No watchPosition, no polling; REPLAN re-asks
+   by his tap. Geolocation is callback-based and can hang past every fetch,
+   so nothing here may gate paintField — the day card repaints when the
+   answer lands. */
+const GEO = { fix:null, at:null, why:"" };
+function grabFix(){
+  return new Promise(res => {
+    if(!navigator.geolocation){ GEO.why = "this device offers no location"; return res(null); }
+    navigator.geolocation.getCurrentPosition(
+      p => { GEO.fix = { lat:p.coords.latitude, lng:p.coords.longitude };
+             GEO.at = Date.now(); GEO.why = ""; res(GEO.fix); },
+      e => { GEO.why = e.message || "the device refused"; res(null); },
+      { enableHighAccuracy:false, timeout:10000, maximumAge:300000 });
+  });
+}
+async function loadDay(fresh){
+  const fix = fresh ? await grabFix()
+                    : (GEO.fix || await grabFix());
+  const r = await fetch(url("/api/hotshot/day"), { method:"POST",
+    headers: hdr({"Content-Type":"application/json"}),
+    body: JSON.stringify({ origin: fix }) });
+  State.day = await r.json();
+  paintDay();
+  if(!stage.classList.contains("entered")) separate();
+}
+$("dreplan").addEventListener("click", e => {
+  e.stopPropagation();      // law on the field's controls (ruled 08-03)
+  loadDay(true).catch(() => {});
+});
+
 async function load(keep){
   try{
     const [st, sd, bd] = await Promise.all([
@@ -7204,6 +7453,9 @@ async function load(keep){
     /* the money room's own reads — never allowed to fail the desk */
     await loadFin().catch(() => {});
     deriveTemp(); paintField(); stampRead();
+    /* the day card rides AFTER the field paints — a hung geolocation
+       prompt must never hold the desk (errors swallowed, fan-out law) */
+    loadDay().catch(() => {});
     /* an ask-shaped push deep-links here (#hand) — open the docket once,
        then clear the hash so a reload lands on the field */
     if(location.hash === "#hand"){
