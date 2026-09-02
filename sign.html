@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<title>Fill &amp; Sign — the almanac</title>
+<!-- Forked from mission-control/sign.html (card #171, his ruling
+     2026-09-02: paperwork stays inside Almanac). Save door = the
+     spine's /api/hotshot/sign/save; API base + token ride the same
+     localStorage keys the desk uses. -->
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --line:#30363d; --gold:#e5b524; --ink:#e6edf3; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--bg); color:var(--ink); font:15px -apple-system,'Segoe UI',Roboto,sans-serif; padding-bottom:90px; }
+  header { position:sticky; top:0; z-index:20; background:var(--panel); border-bottom:1px solid var(--line);
+           padding:10px 14px; display:flex; align-items:center; gap:10px; }
+  header h1 { font-size:16px; color:var(--gold); flex:1; white-space:nowrap; }
+  .btn { background:#21262d; color:var(--ink); border:1px solid var(--line); border-radius:10px;
+         padding:12px 16px; font-size:15px; font-weight:600; cursor:pointer; }
+  .btn:active { transform:scale(.97); }
+  .btn.gold { background:var(--gold); color:#111; border-color:var(--gold); }
+  .btn.on { outline:3px solid var(--gold); }
+  #toolbar { position:fixed; bottom:0; left:0; right:0; z-index:20; display:flex; gap:8px;
+             padding:12px 14px calc(12px + env(safe-area-inset-bottom)); background:var(--panel);
+             border-top:1px solid var(--line); }
+  #toolbar .btn { flex:1; text-align:center; }
+  #picker-wrap { padding:40px 20px; text-align:center; }
+  #picker-wrap p { color:#8b949e; margin:14px 0 26px; line-height:1.5; }
+  #file-btn { font-size:18px; padding:18px 26px; }
+  input[type=file] { display:none; }
+  #pages { padding:10px; display:flex; flex-direction:column; gap:12px; align-items:center; }
+  .page-wrap { position:relative; box-shadow:0 4px 18px rgba(0,0,0,.6); }
+  .page-wrap canvas { display:block; background:#fff; border-radius:4px; }
+  .placed { position:absolute; touch-action:none; cursor:move; }
+  .placed img { width:100%; display:block; pointer-events:none; }
+  .placed .date-text { font:600 16px Helvetica,Arial,sans-serif; color:#111; white-space:nowrap; }
+  .placed .x { position:absolute; top:-14px; right:-14px; width:28px; height:28px; border-radius:50%;
+               background:#da3633; color:#fff; font-size:15px; line-height:28px; text-align:center; }
+  #hint { position:fixed; top:64px; left:0; right:0; z-index:15; text-align:center; pointer-events:none; }
+  #hint span { background:var(--gold); color:#111; font-weight:700; padding:8px 16px; border-radius:20px;
+               display:none; box-shadow:0 4px 12px rgba(0,0,0,.5); }
+  /* Full-screen scribble pad */
+  #pad { position:fixed; inset:0; z-index:50; background:#fff; display:none; flex-direction:column; }
+  #pad-canvas { flex:1; touch-action:none; }
+  #pad-bar { display:flex; gap:10px; padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+             background:#f0f0f0; border-top:2px solid #ddd; }
+  #pad-bar .btn { flex:1; text-align:center; background:#fff; color:#111; border-color:#ccc; }
+  #pad-bar .btn.gold { background:var(--gold); border-color:var(--gold); }
+  #pad-title { position:absolute; top:12px; left:0; right:0; text-align:center; color:#bbb;
+               font-weight:700; font-size:14px; letter-spacing:2px; pointer-events:none; }
+  #pad-line { position:absolute; left:8%; right:8%; bottom:130px; border-bottom:2px dashed #ccc; pointer-events:none; }
+  /* Date overlay */
+  #datebox { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.7); display:none;
+             align-items:center; justify-content:center; }
+  #datebox .card { background:var(--panel); border:1px solid var(--line); border-radius:16px;
+                   padding:24px; width:min(90vw,360px); }
+  #datebox h3 { color:var(--gold); margin-bottom:16px; }
+  #datebox input { width:100%; font-size:20px; padding:14px; border-radius:10px; border:1px solid var(--line);
+                   background:#0d1117; color:var(--ink); margin-bottom:18px; }
+  #datebox .row { display:flex; gap:10px; }
+  #datebox .row .btn { flex:1; text-align:center; }
+  #toast { position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:60; background:#238636;
+           color:#fff; padding:12px 20px; border-radius:12px; font-weight:600; display:none; max-width:90vw; }
+  #toast.err { background:#da3633; }
+</style>
+</head>
+<body>
+<header>
+  <h1>✍️ Fill &amp; Sign</h1>
+  <button class="btn" id="new-file" style="display:none">📂 New</button>
+</header>
+
+<div id="hint"><span id="hint-text"></span></div>
+
+<div id="picker-wrap">
+  <h2 style="color:var(--gold);font-size:22px;margin-top:30px">Sign it on the glass.</h2>
+  <p>Pick the BOL (or any PDF), tap <b>Sign</b>, then tap the line you're signing.<br>
+     Full-screen scribble. Date stamp. Saves straight back to the load folder.</p>
+  <button class="btn gold" id="file-btn">📂 Pick PDF</button>
+  <input type="file" id="file-input" accept="application/pdf">
+</div>
+
+<div id="pages"></div>
+
+<div id="toolbar" style="display:none">
+  <button class="btn" id="mode-sign">✍️ Sign</button>
+  <button class="btn" id="mode-text">🔤 Name</button>
+  <button class="btn" id="mode-date">📅 Date</button>
+  <button class="btn" id="undo">↩️</button>
+  <button class="btn gold" id="save">💾 Save</button>
+</div>
+
+<div id="pad">
+  <div id="pad-title">SIGN WITH YOUR FINGER</div>
+  <canvas id="pad-canvas"></canvas>
+  <div id="pad-line"></div>
+  <div id="pad-bar">
+    <button class="btn" id="pad-cancel">Cancel</button>
+    <button class="btn" id="pad-clear">Clear</button>
+    <button class="btn gold" id="pad-done">✔ Done</button>
+  </div>
+</div>
+
+<div id="datebox">
+  <div class="card">
+    <h3>📅 Date stamp</h3>
+    <input type="date" id="date-input">
+    <div class="row">
+      <button class="btn" id="date-cancel">Cancel</button>
+      <button class="btn gold" id="date-ok">✔ Place</button>
+    </div>
+  </div>
+</div>
+
+<div id="textbox" style="position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;">
+  <div class="card" style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;width:min(90vw,400px);">
+    <h3 style="color:var(--gold);margin-bottom:16px;">🔤 Print name / text</h3>
+    <input type="text" id="text-input" autocapitalize="words" autocomplete="off" placeholder="e.g. John Dunn"
+      style="width:100%;font-size:20px;padding:14px;border-radius:10px;border:1px solid var(--line);background:#0d1117;color:var(--ink);margin-bottom:18px;">
+    <div class="row" style="display:flex;gap:10px;">
+      <button class="btn" id="text-cancel" style="flex:1;text-align:center;">Cancel</button>
+      <button class="btn gold" id="text-ok" style="flex:1;text-align:center;">✔ Place</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+let origBytes = null, origName = "", pageScales = [], placements = [], mode = null, pendingTap = null;
+
+const $ = id => document.getElementById(id);
+const toast = (msg, err) => { const t = $("toast"); t.textContent = msg; t.className = err ? "err" : "";
+  t.style.display = "block"; setTimeout(() => t.style.display = "none", err ? 5000 : 3000); };
+const hint = msg => { const h = $("hint-text"); h.textContent = msg; h.style.display = msg ? "inline-block" : "none"; };
+
+$("file-btn").onclick = () => $("file-input").click();
+$("new-file").onclick = () => location.reload();
+
+$("file-input").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  origName = f.name;
+  origBytes = new Uint8Array(await f.arrayBuffer());
+  await renderPdf();
+  $("picker-wrap").style.display = "none";
+  $("toolbar").style.display = "flex";
+  $("new-file").style.display = "block";
+};
+
+async function renderPdf() {
+  const doc = await pdfjsLib.getDocument({ data: origBytes.slice() }).promise;
+  const holder = $("pages"); holder.innerHTML = ""; pageScales = [];
+  const maxW = Math.min(window.innerWidth - 20, 900);
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const vp1 = page.getViewport({ scale: 1 });
+    const scale = maxW / vp1.width;
+    const vp = page.getViewport({ scale });
+    const dpr = window.devicePixelRatio || 1;
+    const wrap = document.createElement("div");
+    wrap.className = "page-wrap"; wrap.dataset.page = p - 1;
+    wrap.style.width = vp.width + "px"; wrap.style.height = vp.height + "px";
+    const cv = document.createElement("canvas");
+    cv.width = vp.width * dpr; cv.height = vp.height * dpr;
+    cv.style.width = vp.width + "px"; cv.style.height = vp.height + "px";
+    wrap.appendChild(cv); holder.appendChild(wrap);
+    pageScales[p - 1] = { scale, pdfW: vp1.width, pdfH: vp1.height };
+    await page.render({ canvasContext: cv.getContext("2d"),
+                        viewport: page.getViewport({ scale: scale * dpr }) }).promise;
+    wrap.addEventListener("pointerup", ev => onPageTap(ev, wrap), { passive: false });
+  }
+}
+
+function onPageTap(ev, wrap) {
+  if (!mode || ev.target.closest(".placed")) return;
+  const r = wrap.getBoundingClientRect();
+  pendingTap = { page: +wrap.dataset.page, x: ev.clientX - r.left, y: ev.clientY - r.top, wrap };
+  if (mode === "sign") openPad();
+  else if (mode === "text") { $("text-input").value = ""; $("textbox").style.display = "flex"; $("text-input").focus(); }
+  else { $("date-input").value = new Date().toISOString().slice(0, 10); $("datebox").style.display = "flex"; }
+}
+
+function setMode(m) {
+  mode = mode === m ? null : m;
+  $("mode-sign").classList.toggle("on", mode === "sign");
+  $("mode-text").classList.toggle("on", mode === "text");
+  $("mode-date").classList.toggle("on", mode === "date");
+  hint(mode === "sign" ? "Tap the line you're signing" :
+       mode === "text" ? "Tap where the name goes" :
+       mode === "date" ? "Tap where the date goes" : "");
+}
+$("mode-sign").onclick = () => setMode("sign");
+$("mode-text").onclick = () => setMode("text");
+$("mode-date").onclick = () => setMode("date");
+
+/* ── Text / printed name ── */
+$("text-cancel").onclick = () => $("textbox").style.display = "none";
+$("text-ok").onclick = () => {
+  const v = $("text-input").value.trim(); if (!v) return;
+  addPlacement({ type: "date", text: v });   // text placements share the date machinery
+  $("textbox").style.display = "none";
+};
+
+/* ── Full-screen scribble pad ── */
+let drawing = false, last = null, inked = false;
+function openPad() {
+  const pad = $("pad"); pad.style.display = "flex";
+  requestAnimationFrame(() => {
+    const cv = $("pad-canvas"), dpr = window.devicePixelRatio || 1;
+    cv.width = cv.clientWidth * dpr; cv.height = cv.clientHeight * dpr;
+    const g = cv.getContext("2d");
+    g.scale(dpr, dpr); g.lineWidth = 4.5; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#101820";
+    inked = false;
+  });
+}
+const padPos = e => { const r = $("pad-canvas").getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+$("pad-canvas").addEventListener("pointerdown", e => { drawing = true; last = padPos(e); e.preventDefault(); });
+$("pad-canvas").addEventListener("pointermove", e => {
+  if (!drawing) return;
+  const g = $("pad-canvas").getContext("2d"), p = padPos(e);
+  g.beginPath(); g.moveTo(last.x, last.y);
+  g.quadraticCurveTo(last.x, last.y, (last.x + p.x) / 2, (last.y + p.y) / 2);
+  g.lineTo(p.x, p.y); g.stroke();
+  last = p; inked = true; e.preventDefault();
+});
+["pointerup", "pointercancel"].forEach(ev => $("pad-canvas").addEventListener(ev, () => drawing = false));
+$("pad-clear").onclick = () => { const cv = $("pad-canvas");
+  cv.getContext("2d").clearRect(0, 0, cv.width, cv.height); inked = false; };
+$("pad-cancel").onclick = () => { $("pad").style.display = "none"; };
+$("pad-done").onclick = () => {
+  if (!inked) { $("pad").style.display = "none"; return; }
+  const cv = $("pad-canvas"), g = cv.getContext("2d");
+  const { width: W, height: H } = cv;
+  const img = g.getImageData(0, 0, W, H).data;
+  let minX = W, minY = H, maxX = 0, maxY = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (img[(y * W + x) * 4 + 3] > 10) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
+  const pad = 12, cw = maxX - minX + pad * 2, ch = maxY - minY + pad * 2;
+  const out = document.createElement("canvas"); out.width = cw; out.height = ch;
+  out.getContext("2d").drawImage(cv, minX - pad, minY - pad, cw, ch, 0, 0, cw, ch);
+  addPlacement({ type: "sig", png: out.toDataURL("image/png"), aspect: ch / cw });
+  $("pad").style.display = "none";
+};
+
+/* ── Date ── */
+$("date-cancel").onclick = () => $("datebox").style.display = "none";
+$("date-ok").onclick = () => {
+  const v = $("date-input").value; if (!v) return;
+  const [y, m, d] = v.split("-");
+  addPlacement({ type: "date", text: `${m}/${d}/${y}` });
+  $("datebox").style.display = "none";
+};
+
+/* ── Placements ── */
+function addPlacement(p) {
+  const t = pendingTap; if (!t) return;
+  const el = document.createElement("div"); el.className = "placed";
+  let w;
+  if (p.type === "sig") {
+    w = t.wrap.clientWidth * 0.30;
+    el.style.width = w + "px";
+    el.innerHTML = `<img src="${p.png}">`;
+    el.style.left = (t.x - w / 2) + "px";
+    el.style.top = (t.y - w * p.aspect + 6) + "px";
+  } else {
+    el.innerHTML = `<div class="date-text">${p.text}</div>`;
+    el.style.left = t.x + "px"; el.style.top = (t.y - 18) + "px";
+  }
+  const x = document.createElement("div"); x.className = "x"; x.textContent = "✕";
+  x.onpointerdown = e => { e.stopPropagation(); el.remove(); placements = placements.filter(q => q.el !== el); };
+  el.appendChild(x);
+  t.wrap.appendChild(el);
+  const rec = { ...p, el, wrap: t.wrap, page: t.page };
+  placements.push(rec);
+  makeDraggable(el);
+  setMode(mode); // toggles off
+  pendingTap = null;
+}
+
+function makeDraggable(el) {
+  let start = null;
+  el.addEventListener("pointerdown", e => {
+    if (e.target.classList.contains("x")) return;
+    start = { x: e.clientX, y: e.clientY, left: el.offsetLeft, top: el.offsetTop };
+    el.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  el.addEventListener("pointermove", e => {
+    if (!start) return;
+    el.style.left = (start.left + e.clientX - start.x) + "px";
+    el.style.top = (start.top + e.clientY - start.y) + "px";
+  });
+  ["pointerup", "pointercancel"].forEach(ev => el.addEventListener(ev, () => start = null));
+}
+
+$("undo").onclick = () => { const p = placements.pop(); if (p) p.el.remove(); };
+
+/* ── Save ── */
+$("save").onclick = async () => {
+  if (!placements.length) { toast("Nothing placed yet", true); return; }
+  $("save").textContent = "⏳ Saving…";
+  try {
+    const doc = await PDFLib.PDFDocument.load(origBytes);
+    const pages = doc.getPages();
+    const font = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+    for (const p of placements) {
+      const { scale, pdfH } = pageScales[p.page];
+      const pg = pages[p.page];
+      const x = p.el.offsetLeft / scale;
+      const topPdf = p.el.offsetTop / scale;
+      if (p.type === "sig") {
+        const img = await doc.embedPng(p.png);
+        const w = p.el.offsetWidth / scale, h = w * p.aspect;
+        pg.drawImage(img, { x, y: pdfH - topPdf - h, width: w, height: h });
+      } else {
+        const size = 11;
+        pg.drawText(p.el.textContent.replace("✕", "").trim(),
+          { x, y: pdfH - topPdf - size, size, font, color: PDFLib.rgb(0.06, 0.09, 0.13) });
+      }
+    }
+    const outBytes = await doc.save();
+    let name = origName;
+    if (!/signed/i.test(name)) name = name.replace(/\.pdf$/i, " Signed.pdf");
+    const b64 = btoa(new Uint8Array(outBytes).reduce((s, b) => s + String.fromCharCode(b), ""));
+    const API = localStorage.getItem("almanac_api") || "";
+    const TOK = localStorage.getItem("almanac_token") || "";
+    const resp = await fetch(API + "/api/hotshot/sign/save", { method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + TOK },
+      body: JSON.stringify({ filename: name, data: b64 }) });
+    const j = await resp.json().catch(() => ({}));
+    if (resp.ok && j.saved) {
+      toast("✔ Saved to load folder: " + name);
+    } else {
+      throw new Error(j.error || ("HTTP " + resp.status));
+    }
+  } catch (e) {
+    // Fallback: download locally so the signature is never lost
+    try {
+      const doc2 = await PDFLib.PDFDocument.load(origBytes); // placements already applied above may have failed earlier; rebuild safest
+    } catch (_) {}
+    downloadFallback();
+    toast("Server save failed (" + e.message + ") — downloaded instead", true);
+  }
+  $("save").textContent = "💾 Save";
+};
+
+async function downloadFallback() {
+  const doc = await PDFLib.PDFDocument.load(origBytes);
+  const pages = doc.getPages();
+  const font = await doc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  for (const p of placements) {
+    const { scale, pdfH } = pageScales[p.page];
+    const pg = pages[p.page];
+    const x = p.el.offsetLeft / scale, topPdf = p.el.offsetTop / scale;
+    if (p.type === "sig") {
+      const img = await doc.embedPng(p.png);
+      const w = p.el.offsetWidth / scale, h = w * p.aspect;
+      pg.drawImage(img, { x, y: pdfH - topPdf - h, width: w, height: h });
+    } else {
+      pg.drawText(p.el.textContent.replace("✕", "").trim(),
+        { x, y: pdfH - topPdf - 11, size: 11, font, color: PDFLib.rgb(0.06, 0.09, 0.13) });
+    }
+  }
+  const bytes = await doc.save();
+  let name = origName;
+  if (!/signed/i.test(name)) name = name.replace(/\.pdf$/i, " Signed.pdf");
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  const a = document.createElement("a"); a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 800);
+}
+</script>
+</body>
+</html>
