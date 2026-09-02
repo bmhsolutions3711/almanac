@@ -230,25 +230,31 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .consider .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
 .consider .att{margin-top:6px;font:700 8.5px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
 
-/* THE DAY CARD (card #171, ep-ab1428) — today's freight, stacked above the
-   consider card. Its bottom is set by paintDay EVERY paint cycle (the
-   consider card's height is dynamic — the same trap the consider paint
-   comments). Height capped so a long day never starves the orbs of field
-   (separate()'s shrink math does not count obstacle area). */
-.daycard{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);width:min(620px,86%);
-  background:var(--glass);border:1px solid var(--line);border-radius:9px;padding:12px 19px 11px;
-  backdrop-filter:blur(11px);box-shadow:0 26px 60px -20px rgba(0,0,0,.9);
-  transition:opacity .45s,transform .45s;max-height:30vh;overflow-y:auto}
-.stage.entered .daycard{opacity:0;transform:translateX(-50%) translateY(26px);pointer-events:none}
-.daycard.dim{opacity:.08;pointer-events:none}
-.daycard .lbl{display:inline-block;font:700 8px/1 var(--mono);letter-spacing:.19em;color:var(--amber);
-  border:1px solid rgba(var(--key),.35);border-radius:20px;padding:6px 10px}
-.daycard .ln{margin-top:7px;font:600 13px/1.45 var(--sans)}
-.daycard .warn{margin-top:8px;font:600 12.5px/1.45 var(--sans);color:var(--amber)}
-.daycard .sub{margin-top:7px;font:400 10px/1.5 var(--mono);color:var(--dim)}
-.daycard .acts{margin-top:10px;display:flex;gap:10px;align-items:center}
-.daycard .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
-@media (max-height:720px){.daycard{max-height:24vh}}
+/* THE DAY (card #171, his ruling 2026-09-02: "the original should be the
+   header and then I scroll down to a whole section that will drive my
+   day"). The field + canon ARE the header; the fieldwrap scrolls, and the
+   day lives below as a full section in the flow — never a floating box
+   over the orbs. In a room the wrapper collapses to the rail. */
+.fieldwrap{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.stage.entered .fieldwrap{flex:0 0 auto;overflow:hidden}
+.daycue{position:sticky;bottom:10px;display:block;margin:-34px auto 10px;width:max-content;
+  font:700 9px/1 var(--mono);letter-spacing:.19em;color:var(--amber);cursor:pointer;
+  background:var(--glass);border:1px solid rgba(var(--key),.35);border-radius:20px;
+  padding:7px 12px;backdrop-filter:blur(11px)}
+.stage.entered .daycue{display:none}
+.dayroom{width:min(920px,94%);margin:18px auto 30px}
+.stage.entered .dayroom{display:none}
+.dayroom .cap2{font:700 10px/1 var(--mono);letter-spacing:.22em;color:var(--amber);
+  border-top:1px solid var(--line);padding-top:16px}
+.dayroom .basis{margin-top:8px;font:600 14px/1.4 var(--sans)}
+.dayroom .warn{margin-top:10px;font:600 13px/1.5 var(--sans);color:var(--amber);
+  border:1px solid rgba(var(--key),.4);border-radius:8px;padding:10px 13px}
+.dayroom .sub{margin-top:9px;font:400 10px/1.55 var(--mono);color:var(--dim)}
+.dayroom .stopline{display:flex;align-items:baseline;gap:10px;margin-top:12px;
+  font:700 12px/1 var(--mono)}
+.dayroom .stopline .seq{color:var(--amber)}
+.dayroom .acts{margin-top:14px;display:flex;gap:10px;align-items:center}
+.dayroom .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
 
 /* THE HAUL (card #171) — the operations tab's full picture, in the room */
 .hlHero{background:var(--glass);border:1px solid var(--line);border-radius:9px;padding:16px 18px;margin-top:10px}
@@ -1519,15 +1525,11 @@ body.hot .act .h .n{color:var(--hot)}
     <aside class="page" id="page" role="dialog" aria-label="the morning page"></aside>
   </div>
 
+  <div class="fieldwrap" id="fieldwrap">
   <div class="field" id="field">
     <div class="core"><div><div class="t">THE SPINE</div>
       <div class="s">one service &middot; one database<br>everything above is served</div></div></div>
     <div id="orbs"></div>
-    <div class="daycard" id="daycard" hidden>
-      <span class="lbl">THE DAY</span>
-      <div id="dbody"></div>
-      <div class="acts"><button class="btn go" id="dreplan">REPLAN FROM HERE</button></div>
-    </div>
     <div class="consider" id="consider">
       <span class="lbl" id="clbl">THE SPINE PUT THIS IN FRONT OF YOU</span>
       <div class="q" id="cq">reading&#8230;</div>
@@ -1535,6 +1537,9 @@ body.hot .act .h .n{color:var(--hot)}
       <div class="acts"><button class="btn go" id="cgo">OPEN IT</button><button class="btn go" id="cair" hidden>ON AIR</button></div>
       <div class="cml" id="cml" hidden></div>
     </div>
+  </div>
+  <button class="daycue" id="daycue" hidden>&#9662; THE DAY</button>
+  <section class="dayroom" id="dayroom" hidden></section>
   </div>
 
   <div class="room" id="room"></div>
@@ -1785,7 +1790,7 @@ function separate(){
      panel is still unreadable. */
   const fr = field.getBoundingClientRect();
   const obstacles = [];
-  for(const sel of [".consider", ".core", ".daycard"]){
+  for(const sel of [".consider", ".core"]){
     const el = document.querySelector(sel);
     if(!el || el.hidden) continue;
     const r = el.getBoundingClientRect();
@@ -1991,32 +1996,74 @@ function paintField(){
   if(!stage.classList.contains("entered")) separate();
 }
 
-/* THE DAY CARD (card #171): today's freight in words, stacked above the
-   consider card. Bottom recomputed HERE, every cycle — the consider card's
-   height moves with its question (the comment above already caught that
-   trap once). Hidden when today is quiet AND fresh; when the log is stale
-   enough that today may be unknowable, it says that instead of vanishing. */
+/* THE DAY (card #171, his ruling 2026-09-02): the field is the header; this
+   SECTION below it drives the day — every stop as a full card with its ETA,
+   the load's instructions, contacts and papers, the conflict said out loud.
+   Hidden when today is quiet AND fresh; when the log is stale enough that
+   today may be unknowable, it says that instead of vanishing. */
 function paintDay(){
-  const el = $("daycard");
-  if(!el) return;
+  const room = $("dayroom"), cue = $("daycue");
+  if(!room) return;
   const d = State.day;
   const stale = d && d.sync_stale_hours != null && d.sync_stale_hours > 24;
   const show = d && d.ok && (!d.quiet || stale);
-  el.hidden = !show;
-  if(!show){ el.style.bottom = ""; return; }
-  const rows = (d.words || []).map(w =>
-    w.startsWith("⚠") ? `<div class="warn">${esc(w)}</div>`
-                      : `<div class="ln">${esc(w)}</div>`).join("");
+  room.hidden = cue.hidden = !show;
+  if(!show){ room.innerHTML = ""; return; }
+  if(d.quiet){   // stale-unknowable: the words carry the warning
+    room.innerHTML = `<div class="cap2">THE DAY</div>` +
+      (d.words || []).map(w => `<div class="warn">${esc(w)}</div>`).join("");
+    cue.textContent = "▾ THE DAY";
+    return;
+  }
+  const stops = d.stops || [], loads = d.loads || {};
+  const dayWord = new Date(d.day + "T12:00").toLocaleDateString("en-US",
+    {weekday:"long", month:"short", day:"numeric"});
+  let h = `<div class="cap2">THE DAY · ${esc(dayWord.toUpperCase())} · ${
+    stops.length + (d.unplaced || []).length} STOP${
+    stops.length + (d.unplaced || []).length === 1 ? "" : "S"}</div>`;
+  h += `<div class="basis">${esc(d.basis || "")}${
+    d.leave_by ? ` · leave by <b>${esc(d.leave_by)}</b>` : ""}</div>`;
+  if(d.conflict) h += `<div class="warn">⚠ ${esc(d.conflict)}</div>`;
+  stops.forEach((s, i) => {
+    const ld = loads[String(s.load_id)] || {};
+    h += `<div class="stopline"><span class="seq">${i + 1}.</span>
+      <span>${s.kind === "pickup" ? "PICKUP" : "DROP"} · #${esc(ld.load_number) || "——"} · ${esc(ld.broker) || ""}</span>
+      <span>${s.eta ? `eta ${esc(s.eta)}` : ""}${s.leg_mi != null ? ` · ${s.leg_mi} mi` : ""}</span></div>`;
+    h += haulStopHTML(s, ld.pu_number);
+  });
+  (d.unplaced || []).forEach(s => {
+    h += `<div class="warn">unplaced: ${esc(s.kind)} ${
+      esc(s.company || s.city || "unnamed stop")} — ${
+      s.geocode_miss ? "the geocoder refused this address" : "no city on the sheet"}</div>`;
+  });
+  /* each load's marching orders, once */
+  Object.values(loads).forEach(ld => {
+    const broker = [ld.broker_agent && esc(ld.broker_agent),
+      ld.broker_phone && `<a href="tel:${esc(ld.broker_phone)}">${esc(ld.broker_phone)}</a>`,
+      ld.broker_email && `<a href="mailto:${esc(ld.broker_email)}">${esc(ld.broker_email)}</a>`,
+      ld.payment_terms && esc(ld.payment_terms)].filter(Boolean).join(" · ");
+    h += `<div class="cap2" style="margin-top:18px">#${esc(ld.load_number)} · ${
+      esc(ld.broker)} · ${ld.rate == null ? "——" : money(ld.rate)}${
+      ld.paid === "1" ? " · PAID" : ld.paid === "2" ? " · WRITE-OFF" : " · UNPAID"}</div>`;
+    if(ld.instructions_rest) h += `<div class="hlSpec">${esc(ld.instructions_rest)}</div>`;
+    if(broker) h += `<div class="hlBrokerLn">${broker}</div>`;
+    if((ld.drive_folder_link || "").startsWith("http"))
+      h += `<div class="hlBrokerLn"><a href="${esc(ld.drive_folder_link)}" target="_blank" rel="noopener">THE PAPERS — rate con, BOL, invoice</a></div>`;
+  });
   const subs = [];
-  if(d.eta_basis && !d.quiet) subs.push(d.eta_basis);
-  if(d.hos_note && !d.quiet) subs.push(d.hos_note);
+  if(d.eta_basis) subs.push(d.eta_basis);
+  if(d.hos_note) subs.push(d.hos_note);
   if(GEO.why && !GEO.fix) subs.push("no device fix — " + GEO.why);
-  $("dbody").innerHTML = rows +
-    subs.map(s => `<div class="sub">${esc(s)}</div>`).join("");
-  $("dreplan").hidden = !!d.quiet;
-  /* stack above the consider card, measured fresh */
-  const c = $("consider");
-  el.style.bottom = ((c ? c.offsetHeight + 6 : 0) + 16) + "px";
+  h += subs.map(s => `<div class="sub">${esc(s)}</div>`).join("");
+  h += `<div class="acts"><button class="btn go" id="dreplan">REPLAN FROM HERE</button></div>`;
+  room.innerHTML = h;
+  cue.textContent = `▾ THE DAY — ${stops.length + (d.unplaced || []).length} stop${
+    stops.length + (d.unplaced || []).length === 1 ? "" : "s"}`;
+  const rp = $("dreplan");
+  if(rp) rp.addEventListener("click", e => {
+    e.stopPropagation();      // law on the field's controls (ruled 08-03)
+    loadDay(true).catch(() => {});
+  });
 }
 
 /* the ONE thing the spine puts in front of him — chosen by a stated rule,
@@ -2162,7 +2209,6 @@ function openSys(){
   void host.offsetWidth;
   layoutSys();   // owns position, scale, depth-opacity — the fade-in rides it
   $("consider").classList.add("dim");
-  $("daycard").classList.add("dim");   // the orbit's lower arc reaches its band
   wireSpin();
   paintSys();
   /* the repeater's truth rides in when asked — never blocks the fall */
@@ -2173,7 +2219,6 @@ function closeSys(silent){
   SYS = false;
   stage.classList.remove("insys");
   $("consider").classList.remove("dim");
-  $("daycard").classList.remove("dim");
   unwireSpin();
   const P = D[2];
   if(ACTIVE === null) P.el.classList.remove("active");
@@ -3607,7 +3652,7 @@ function haulCard(l){
     ${drops.length > 1 ? `<div class="hlBrokerLn">${drops.length} drops on this load</div>` : ""}
     ${l.instructions_rest ? `<div class="hlSpec">${esc(l.instructions_rest)}</div>` : ""}
     ${broker ? `<div class="hlBrokerLn">${broker}</div>` : ""}
-    ${l.drive_folder_link ? `<div class="hlBrokerLn"><a href="${esc(l.drive_folder_link)}" target="_blank" rel="noopener">THE PAPERS — rate con, BOL, invoice</a></div>` : ""}
+    ${(l.drive_folder_link || "").startsWith("http") ? `<div class="hlBrokerLn"><a href="${esc(l.drive_folder_link)}" target="_blank" rel="noopener">THE PAPERS — rate con, BOL, invoice</a></div>` : ""}
   </div>`;
 }
 
@@ -7429,9 +7474,9 @@ async function loadDay(fresh){
   paintDay();
   if(!stage.classList.contains("entered")) separate();
 }
-$("dreplan").addEventListener("click", e => {
+$("daycue").addEventListener("click", e => {
   e.stopPropagation();      // law on the field's controls (ruled 08-03)
-  loadDay(true).catch(() => {});
+  $("dayroom").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 async function load(keep){
