@@ -253,6 +253,9 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .dayroom .stopline{display:flex;align-items:baseline;gap:10px;margin-top:12px;
   font:700 12px/1 var(--mono)}
 .dayroom .stopline .seq{color:var(--amber)}
+.dayroom .fieldSel{width:100%;margin-top:10px;padding:11px 12px;background:var(--glass);color:var(--ink);
+  border:1px solid var(--line);border-radius:8px;font:600 12px/1.2 var(--mono);letter-spacing:.04em}
+.dayroom .fieldSel:focus{outline:none;border-color:rgba(var(--key),.5)}
 .dayroom .acts{margin-top:14px;display:flex;gap:10px;align-items:center}
 .dayroom .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
 
@@ -2021,64 +2024,93 @@ function paintField(){
 function paintDay(){
   const room = $("dayroom"), cue = $("daycue");
   if(!room) return;
-  const d = State.day;
+  const d = State.day, L = State.loads;
+  const act = (L && L.ok && L.active) || [];
   const stale = d && d.sync_stale_hours != null && d.sync_stale_hours > 24;
-  const show = d && d.ok && (!d.quiet || stale);
+  const hasDay = !!(d && d.ok && !d.quiet);
+  const show = act.length > 0 || hasDay || !!(d && d.ok && d.quiet && stale);
   room.hidden = cue.hidden = !show;
   if(!show){ room.innerHTML = ""; return; }
-  if(d.quiet){   // stale-unknowable: the words carry the warning
-    room.innerHTML = `<div class="cap2">THE DAY</div>` +
-      (d.words || []).map(w => `<div class="warn">${esc(w)}</div>`).join("");
-    cue.textContent = "▾ THE DAY";
-    return;
+  const dayWord = d && d.day ? new Date(d.day + "T12:00").toLocaleDateString("en-US",
+    {weekday:"long", month:"short", day:"numeric"}).toUpperCase() : "";
+  let h = "";
+
+  /* 1 · THE DAY — only when a stop is dated today: the ordered plan */
+  if(hasDay && !d.in_flight){
+    const stops = d.stops || [], n = stops.length + (d.unplaced || []).length;
+    const loads = d.loads || {};
+    h += `<div class="cap2">THE DAY · ${esc(dayWord)} · ${n} STOP${n === 1 ? "" : "S"}</div>`;
+    h += `<div class="basis">${esc(d.basis || "")}${
+      d.leave_by ? ` · leave by <b>${esc(d.leave_by)}</b>` : ""}</div>`;
+    if(d.conflict) h += `<div class="warn">⚠ ${esc(d.conflict)}</div>`;
+    stops.forEach((s, i) => {
+      const ld = loads[String(s.load_id)] || {};
+      h += `<div class="stopline"><span class="seq">${i + 1}.</span>
+        <span>${s.kind === "pickup" ? "PICKUP" : "DROP"} · #${esc(ld.load_number) || "——"} · ${esc(ld.broker) || ""}</span>
+        <span>${s.eta ? `eta ${esc(s.eta)}` : ""}${s.leg_mi != null ? ` · ${s.leg_mi} mi` : ""}</span></div>`;
+      h += haulStopHTML(s, ld.pu_number);
+    });
+    (d.unplaced || []).forEach(s => {
+      h += `<div class="warn">unplaced: ${esc(s.kind)} ${
+        esc(s.company || s.city || "unnamed stop")} — ${
+        s.geocode_miss ? "the geocoder refused this address" : "no city on the sheet"}</div>`;
+    });
   }
-  const stops = d.stops || [], loads = d.loads || {};
-  const dayWord = new Date(d.day + "T12:00").toLocaleDateString("en-US",
-    {weekday:"long", month:"short", day:"numeric"});
-  let h = `<div class="cap2">THE DAY · ${esc(dayWord.toUpperCase())} · ${
-    stops.length + (d.unplaced || []).length} STOP${
-    stops.length + (d.unplaced || []).length === 1 ? "" : "S"}</div>`;
-  h += `<div class="basis">${esc(d.basis || "")}${
-    d.leave_by ? ` · leave by <b>${esc(d.leave_by)}</b>` : ""}</div>`;
-  if(d.conflict) h += `<div class="warn">⚠ ${esc(d.conflict)}</div>`;
-  stops.forEach((s, i) => {
-    const ld = loads[String(s.load_id)] || {};
-    h += `<div class="stopline"><span class="seq">${i + 1}.</span>
-      <span>${s.kind === "pickup" ? "PICKUP" : "DROP"} · #${esc(ld.load_number) || "——"} · ${esc(ld.broker) || ""}</span>
-      <span>${s.eta ? `eta ${esc(s.eta)}` : ""}${s.leg_mi != null ? ` · ${s.leg_mi} mi` : ""}</span></div>`;
-    h += haulStopHTML(s, ld.pu_number);
-  });
-  (d.unplaced || []).forEach(s => {
-    h += `<div class="warn">unplaced: ${esc(s.kind)} ${
-      esc(s.company || s.city || "unnamed stop")} — ${
-      s.geocode_miss ? "the geocoder refused this address" : "no city on the sheet"}</div>`;
-  });
-  /* each load's marching orders, once */
-  Object.values(loads).forEach(ld => {
-    const broker = [ld.broker_agent && esc(ld.broker_agent),
-      ld.broker_phone && `<a href="tel:${esc(ld.broker_phone)}">${esc(ld.broker_phone)}</a>`,
-      ld.broker_email && `<a href="mailto:${esc(ld.broker_email)}">${esc(ld.broker_email)}</a>`,
-      ld.payment_terms && esc(ld.payment_terms)].filter(Boolean).join(" · ");
-    h += `<div class="cap2" style="margin-top:18px">#${esc(ld.load_number)} · ${
-      esc(ld.broker)} · ${ld.rate == null ? "——" : money(ld.rate)}${
-      ld.paid === "1" ? " · PAID" : ld.paid === "2" ? " · WRITE-OFF" : " · UNPAID"}</div>`;
-    if(ld.instructions_rest) h += `<div class="hlSpec">${esc(ld.instructions_rest)}</div>`;
-    if(broker) h += `<div class="hlBrokerLn">${broker}</div>`;
-    if((ld.drive_folder_link || "").startsWith("http"))
-      h += `<div class="hlBrokerLn"><a href="${esc(ld.drive_folder_link)}" target="_blank" rel="noopener">THE PAPERS — rate con, BOL, invoice</a></div>`;
-    h += `<div class="hlActs"><button class="btn go bolBtn" data-bol="${esc(ld.load_number)}">📄 MAKE BOL</button>
-      <a class="btn go" href="./sign.html" target="_blank" rel="noopener" style="text-decoration:none">✍️ FILL &amp; SIGN</a></div>`;
-  });
+
+  /* 2 · ON THE HOOK — hauling, nothing dated today: the road left */
+  if(hasDay && d.in_flight){
+    h += `<div class="cap2">ON THE HOOK · ${esc(dayWord)}</div>`;
+    h += `<div class="basis">${esc(d.basis || "")}</div>`;
+    (d.haul || []).forEach(hl => {
+      const days = hl.days_to_delivery;
+      const when = hl.delivery_date_raw || hl.delivery_date || "delivery date unknown";
+      const cnt = days == null ? "" : days === 0 ? " · TODAY" : ` · ${days} DAY${days === 1 ? "" : "S"} OUT`;
+      const fin = (hl.drops || [])[ (hl.drops || []).length - 1 ];
+      const road = fin && fin.leg_mi != null ? ` · ~${fin.leg_mi} mi / ${fin.leg_h} h of road left` : "";
+      h += `<div class="stopline"><span class="seq">→</span>
+        <span>#${esc(hl.load_number)} DELIVERS ${esc(when)}${esc(cnt)}${hl.delivery_time ? ` · ${esc(hl.delivery_time)}` : ""}${esc(road)}</span></div>`;
+    });
+  }
+  if(d && d.ok && d.quiet && stale)
+    h += (d.words || []).map(w => `<div class="warn">${esc(w)}</div>`).join("");
+
+  /* 3 · THE LOAD — the current load's whole picture, with the book to flip */
+  let sel = null;
+  if(act.length){
+    sel = act.find(l => l.id === State.fieldLoad) || act[0];
+    State.fieldLoad = sel.id;
+    const tier = { current: "ON THE HOOK", next: "BOOKED", delivered: "DELIVERED", undated: "NO DATES" };
+    h += `<div class="cap2"${h ? ' style="margin-top:18px"' : ""}>THE LOAD · ${act.length} ON THE BOOK</div>`;
+    h += `<select class="fieldSel" id="fieldLoadSel" aria-label="Which load to show">${
+      act.map(l => {
+        const when = l.status === "next" ? (l.pickup_date_raw || l.pickup_date || "")
+                                         : (l.delivery_date_raw || l.delivery_date || "");
+        const dest = [l.delivery_city, l.delivery_state].filter(Boolean).join(", ");
+        return `<option value="${l.id}"${l.id === sel.id ? " selected" : ""}>#${esc(l.load_number) || "——"} · ${
+          esc(l.broker)} → ${esc(dest) || "?"} · ${tier[l.status] || l.status} ${esc(when)}</option>`;
+      }).join("")}</select>`;
+    h += haulCard(sel);
+  }
+
+  /* 4 · the fine print + the re-plan */
   const subs = [];
-  if(d.eta_basis) subs.push(d.eta_basis);
-  if(d.hos_note) subs.push(d.hos_note);
+  if(hasDay && d.eta_basis) subs.push(d.eta_basis);
+  if(hasDay && d.hos_note) subs.push(d.hos_note);
   if(GEO.why && !GEO.fix) subs.push("no device fix — " + GEO.why);
+  if(L && L.sync_stale_hours != null) subs.push(L.sync_stale_hours < 0.1 ? "log read just now" : `log read ${L.sync_stale_hours}h ago`);
   h += subs.map(s => `<div class="sub">${esc(s)}</div>`).join("");
   h += `<div class="acts"><button class="btn go" id="dreplan">REPLAN FROM HERE</button></div>`;
   room.innerHTML = h;
-  cue.textContent = `▾ THE DAY — ${stops.length + (d.unplaced || []).length} stop${
-    stops.length + (d.unplaced || []).length === 1 ? "" : "s"}`;
+  cue.textContent = hasDay && !d.in_flight
+    ? `▾ THE DAY — ${(d.stops || []).length + (d.unplaced || []).length} stops`
+    : sel ? `▾ THE LOAD — #${sel.load_number}` : "▾ THE DAY";
   wireBolBtns(room);
+  const fs = $("fieldLoadSel");
+  if(fs) fs.addEventListener("change", e => {
+    e.stopPropagation();
+    State.fieldLoad = Number(fs.value);
+    paintDay();
+  });
   const rp = $("dreplan");
   if(rp) rp.addEventListener("click", e => {
     e.stopPropagation();      // law on the field's controls (ruled 08-03)
@@ -7522,10 +7554,15 @@ function grabFix(){
 async function loadDay(fresh){
   const fix = fresh ? await grabFix()
                     : (GEO.fix || await grabFix());
-  const r = await fetch(url("/api/hotshot/day"), { method:"POST",
-    headers: hdr({"Content-Type":"application/json"}),
-    body: JSON.stringify({ origin: fix }) });
-  State.day = await r.json();
+  /* the loads home (his current load + the book) and the day plan, together;
+     either may fail without taking the other down */
+  await Promise.all([
+    grab("/api/hotshot/loads").then(v => { State.loads = v; }).catch(() => {}),
+    fetch(url("/api/hotshot/day"), { method:"POST",
+      headers: hdr({"Content-Type":"application/json"}),
+      body: JSON.stringify({ origin: fix }) }).then(r => r.json())
+      .then(v => { State.day = v; }).catch(() => {})
+  ]);
   paintDay();
   if(!stage.classList.contains("entered")) separate();
 }
