@@ -250,8 +250,8 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .dayroom .warn{margin-top:10px;font:600 13px/1.5 var(--sans);color:var(--amber);
   border:1px solid rgba(var(--key),.4);border-radius:8px;padding:10px 13px}
 .dayroom .sub{margin-top:9px;font:400 10px/1.55 var(--mono);color:var(--dim)}
-.dayroom .stopline{display:flex;align-items:baseline;gap:10px;margin-top:12px;
-  font:700 12px/1 var(--mono)}
+.dayroom .stopline{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin-top:12px;
+  font:700 12px/1.35 var(--mono)}
 .dayroom .stopline .seq{color:var(--amber)}
 .dayroom .fieldSel{width:100%;margin-top:10px;padding:11px 12px;background:var(--glass);color:var(--ink);
   border:1px solid var(--line);border-radius:8px;font:600 12px/1.2 var(--mono);letter-spacing:.04em}
@@ -260,7 +260,8 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .roadSeg{margin-left:auto;display:flex;gap:6px}
 .roadSeg .btn{font-size:9px;letter-spacing:.14em}
 .roadSeg .btn.on{color:var(--amber);border-color:rgba(var(--key),.55);background:rgba(var(--key),.10)}
-.roadmap{height:280px;margin-top:12px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--glass)}
+.roadmap{position:relative;z-index:0;height:280px;margin-top:12px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--glass)}
+.doneBtn{margin-left:8px;font-size:8.5px;letter-spacing:.14em;padding:5px 8px;color:var(--amber);border-color:rgba(var(--key),.45)}
 .roadmap.night .leaflet-tile-pane{filter:invert(1) hue-rotate(190deg) saturate(.55) brightness(.82) contrast(1.05)}
 .roadmap.night .leaflet-control-attribution{background:rgba(10,14,24,.75);color:#9fb0cc}
 .roadmap.night .leaflet-control-attribution a{color:#c9d6ee}
@@ -1669,6 +1670,7 @@ function setTheme(paper, atBoot){
   if(atBoot) return;               /* nothing painted yet — the label was the job */
   dust();
   paintField(); paintConsider();
+  const rmEl = $("roadMap"); if(rmEl) rmEl.classList.toggle("night", !paper);
   if(ACTIVE !== null) renderRoom();
 }
 $("lamp").addEventListener("click", () => setTheme(!PAPER()));
@@ -2114,7 +2116,7 @@ function paintDay(){
     h += `<select class="fieldSel" id="fieldLoadSel" aria-label="Which load to show">${
       act.map(l => `<option value="${l.id}"${l.id === sel.id ? " selected" : ""}>${esc(fieldLoadLabel(l))}</option>`).join("")}</select>`;
     h += `<div id="fieldCard">${haulCard(sel, {road:true})}</div>`;
-    h += roadHTML();
+    h += `<div id="roadroom"></div>`;
   }
 
   /* 4 · the fine print + the re-plan */
@@ -2126,7 +2128,7 @@ function paintDay(){
   h += subs.map(s => `<div class="sub">${esc(s)}</div>`).join("");
   h += `<div class="acts"><button class="btn go" id="dreplan">REPLAN FROM HERE</button></div>`;
   room.innerHTML = h;
-  drawRoadMap();
+  paintRoad();
   wireRoadMode(room);
   const nStops = hasDay ? (d.stops || []).length + (d.unplaced || []).length : 0;
   cue.textContent = hasDay ? `▾ THE DAY — ${nStops} stop${nStops === 1 ? "" : "s"}`
@@ -2167,18 +2169,26 @@ function roadHTML(){
   const stops = r.stops || [], T = r.totals || {};
   h += `<div class="cap2" style="margin-top:18px">THE ROAD AHEAD · ${esc((r.mode || modeWord).toUpperCase())} · ${stops.length} STOP${stops.length === 1 ? "" : "S"}</div>`;
   h += `<div class="basis">${esc(r.basis || "")}${T.mi != null ? ` · ~${T.mi} mi / ${T.h} h${T.deadhead_mi ? ` (${T.deadhead_mi} mi empty)` : " (no empty miles)"}${T.days != null ? ` · done ${esc(T.done ? new Date(T.done).toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"}) : "")}` : ""}` : ""}</div>`;
+  if(State.roadPending) h += `<div class="sub">redrawing from the new fix…</div>`;
   if(r.note) h += `<div class="sub">${esc(r.note)}</div>`;
+  (r.caveats || []).forEach(c => { h += `<div class="sub">${esc(c)}</div>`; });
   if(r.unordered && r.why) h += `<div class="warn">⚠ stops are listed, not ordered — ${esc(r.why)}</div>`;
   (r.conflicts || []).forEach(c => { h += `<div class="warn">⚠ ${esc(c)}</div>`; });
-  h += `<div class="roadmap" id="roadMap"></div>`;
+  const mappable = (r.legs || []).length && typeof L !== "undefined";
+  h += mappable ? `<div class="roadmap" id="roadMap"></div>`
+    : `<div class="sub">no map — ${esc(r.unordered ? (r.why || "the router did not answer") : (typeof L === "undefined" ? "the map library did not load" : "no legs to draw"))}</div>`;
+  if(mappable && L.Browser && L.Browser.mobile) h += `<div class="sub" style="margin-top:4px">pinch to zoom · two fingers to move the map</div>`;
   stops.forEach((s, i) => {
     const place = [s.city, s.state].filter(Boolean).join(", ");
     const when = [s.date_raw || s.date, s.time_window].filter(Boolean).join(" · ");
     const leg = s.leg_mi != null ? `${s.loaded_leg ? "loaded" : "empty"} ${s.leg_mi} mi / ${s.leg_h} h` : "";
-    const extra = [s.wait_h ? `waits ${s.wait_h}h for the appointment` : "", s.rest_h ? `${s.rest_h}h off on the way` : ""].filter(Boolean).join(" · ");
+    const lg = (r.legs || [])[i];
+    const extra = [s.wait_h ? `waits ${s.wait_h}h for the appointment` : "", s.rest_h ? `${s.rest_h}h off on the way` : "",
+                   s.window_assumed || "", s.note || "", lg && lg.geometry_why ? `line not drawn — ${lg.geometry_why}` : ""].filter(Boolean).join(" · ");
     h += `<div class="stopline"><span class="seq">${i + 1}.</span>
       <span>${s.kind === "pickup" ? "PICKUP" : "DROP"} · #${esc(s.load_number) || "——"} · ${esc(place) || esc(s.company) || "——"}${when ? ` · ${esc(when)}` : ""}</span>
-      <span>${s.eta ? `eta ${esc(s.eta)}` : ""}${leg ? ` · ${esc(leg)}` : ""}</span></div>`;
+      <span>${s.eta ? `eta ${esc(s.eta)}` : ""}${leg ? ` · ${esc(leg)}` : ""}${
+        s.today ? ` <button type="button" class="btn doneBtn" data-done="${s.id}" title="made this stop — retire it from the road">✓ DONE</button>` : ""}</span></div>`;
     if(extra) h += `<div class="sub" style="margin-top:2px">${esc(extra)}</div>`;
   });
   (r.unplaced || []).forEach(s => {
@@ -2193,26 +2203,72 @@ function roadHTML(){
     h += `<div class="sub">${esc(W.title)}</div>`;
   }
   if(r.eta_basis) h += `<div class="sub">${esc(r.eta_basis)}</div>`;
+  if(r.hos_note) h += `<div class="sub">${esc(r.hos_note)}</div>`;
   return h;
 }
 
+/* the road paints in its own room, so the select's focus guard, a docket
+   act or the lamp never has to touch the map — and the map survives when
+   the road itself has not changed */
+let ROAD_DIRTY = false;
+function paintRoad(){
+  const rr = $("roadroom");
+  if(!rr) return;
+  rr.innerHTML = roadHTML();
+  drawRoadMap();
+  rr.querySelectorAll(".doneBtn").forEach(b =>
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      markDone(Number(b.dataset.done));
+    }));
+}
+
+/* DONE taps: the Log has no picked-up/delivered mark, so his hand is the
+   fact — kept on THIS device only (localStorage, pruned past their day),
+   sent with each route request, never held by the spine */
+function doneStops(){
+  let d = {};
+  try{ d = JSON.parse(localStorage.getItem("almanac_done_stops") || "{}") || {}; }catch(_){ d = {}; }
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  let changed = false;
+  Object.keys(d).forEach(k => { if(d[k] < today){ delete d[k]; changed = true; } });
+  if(changed){ try{ localStorage.setItem("almanac_done_stops", JSON.stringify(d)); }catch(_){} }
+  return d;
+}
+function markDone(stopId){
+  const d = doneStops();
+  const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  d[String(stopId)] = today;
+  try{ localStorage.setItem("almanac_done_stops", JSON.stringify(d)); }catch(_){}
+  toast("stop retired from the road — redrawing");
+  loadRoad(GEO.fix).catch(() => {});
+}
+
+let ROAD_VIEW = null;
 function drawRoadMap(){
-  if(ROADMAP){ try{ ROADMAP.remove(); }catch(_){} ROADMAP = null; }
   const el = $("roadMap"), r = State.road;
+  if(ROADMAP && (!el || ROADMAP._roadFor !== r)){ try{ ROADMAP.remove(); }catch(_){} ROADMAP = null; }
   if(!el || !r || !r.ok || !(r.legs || []).length || typeof L === "undefined") return;
+  if(stage.classList.contains("entered")){ ROAD_DIRTY = true; return; }   // a hidden map is a 0×0 map
+  if(ROADMAP && ROADMAP._roadFor === r && ROADMAP.getContainer() === el){ ROADMAP.invalidateSize(); return; }
+  if(ROADMAP){ try{ ROADMAP.remove(); }catch(_){} ROADMAP = null; ROAD_VIEW = null; }
   const paper = document.documentElement.classList.contains("paper");
-  const m = ROADMAP = L.map(el, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
+  const m = ROADMAP = L.map(el, { zoomControl: true, attributionControl: true, scrollWheelZoom: false,
+                                  dragging: !(L.Browser && L.Browser.mobile) });
+  m._roadFor = r;
+  m.on("moveend", () => { ROAD_VIEW = { c: m.getCenter(), z: m.getZoom() }; });
   /* OSM's own tiles — the book map's proven source; CARTO's free tiles now
      stamp "API KEY REQUIRED" (caught in the pane 09-04). Night gets its dark
      map from a CSS invert on the tile pane, not from a keyed provider. */
   el.classList.toggle("night", !paper);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    { attribution: "&copy; OpenStreetMap contributors", maxZoom: 18 }).addTo(m);
+    { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors', maxZoom: 18 }).addTo(m);
   const pin = color => L.divIcon({ className: "", iconSize: [14, 14], iconAnchor: [7, 7],
     html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>` });
   const bounds = L.latLngBounds([]);
   const first = (r.legs[0].geometry || [])[0];
-  if(first){ L.marker(first, { icon: pin("#FFD600"), title: "where you sit" }).addTo(m); bounds.extend(first); }
+  const startWord = (r.basis || "").startsWith("from home") ? "start — home" : "where you sit";
+  if(first){ L.marker(first, { icon: pin("#FFD600"), title: startWord }).addTo(m).bindTooltip(startWord, { direction: "top", offset: [0, -10], className: "ltip", opacity: 1 }); bounds.extend(first); }
   r.legs.forEach((leg, i) => {
     if(leg.geometry && leg.geometry.length){
       const line = L.polyline(leg.geometry, { color: leg.loaded ? "#4FC3F7" : "#FFD600", weight: 4, opacity: .85,
@@ -2223,14 +2279,15 @@ function drawRoadMap(){
     if(s && s.lat != null){
       const ll = [s.lat, s.lng];
       L.marker(ll, { icon: pin(s.kind === "pickup" ? "#00E676" : "#ff4444"),
-                     title: `${s.kind} #${s.load_number} ${s.city || ""}` }).addTo(m)
+                     title: `${s.kind} #${s.load_number || "——"} ${s.city || ""}` }).addTo(m)
         .bindTooltip(`${i + 1}. ${s.kind.toUpperCase()} #${esc(s.load_number)} · ${esc(s.city || s.company || "")}${s.eta ? " · " + esc(s.eta) : ""}`,
                      { direction: "top", offset: [0, -10], className: "ltip", opacity: 1 });
       bounds.extend(ll);
     }
   });
-  if(bounds.isValid()) m.fitBounds(bounds, { padding: [26, 26], maxZoom: 9 });
-  setTimeout(() => { try{ m.invalidateSize(); if(bounds.isValid()) m.fitBounds(bounds, { padding: [26, 26], maxZoom: 9 }); }catch(_){} }, 60);
+  const fit = () => { if(ROAD_VIEW) m.setView(ROAD_VIEW.c, ROAD_VIEW.z); else if(bounds.isValid()) m.fitBounds(bounds, { padding: [26, 26], maxZoom: 9 }); };
+  fit();
+  setTimeout(() => { try{ m.invalidateSize(); fit(); }catch(_){} }, 60);
 }
 
 function wireRoadMode(scope){
@@ -2242,7 +2299,8 @@ function wireRoadMode(scope){
       State.roadMode = m;
       try{ localStorage.setItem("almanac_road_mode", m); }catch(_){}
       State.road = null; State.roadErr = null;
-      paintDay();
+      scope.querySelectorAll(".roadMode").forEach(x => x.classList.toggle("on", x.dataset.m === m));
+      paintRoad();
       loadRoad(GEO.fix).catch(() => {});
     }));
 }
@@ -2250,19 +2308,22 @@ function wireRoadMode(scope){
 let ROAD_SEQ = 0;
 async function loadRoad(fix){
   const seq = ++ROAD_SEQ;
+  State.roadPending = true;
+  if(State.road) paintRoad();     // keep the old map, say it is being redrawn
   try{
     const r = await fetch(url("/api/hotshot/route"), { method:"POST",
       headers: hdr({"Content-Type":"application/json"}),
-      body: JSON.stringify({ origin: fix || null, mode: State.roadMode }) });
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    const v = await r.json();
+      body: JSON.stringify({ origin: fix || null, mode: State.roadMode, done: Object.keys(doneStops()).map(Number) }) });
+    const v = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(v.unavailable || v.error || ("HTTP " + r.status));
     if(seq !== ROAD_SEQ) return;
     State.road = v; State.roadErr = null;
   }catch(e){
     if(seq !== ROAD_SEQ) return;
     State.road = null; State.roadErr = String(e.message || e);
   }
-  paintDay();
+  State.roadPending = false;
+  paintRoad();
   if(!stage.classList.contains("entered")) separate();
 }
 
@@ -2366,6 +2427,7 @@ $("home").addEventListener("click", () => {
   D.forEach(x => x.el.classList.remove("active"));
   document.documentElement.style.setProperty("--key","255,164,25");
   ACTIVE = null; layout(); $("room").innerHTML = "";
+  if(ROAD_DIRTY || ROADMAP){ ROAD_DIRTY = false; drawRoadMap(); }
   history.replaceState(null, "", location.pathname + location.search);
 });
 
@@ -3776,7 +3838,7 @@ function wireBookMap(){
   if(!pts.length) return;
   const m = BOOKMAP = L.map(el, {scrollWheelZoom: true});
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {maxZoom: 19, attribution: "© OpenStreetMap"}).addTo(m);
+    {maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>' }).addTo(m);
   pts.forEach(s => {
     const icon = L.divIcon({className: "",
       html: `<div class="lpin${s.kind === "fuel" ? " pfuel2" : ""}">${esc(s.pin || "")}</div>`,
