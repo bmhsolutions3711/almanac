@@ -237,7 +237,7 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
    over the orbs. In a room the wrapper collapses to the rail. */
 .fieldwrap{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .stage.entered .fieldwrap{flex:0 0 auto;overflow:hidden}
-.daycue{position:sticky;bottom:10px;display:block;margin:-34px auto 10px;width:max-content;
+.daycue{position:sticky;bottom:10px;display:block;margin:10px auto 10px;width:max-content;
   font:700 9px/1 var(--mono);letter-spacing:.19em;color:var(--amber);cursor:pointer;
   background:var(--glass);border:1px solid rgba(var(--key),.35);border-radius:20px;
   padding:7px 12px;backdrop-filter:blur(11px)}
@@ -261,6 +261,9 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .roadSeg .btn{font-size:9px;letter-spacing:.14em}
 .roadSeg .btn.on{color:var(--amber);border-color:rgba(var(--key),.55);background:rgba(var(--key),.10)}
 .roadmap{height:280px;margin-top:12px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--glass)}
+.roadmap.night .leaflet-tile-pane{filter:invert(1) hue-rotate(190deg) saturate(.55) brightness(.82) contrast(1.05)}
+.roadmap.night .leaflet-control-attribution{background:rgba(10,14,24,.75);color:#9fb0cc}
+.roadmap.night .leaflet-control-attribution a{color:#c9d6ee}
 @media (max-width:520px){.roadmap{height:220px}}
 .wxbox{margin-top:12px;border-left:3px solid var(--amber);background:rgba(var(--key),.08);border-radius:0 8px 8px 0;padding:10px 13px;font:400 12px/1.65 var(--sans)}
 .wxbox .t{font:700 9.5px/1 var(--mono);letter-spacing:.18em;color:var(--amber);margin-bottom:6px}
@@ -319,7 +322,7 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
   .consider .acts .btn{padding:6px 10px;font-size:9.5px}
   .consider .att{margin-top:4px;font-size:7.5px}
   .consider .cml{margin-top:6px;font-size:11px}
-  .daycue{margin:-6px auto 8px}   /* no overlap with the compact card */
+  .daycue{margin:8px auto 8px}
 }
 
 /* ══ THE DOCKET BREATHES (card #114) — a slow glow when NEW items wait,
@@ -2199,9 +2202,12 @@ function drawRoadMap(){
   if(!el || !r || !r.ok || !(r.legs || []).length || typeof L === "undefined") return;
   const paper = document.documentElement.classList.contains("paper");
   const m = ROADMAP = L.map(el, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
-  L.tileLayer(paper ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    { attribution: "&copy; OpenStreetMap &copy; CARTO", maxZoom: 18 }).addTo(m);
+  /* OSM's own tiles — the book map's proven source; CARTO's free tiles now
+     stamp "API KEY REQUIRED" (caught in the pane 09-04). Night gets its dark
+     map from a CSS invert on the tile pane, not from a keyed provider. */
+  el.classList.toggle("night", !paper);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { attribution: "&copy; OpenStreetMap contributors", maxZoom: 18 }).addTo(m);
   const pin = color => L.divIcon({ className: "", iconSize: [14, 14], iconAnchor: [7, 7],
     html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>` });
   const bounds = L.latLngBounds([]);
