@@ -1504,6 +1504,7 @@ body.hot .act .h .n{color:var(--hot)}
 :root.paper .panelbox input{background:rgba(255,252,244,.75)}
 /* dark type on the amber/green map pins needs cream once amber runs deep */
 :root.paper .lpin.pfuel2,:root.paper .spin.pfuel{color:#FFF6E2}
+:root.paper .hlStop .pu{color:#FFF6E2}
 </style>
 </head>
 <body>
@@ -1632,7 +1633,7 @@ const money = v => v == null ? null :
 const short = v => v == null ? "——" :
   "$" + Math.round(Number(v)).toLocaleString("en-US");
 
-const State = { standing:null, standings:null, board:null, radio:null, learn:null,
+const State = { fieldLoad:null, loads:null, day:null, loadsErr:null, dayErr:null, standing:null, standings:null, board:null, radio:null, learn:null,
                 soul:null, held:null, watch:null, at:null, err:null, glasses:null,
                 hand:null, sidech:null, diet:null, brief:null,
                 fin:{ summary:null, loads:null, expenses:null, rollup:null,
@@ -2027,25 +2028,40 @@ function paintField(){
 function paintDay(){
   const room = $("dayroom"), cue = $("daycue");
   if(!room) return;
+  /* a background repaint must not yank the book out from under his thumb */
+  const ae = document.activeElement;
+  if(ae && ae.id === "fieldLoadSel") return;
   const d = State.day, L = State.loads;
   const act = (L && L.ok && L.active) || [];
+  const todayIso = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const dayOk = !!(d && d.ok && d.day === todayIso);   // a prior open's plan never wears today's header
   const stale = d && d.sync_stale_hours != null && d.sync_stale_hours > 24;
-  const hasDay = !!(d && d.ok && !d.quiet);
-  const show = act.length > 0 || hasDay || !!(d && d.ok && d.quiet && stale);
+  const hasDay = dayOk && !d.quiet && !d.in_flight;
+  const haul = (dayOk && d.haul) || [];
+  const errs = [];
+  if(State.dayErr) errs.push("the day plan did not answer — " + State.dayErr);
+  if(State.loadsErr) errs.push("the loads home did not answer — " + State.loadsErr);
+  if(d && d.ok === false && d.unavailable) errs.push(d.unavailable);
+  if(d && d.day && d.day !== todayIso && !State.dayErr) errs.push("the plan on hand is for " + d.day + " — replan for today");
+  const syncErr = (L && L.sync_error) || (d && d.sync_error);
+  if(syncErr) errs.push("the log pull failed — " + syncErr);
+  const show = act.length > 0 || hasDay || haul.length > 0 || errs.length > 0 || !!(dayOk && d.quiet && stale);
   room.hidden = cue.hidden = !show;
   if(!show){ room.innerHTML = ""; return; }
-  const dayWord = d && d.day ? new Date(d.day + "T12:00").toLocaleDateString("en-US",
-    {weekday:"long", month:"short", day:"numeric"}).toUpperCase() : "";
+  const dayWord = new Date(todayIso + "T12:00").toLocaleDateString("en-US",
+    {weekday:"long", month:"short", day:"numeric"}).toUpperCase();
   let h = "";
+  h += errs.map(w => `<div class="warn">⚠ ${esc(w)}</div>`).join("");
 
-  /* 1 · THE DAY — only when a stop is dated today: the ordered plan */
-  if(hasDay && !d.in_flight){
+  /* 1 · THE DAY — when a stop is dated today: the ordered plan */
+  if(hasDay){
     const stops = d.stops || [], n = stops.length + (d.unplaced || []).length;
     const loads = d.loads || {};
     h += `<div class="cap2">THE DAY · ${esc(dayWord)} · ${n} STOP${n === 1 ? "" : "S"}</div>`;
     h += `<div class="basis">${esc(d.basis || "")}${
       d.leave_by ? ` · leave by <b>${esc(d.leave_by)}</b>` : ""}</div>`;
     if(d.conflict) h += `<div class="warn">⚠ ${esc(d.conflict)}</div>`;
+    if(d.unordered && d.why) h += `<div class="warn">⚠ stops are listed, not ordered — ${esc(d.why)}</div>`;
     stops.forEach((s, i) => {
       const ld = loads[String(s.load_id)] || {};
       h += `<div class="stopline"><span class="seq">${i + 1}.</span>
@@ -2060,21 +2076,21 @@ function paintDay(){
     });
   }
 
-  /* 2 · ON THE HOOK — hauling, nothing dated today: the road left */
-  if(hasDay && d.in_flight){
-    h += `<div class="cap2">ON THE HOOK · ${esc(dayWord)}</div>`;
-    h += `<div class="basis">${esc(d.basis || "")}</div>`;
-    (d.haul || []).forEach(hl => {
+  /* 2 · ON THE HOOK — every load in flight, beside whatever is dated today */
+  if(haul.length){
+    h += `<div class="cap2"${h ? ' style="margin-top:18px"' : ""}>ON THE HOOK · ${esc(dayWord)}</div>`;
+    if(!hasDay) h += `<div class="basis">${esc(d.basis || "")}</div>`;
+    haul.forEach(hl => {
       const days = hl.days_to_delivery;
       const when = hl.delivery_date_raw || hl.delivery_date || "delivery date unknown";
-      const cnt = days == null ? "" : days === 0 ? " · TODAY" : ` · ${days} DAY${days === 1 ? "" : "S"} OUT`;
-      const fin = (hl.drops || [])[ (hl.drops || []).length - 1 ];
-      const road = fin && fin.leg_mi != null ? ` · ~${fin.leg_mi} mi / ${fin.leg_h} h of road left` : "";
+      const cnt = days == null ? "" : ` · ${days} DAY${days === 1 ? "" : "S"} OUT`;
+      const road = hl.road_mi != null ? ` · ~${hl.road_mi} mi / ${hl.road_h} h of road left`
+                 : hl.road_why ? ` · road: ${hl.road_why}` : "";
       h += `<div class="stopline"><span class="seq">→</span>
-        <span>#${esc(hl.load_number)} DELIVERS ${esc(when)}${esc(cnt)}${hl.delivery_time ? ` · ${esc(hl.delivery_time)}` : ""}${esc(road)}</span></div>`;
+        <span>#${esc(hl.load_number) || "——"} DELIVERS ${esc(when)}${esc(cnt)}${hl.delivery_time ? ` · ${esc(hl.delivery_time)}` : ""}${esc(road)}</span></div>`;
     });
   }
-  if(d && d.ok && d.quiet && stale)
+  if(dayOk && d.quiet && stale)
     h += (d.words || []).map(w => `<div class="warn">${esc(w)}</div>`).join("");
 
   /* 3 · THE LOAD — the current load's whole picture, with the book to flip */
@@ -2082,43 +2098,48 @@ function paintDay(){
   if(act.length){
     sel = act.find(l => l.id === State.fieldLoad) || act[0];
     State.fieldLoad = sel.id;
-    const tier = { current: "ON THE HOOK", next: "BOOKED", delivered: "DELIVERED", undated: "NO DATES" };
     h += `<div class="cap2"${h ? ' style="margin-top:18px"' : ""}>THE LOAD · ${act.length} ON THE BOOK</div>`;
     h += `<select class="fieldSel" id="fieldLoadSel" aria-label="Which load to show">${
-      act.map(l => {
-        const when = l.status === "next" ? (l.pickup_date_raw || l.pickup_date || "")
-                                         : (l.delivery_date_raw || l.delivery_date || "");
-        const dest = [l.delivery_city, l.delivery_state].filter(Boolean).join(", ");
-        return `<option value="${l.id}"${l.id === sel.id ? " selected" : ""}>#${esc(l.load_number) || "——"} · ${
-          esc(l.broker)} → ${esc(dest) || "?"} · ${tier[l.status] || l.status} ${esc(when)}</option>`;
-      }).join("")}</select>`;
-    h += haulCard(sel);
+      act.map(l => `<option value="${l.id}"${l.id === sel.id ? " selected" : ""}>${esc(fieldLoadLabel(l))}</option>`).join("")}</select>`;
+    h += `<div id="fieldCard">${haulCard(sel)}</div>`;
   }
 
   /* 4 · the fine print + the re-plan */
   const subs = [];
-  if(hasDay && d.eta_basis) subs.push(d.eta_basis);
-  if(hasDay && d.hos_note) subs.push(d.hos_note);
+  if(dayOk && d.eta_basis) subs.push(d.eta_basis);
+  if(dayOk && (hasDay || haul.length) && d.hos_note) subs.push(d.hos_note);
   if(GEO.why && !GEO.fix) subs.push("no device fix — " + GEO.why);
   if(L && L.sync_stale_hours != null) subs.push(L.sync_stale_hours < 0.1 ? "log read just now" : `log read ${L.sync_stale_hours}h ago`);
   h += subs.map(s => `<div class="sub">${esc(s)}</div>`).join("");
   h += `<div class="acts"><button class="btn go" id="dreplan">REPLAN FROM HERE</button></div>`;
   room.innerHTML = h;
-  cue.textContent = hasDay && !d.in_flight
-    ? `▾ THE DAY — ${(d.stops || []).length + (d.unplaced || []).length} stops`
-    : sel ? `▾ THE LOAD — #${sel.load_number}` : "▾ THE DAY";
+  const nStops = hasDay ? (d.stops || []).length + (d.unplaced || []).length : 0;
+  cue.textContent = hasDay ? `▾ THE DAY — ${nStops} stop${nStops === 1 ? "" : "s"}`
+    : sel ? `▾ THE LOAD — #${esc(sel.load_number) || "——"}` : errs.length ? "▾ THE DAY — did not answer" : "▾ THE DAY";
   wireBolBtns(room);
   const fs = $("fieldLoadSel");
   if(fs) fs.addEventListener("change", e => {
     e.stopPropagation();
     State.fieldLoad = Number(fs.value);
-    paintDay();
+    const l = act.find(x => x.id === State.fieldLoad);
+    const card = $("fieldCard");
+    if(l && card){ card.innerHTML = haulCard(l); wireBolBtns(card); cue.textContent = `▾ THE LOAD — #${esc(l.load_number) || "——"}`; }
   });
   const rp = $("dreplan");
   if(rp) rp.addEventListener("click", e => {
     e.stopPropagation();      // law on the field's controls (ruled 08-03)
     loadDay(true).catch(() => {});
   });
+}
+
+/* the option label: status and date up front — a phone's ellipsis eats the
+   broker's tail, never the tier */
+function fieldLoadLabel(l){
+  const tier = { current: "ON THE HOOK", next: "BOOKED", delivered: "DELIVERED", undated: "NO DATES" };
+  const when = l.status === "next" ? (l.pickup_date_raw || l.pickup_date || "")
+                                   : (l.delivery_date_raw || l.delivery_date || "");
+  const dest = [l.delivery_city, l.delivery_state].filter(Boolean).join(", ");
+  return `#${l.load_number || "——"} · ${tier[l.status] || l.status} ${when} · ${l.broker} → ${dest || "?"}`;
 }
 
 /* the ONE thing the spine puts in front of him — chosen by a stated rule,
@@ -3653,8 +3674,11 @@ function wireBookMap(){
    picture, served from the loads home. Every field the sheet carries, or
    "——" — never a guess. Paid is read-only here: his hand edits the sheet. */
 async function loadHaul(){
-  try{ HS.haul = await grab("/api/hotshot/loads"); HS.haulErr = null; }
-  catch(e){ HS.haulErr = String(e.message || e); }
+  /* ONE home for the book: State.loads — the field and this tab read the
+     same payload, and a refresh here repaints the field too */
+  try{ State.loads = await grab("/api/hotshot/loads"); State.loadsErr = null; }
+  catch(e){ State.loadsErr = String(e.message || e); }
+  paintDay();
 }
 
 function haulStamp(d){
@@ -3777,10 +3801,10 @@ async function openRateCon(row, num, btn){
 }
 
 function haulHTML(){
-  const d = HS.haul;
-  if(HS.haulErr) return `<div class="panel" style="margin-top:10px">
+  const d = State.loads;
+  if(State.loadsErr) return `<div class="panel" style="margin-top:10px">
     <div class="cap">the haul</div>
-    <div class="hlBrokerLn">the loads home is unreachable — ${esc(HS.haulErr)}</div></div>`;
+    <div class="hlBrokerLn">the loads home is unreachable — ${esc(State.loadsErr)}</div></div>`;
   if(!d) return `<div class="panel" style="margin-top:10px">
     <div class="cap">the haul</div><div class="hlBrokerLn">reading the log…</div></div>`;
   const act = d.active || [];
@@ -3788,8 +3812,7 @@ function haulHTML(){
     <div class="cap">the haul</div>
     <div class="hlBrokerLn">nothing on the hook and nothing booked — the log is empty of live loads</div>
     ${haulStamp(d)}</div>`;
-  const openId = HS.haulOpen;
-  const hero = act.find(l => l.id === openId) || act[0];
+  const hero = act.find(l => l.id === State.fieldLoad) || act[0];
   const rest = act.filter(l => l.id !== hero.id);
   const peek = rest.map(l => {
     const dest = [l.delivery_city, l.delivery_state].filter(Boolean).join(", ");
@@ -3819,13 +3842,13 @@ function wireHaul(){
       await fetch(url("/api/loads/refresh"), { method:"POST",
         headers: hdr({"Content-Type":"application/json"}), body:"{}" });
       await loadHaul();
-    }catch(err){ HS.haulErr = String(err.message || err); }
+    }catch(err){ State.loadsErr = String(err.message || err); }
     HS.haulBusy = false; renderRoom();
   });
   R.querySelectorAll(".hlRow").forEach(row =>
     row.addEventListener("click", e => {
       e.stopPropagation();
-      HS.haulOpen = Number(row.dataset.h);
+      State.fieldLoad = Number(row.dataset.h);
       renderRoom();
     }));
 }
@@ -7585,20 +7608,31 @@ function grabFix(){
       { enableHighAccuracy:false, timeout:10000, maximumAge:300000 });
   });
 }
-async function loadDay(fresh){
+let DAY_SEQ = 0;
+async function loadDay(fresh, force){
+  /* the boot fires load() twice and REPLAN re-enters — the LAST call wins,
+     never the last to arrive (loadFin's law); a failed read is RECORDED, never
+     left as yesterday's answer wearing today's header */
+  const seq = ++DAY_SEQ;
+  const rp = $("dreplan"); if(rp){ rp.disabled = true; rp.textContent = "REPLANNING…"; }
   const fix = fresh ? await grabFix()
                     : (GEO.fix || await grabFix());
-  /* the loads home (his current load + the book) and the day plan, together;
-     either may fail without taking the other down */
   await Promise.all([
-    grab("/api/hotshot/loads").then(v => { State.loads = v; }).catch(() => {}),
+    grab("/api/hotshot/loads")
+      .then(v => { if(seq !== DAY_SEQ) return; State.loads = v; State.loadsErr = null; })
+      .catch(e => { if(seq !== DAY_SEQ) return; State.loadsErr = String(e.message || e); }),
     fetch(url("/api/hotshot/day"), { method:"POST",
       headers: hdr({"Content-Type":"application/json"}),
-      body: JSON.stringify({ origin: fix }) }).then(r => r.json())
-      .then(v => { State.day = v; }).catch(() => {})
+      body: JSON.stringify({ origin: fix, force: !!(fresh || force) }) })
+      .then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(v => { if(seq !== DAY_SEQ) return; State.day = v; State.dayErr = null; })
+      .catch(e => { if(seq !== DAY_SEQ) return; State.day = null; State.dayErr = String(e.message || e); })
   ]);
+  if(seq !== DAY_SEQ) return;
   paintDay();
   if(!stage.classList.contains("entered")) separate();
+  if(fresh && (State.dayErr || State.loadsErr))
+    toast("replan did not answer — " + (State.dayErr || State.loadsErr));
 }
 $("daycue").addEventListener("click", e => {
   e.stopPropagation();      // law on the field's controls (ruled 08-03)
@@ -7626,7 +7660,7 @@ async function load(keep){
     deriveTemp(); paintField(); stampRead();
     /* the day card rides AFTER the field paints — a hung geolocation
        prompt must never hold the desk (errors swallowed, fan-out law) */
-    loadDay().catch(() => {});
+    loadDay(false, keep === true).catch(() => {});
     /* an ask-shaped push deep-links here (#hand) — open the docket once,
        then clear the hash so a reload lands on the field */
     if(location.hash === "#hand"){
