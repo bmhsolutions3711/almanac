@@ -257,6 +257,15 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
   border:1px solid var(--line);border-radius:8px;font:600 12px/1.2 var(--mono);letter-spacing:.04em}
 .dayroom .fieldSel:focus{outline:none;border-color:rgba(var(--key),.5)}
 .dayroom .acts{margin-top:14px;display:flex;gap:10px;align-items:center}
+.roadSeg{margin-left:auto;display:flex;gap:6px}
+.roadSeg .btn{font-size:9px;letter-spacing:.14em}
+.roadSeg .btn.on{color:var(--amber);border-color:rgba(var(--key),.55);background:rgba(var(--key),.10)}
+.roadmap{height:280px;margin-top:12px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--glass)}
+@media (max-width:520px){.roadmap{height:220px}}
+.wxbox{margin-top:12px;border-left:3px solid var(--amber);background:rgba(var(--key),.08);border-radius:0 8px 8px 0;padding:10px 13px;font:400 12px/1.65 var(--sans)}
+.wxbox .t{font:700 9.5px/1 var(--mono);letter-spacing:.18em;color:var(--amber);margin-bottom:6px}
+.wxbox.danger{border-left-color:#ff4444;background:rgba(255,68,68,.09)}
+.wxbox.danger .t{color:#ff6b6b}
 .dayroom .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
 
 /* THE HAUL (card #171) — the operations tab's full picture, in the room */
@@ -1633,7 +1642,7 @@ const money = v => v == null ? null :
 const short = v => v == null ? "——" :
   "$" + Math.round(Number(v)).toLocaleString("en-US");
 
-const State = { fieldLoad:null, loads:null, day:null, loadsErr:null, dayErr:null, standing:null, standings:null, board:null, radio:null, learn:null,
+const State = { fieldLoad:null, loads:null, day:null, loadsErr:null, dayErr:null, road:null, roadErr:null, roadMode:(function(){ try{ return localStorage.getItem('almanac_road_mode') || 'full'; }catch(_){ return 'full'; } })(), standing:null, standings:null, board:null, radio:null, learn:null,
                 soul:null, held:null, watch:null, at:null, err:null, glasses:null,
                 hand:null, sidech:null, diet:null, brief:null,
                 fin:{ summary:null, loads:null, expenses:null, rollup:null,
@@ -2101,7 +2110,8 @@ function paintDay(){
     h += `<div class="cap2"${h ? ' style="margin-top:18px"' : ""}>THE LOAD · ${act.length} ON THE BOOK</div>`;
     h += `<select class="fieldSel" id="fieldLoadSel" aria-label="Which load to show">${
       act.map(l => `<option value="${l.id}"${l.id === sel.id ? " selected" : ""}>${esc(fieldLoadLabel(l))}</option>`).join("")}</select>`;
-    h += `<div id="fieldCard">${haulCard(sel)}</div>`;
+    h += `<div id="fieldCard">${haulCard(sel, {road:true})}</div>`;
+    h += roadHTML();
   }
 
   /* 4 · the fine print + the re-plan */
@@ -2113,6 +2123,8 @@ function paintDay(){
   h += subs.map(s => `<div class="sub">${esc(s)}</div>`).join("");
   h += `<div class="acts"><button class="btn go" id="dreplan">REPLAN FROM HERE</button></div>`;
   room.innerHTML = h;
+  drawRoadMap();
+  wireRoadMode(room);
   const nStops = hasDay ? (d.stops || []).length + (d.unplaced || []).length : 0;
   cue.textContent = hasDay ? `▾ THE DAY — ${nStops} stop${nStops === 1 ? "" : "s"}`
     : sel ? `▾ THE LOAD — #${esc(sel.load_number) || "——"}` : errs.length ? "▾ THE DAY — did not answer" : "▾ THE DAY";
@@ -2123,13 +2135,129 @@ function paintDay(){
     State.fieldLoad = Number(fs.value);
     const l = act.find(x => x.id === State.fieldLoad);
     const card = $("fieldCard");
-    if(l && card){ card.innerHTML = haulCard(l); wireBolBtns(card); cue.textContent = `▾ THE LOAD — #${esc(l.load_number) || "——"}`; }
+    if(l && card){ card.innerHTML = haulCard(l, {road:true}); wireBolBtns(card); wireRoadMode(card); cue.textContent = `▾ THE LOAD — #${esc(l.load_number) || "——"}`; }
   });
   const rp = $("dreplan");
   if(rp) rp.addEventListener("click", e => {
     e.stopPropagation();      // law on the field's controls (ruled 08-03)
     loadDay(true).catch(() => {});
   });
+}
+
+/* THE ROAD AHEAD (card #179, his ask 09-04): the whole book from where he
+   sits — LoadCalc's instrument, grown into the desk. FULL = one load at a
+   time; PARTIAL = the cheapest legal order across the book (running
+   partials). Legs solid when loaded, dashed when empty; ETAs HOS-shaped
+   with waits and conflicts said; weather at each stop's hour. */
+let ROADMAP = null;
+function roadHTML(){
+  const r = State.road;
+  let h = "";
+  const modeWord = State.roadMode === "partial" ? "PARTIAL" : "FULL";
+  if(State.roadErr){
+    return `<div class="cap2" style="margin-top:18px">THE ROAD AHEAD · ${modeWord}</div>
+      <div class="warn">⚠ the road did not answer — ${esc(State.roadErr)}</div>`;
+  }
+  if(!r) return `<div class="cap2" style="margin-top:18px">THE ROAD AHEAD · ${modeWord}</div><div class="sub">drawing the road…</div>`;
+  if(r.quiet) return `<div class="cap2" style="margin-top:18px">THE ROAD AHEAD</div><div class="basis">${esc((r.words || [])[0] || "")}</div>`;
+  if(r.ok === false) return `<div class="cap2" style="margin-top:18px">THE ROAD AHEAD · ${modeWord}</div><div class="warn">⚠ ${esc(r.unavailable || "the road could not be drawn")}</div>`;
+  const stops = r.stops || [], T = r.totals || {};
+  h += `<div class="cap2" style="margin-top:18px">THE ROAD AHEAD · ${esc((r.mode || modeWord).toUpperCase())} · ${stops.length} STOP${stops.length === 1 ? "" : "S"}</div>`;
+  h += `<div class="basis">${esc(r.basis || "")}${T.mi != null ? ` · ~${T.mi} mi / ${T.h} h${T.deadhead_mi ? ` (${T.deadhead_mi} mi empty)` : " (no empty miles)"}${T.days != null ? ` · done ${esc(T.done ? new Date(T.done).toLocaleDateString("en-US",{weekday:"short", month:"short", day:"numeric"}) : "")}` : ""}` : ""}</div>`;
+  if(r.note) h += `<div class="sub">${esc(r.note)}</div>`;
+  if(r.unordered && r.why) h += `<div class="warn">⚠ stops are listed, not ordered — ${esc(r.why)}</div>`;
+  (r.conflicts || []).forEach(c => { h += `<div class="warn">⚠ ${esc(c)}</div>`; });
+  h += `<div class="roadmap" id="roadMap"></div>`;
+  stops.forEach((s, i) => {
+    const place = [s.city, s.state].filter(Boolean).join(", ");
+    const when = [s.date_raw || s.date, s.time_window].filter(Boolean).join(" · ");
+    const leg = s.leg_mi != null ? `${s.loaded_leg ? "loaded" : "empty"} ${s.leg_mi} mi / ${s.leg_h} h` : "";
+    const extra = [s.wait_h ? `waits ${s.wait_h}h for the appointment` : "", s.rest_h ? `${s.rest_h}h off on the way` : ""].filter(Boolean).join(" · ");
+    h += `<div class="stopline"><span class="seq">${i + 1}.</span>
+      <span>${s.kind === "pickup" ? "PICKUP" : "DROP"} · #${esc(s.load_number) || "——"} · ${esc(place) || esc(s.company) || "——"}${when ? ` · ${esc(when)}` : ""}</span>
+      <span>${s.eta ? `eta ${esc(s.eta)}` : ""}${leg ? ` · ${esc(leg)}` : ""}</span></div>`;
+    if(extra) h += `<div class="sub" style="margin-top:2px">${esc(extra)}</div>`;
+  });
+  (r.unplaced || []).forEach(s => {
+    h += `<div class="warn">unplaced: ${esc(s.kind)} #${esc(s.load_number) || "——"} ${esc(s.city || s.company || "")} — ${s.geocode_miss ? "the geocoder refused this address" : "no pin yet"}</div>`;
+  });
+  const W = r.weather || {};
+  if((W.lines || []).length || (W.why || []).length){
+    h += `<div class="wxbox${W.danger ? " danger" : ""}"><div class="t">${esc(W.title || "Weather advisory")}</div>${
+      (W.lines || []).map(l => `<div>${esc(l)}</div>`).join("")}${
+      (W.why || []).map(w => `<div class="sub" style="margin-top:4px">weather unknown — ${esc(w)}</div>`).join("")}</div>`;
+  } else if(W.title){
+    h += `<div class="sub">${esc(W.title)}</div>`;
+  }
+  if(r.eta_basis) h += `<div class="sub">${esc(r.eta_basis)}</div>`;
+  return h;
+}
+
+function drawRoadMap(){
+  if(ROADMAP){ try{ ROADMAP.remove(); }catch(_){} ROADMAP = null; }
+  const el = $("roadMap"), r = State.road;
+  if(!el || !r || !r.ok || !(r.legs || []).length || typeof L === "undefined") return;
+  const paper = document.documentElement.classList.contains("paper");
+  const m = ROADMAP = L.map(el, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
+  L.tileLayer(paper ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    { attribution: "&copy; OpenStreetMap &copy; CARTO", maxZoom: 18 }).addTo(m);
+  const pin = color => L.divIcon({ className: "", iconSize: [14, 14], iconAnchor: [7, 7],
+    html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>` });
+  const bounds = L.latLngBounds([]);
+  const first = (r.legs[0].geometry || [])[0];
+  if(first){ L.marker(first, { icon: pin("#FFD600"), title: "where you sit" }).addTo(m); bounds.extend(first); }
+  r.legs.forEach((leg, i) => {
+    if(leg.geometry && leg.geometry.length){
+      const line = L.polyline(leg.geometry, { color: leg.loaded ? "#4FC3F7" : "#FFD600", weight: 4, opacity: .85,
+                                              dashArray: leg.loaded ? null : "8 6" }).addTo(m);
+      bounds.extend(line.getBounds());
+    }
+    const s = r.stops[i];
+    if(s && s.lat != null){
+      const ll = [s.lat, s.lng];
+      L.marker(ll, { icon: pin(s.kind === "pickup" ? "#00E676" : "#ff4444"),
+                     title: `${s.kind} #${s.load_number} ${s.city || ""}` }).addTo(m)
+        .bindTooltip(`${i + 1}. ${s.kind.toUpperCase()} #${esc(s.load_number)} · ${esc(s.city || s.company || "")}${s.eta ? " · " + esc(s.eta) : ""}`,
+                     { direction: "top", offset: [0, -10], className: "ltip", opacity: 1 });
+      bounds.extend(ll);
+    }
+  });
+  if(bounds.isValid()) m.fitBounds(bounds, { padding: [26, 26], maxZoom: 9 });
+  setTimeout(() => { try{ m.invalidateSize(); if(bounds.isValid()) m.fitBounds(bounds, { padding: [26, 26], maxZoom: 9 }); }catch(_){} }, 60);
+}
+
+function wireRoadMode(scope){
+  scope.querySelectorAll(".roadMode").forEach(b =>
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      const m = b.dataset.m;
+      if(m === State.roadMode) return;
+      State.roadMode = m;
+      try{ localStorage.setItem("almanac_road_mode", m); }catch(_){}
+      State.road = null; State.roadErr = null;
+      paintDay();
+      loadRoad(GEO.fix).catch(() => {});
+    }));
+}
+
+let ROAD_SEQ = 0;
+async function loadRoad(fix){
+  const seq = ++ROAD_SEQ;
+  try{
+    const r = await fetch(url("/api/hotshot/route"), { method:"POST",
+      headers: hdr({"Content-Type":"application/json"}),
+      body: JSON.stringify({ origin: fix || null, mode: State.roadMode }) });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const v = await r.json();
+    if(seq !== ROAD_SEQ) return;
+    State.road = v; State.roadErr = null;
+  }catch(e){
+    if(seq !== ROAD_SEQ) return;
+    State.road = null; State.roadErr = String(e.message || e);
+  }
+  paintDay();
+  if(!stage.classList.contains("entered")) separate();
 }
 
 /* the option label: status and date up front — a phone's ellipsis eats the
@@ -3705,7 +3833,8 @@ function haulStopHTML(s, pu){
   </div>`;
 }
 
-function haulCard(l){
+function haulCard(l, opts){
+  opts = opts || {};
   const pill = l.paid === "1" ? `<span class="hlPaid paid">PAID</span>`
     : l.paid === "2" ? `<span class="hlPaid">WRITE-OFF</span>`
     : `<span class="hlPaid unpaid">UNPAID</span>`;
@@ -3733,7 +3862,8 @@ function haulCard(l){
     ${broker ? `<div class="hlBrokerLn">${broker}</div>` : ""}
     ${(l.drive_folder_link || "").startsWith("http") ? `<div class="hlBrokerLn"><a href="${esc(l.drive_folder_link)}" target="_blank" rel="noopener">THE PAPERS — rate con, BOL, invoice</a></div>` : ""}
     <div class="hlActs"><button class="btn go bolBtn" data-bol="${esc(l.load_number)}">📄 MAKE BOL</button>
-      <a class="btn go" href="./sign.html" target="_blank" rel="noopener" style="text-decoration:none">✍️ FILL &amp; SIGN</a></div>
+      <a class="btn go" href="./sign.html" target="_blank" rel="noopener" style="text-decoration:none">✍️ FILL &amp; SIGN</a>${
+      opts.road ? `<span class="roadSeg"><button type="button" class="btn roadMode${State.roadMode === "partial" ? " on" : ""}" data-m="partial" title="running partials — the cheapest legal order across the book">PARTIAL</button><button type="button" class="btn roadMode${State.roadMode === "full" ? " on" : ""}" data-m="full" title="one load at a time — finish it, then the next pickup">FULL</button></span>` : ""}</div>
   </div>`;
 }
 
@@ -7633,6 +7763,9 @@ async function loadDay(fresh, force){
   if(!stage.classList.contains("entered")) separate();
   if(fresh && (State.dayErr || State.loadsErr))
     toast("replan did not answer — " + (State.dayErr || State.loadsErr));
+  /* the road rides the same fix, after the book has painted — it is the
+     slowest read (router + weather) and must never hold the card */
+  loadRoad(fix).catch(() => {});
 }
 $("daycue").addEventListener("click", e => {
   e.stopPropagation();      // law on the field's controls (ruled 08-03)
