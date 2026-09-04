@@ -263,6 +263,9 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .hlHero{background:var(--glass);border:1px solid var(--line);border-radius:9px;padding:16px 18px;margin-top:10px}
 .hlTop{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .hlNum{font:800 24px/1 var(--mono);color:var(--amber)}
+.hlNumBtn{background:none;border:0;padding:0;cursor:pointer;text-decoration:underline dotted rgba(var(--key),.55);text-underline-offset:5px}
+.hlNumBtn:hover{text-decoration-color:var(--amber)}
+.hlNumBtn:disabled{opacity:.6;cursor:default}
 .hlRate{font:800 20px/1 var(--mono)}
 .hlBroker{font:600 13px/1.2 var(--sans);color:var(--dim)}
 .hlPaid{margin-left:auto;font:800 10px/1 var(--mono);letter-spacing:.14em;padding:5px 9px;border-radius:20px;border:1px solid}
@@ -3696,7 +3699,7 @@ function haulCard(l){
     l.po_number && `PO ${esc(l.po_number)}`].filter(Boolean).join(" · ");
   return `<div class="hlHero">
     <div class="hlTop"><span class="hlChip">${esc(chip)}</span>
-      <span class="hlNum">#${esc(l.load_number) || "——"}</span>
+      <button type="button" class="hlNum hlNumBtn" data-rc="${l.sheet_row}" data-num="${esc(l.load_number)}" title="open the rate confirmation">#${esc(l.load_number) || "——"}</button>
       <span class="hlRate">${l.rate == null ? "——" : money(l.rate)}</span>
       <span class="hlBroker">${esc(l.broker) || "——"}</span>${pill}</div>
     ${tags.length ? `<div class="hlTags">${tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
@@ -3740,6 +3743,37 @@ function wireBolBtns(scope){
       e.stopPropagation();
       makeBol(b.dataset.bol, b);
     }));
+  scope.querySelectorAll(".hlNumBtn").forEach(b =>
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      openRateCon(b.dataset.rc, b.dataset.num, b);
+    }));
+}
+
+/* THE RATE CON (his ask 09-04): tap the load number, the confirmation opens.
+   Fetched with the bearer like every other read (the route map's pattern),
+   then handed to a tab opened INSIDE the tap — a blob URL, so no token ever
+   rides an address bar. Desktop renders it inline; the phone hands it to
+   its PDF viewer. */
+async function openRateCon(row, num, btn){
+  const w = window.open("about:blank", "_blank");   // synchronous — inside the gesture
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = "⏳";
+  try{
+    const r = await fetch(url("/api/hotshot/ratecon?row=" + encodeURIComponent(row)), { headers: hdr() });
+    if(!r.ok){
+      const j = await r.json().catch(() => ({}));
+      throw new Error(j.error || ("HTTP " + r.status));
+    }
+    const u = URL.createObjectURL(await r.blob());
+    if(w && !w.closed){ w.location.href = u; }
+    else { const a = document.createElement("a"); a.href = u; a.target = "_blank"; a.rel = "noopener";
+           document.body.appendChild(a); a.click(); a.remove(); }
+    setTimeout(() => URL.revokeObjectURL(u), 120000);
+  }catch(e){
+    if(w && !w.closed) w.close();
+    toast("rate con #" + num + " — " + e.message);
+  }finally{ btn.disabled = false; btn.textContent = label; }
 }
 
 function haulHTML(){
