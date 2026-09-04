@@ -2127,8 +2127,14 @@ function paintDay(){
   if(L && L.sync_stale_hours != null) subs.push(L.sync_stale_hours < 0.1 ? "log read just now" : `log read ${L.sync_stale_hours}h ago`);
   h += subs.map(s => `<div class="sub">${esc(s)}</div>`).join("");
   h += `<div class="acts"><button class="btn go" id="dreplan">REPLAN FROM HERE</button></div>`;
+  /* an ordinary repaint keeps the road room's node when the road has not
+     changed — the map, its tiles and his zoom survive the lamp, a docket act,
+     a practice tick */
+  const keepRoad = (ROADMAP && State.road && ROADMAP._roadFor === State.road) ? $("roadroom") : null;
   room.innerHTML = h;
-  paintRoad();
+  const nr = $("roadroom");
+  if(keepRoad && nr){ nr.replaceWith(keepRoad); try{ ROADMAP.invalidateSize(); }catch(_){} }
+  else paintRoad();
   wireRoadMode(room);
   const nStops = hasDay ? (d.stops || []).length + (d.unplaced || []).length : 0;
   cue.textContent = hasDay ? `▾ THE DAY — ${nStops} stop${nStops === 1 ? "" : "s"}`
