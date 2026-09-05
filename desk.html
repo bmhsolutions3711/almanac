@@ -1036,6 +1036,29 @@ body.hot .act .h .n{color:var(--hot)}
 .closer[disabled]{opacity:.45;cursor:default}
 .kc.closed{opacity:.42}
 .kc.closed .t{text-decoration:line-through;text-decoration-color:var(--etch)}
+/* ── THE RULING (cards #87/#100): a HOLD wearing the needs-bryan amber — the
+   same ring the close uses, the same tokens YOUR HAND and the docket's breath
+   already wear. No new colour, no new metaphor: the sheet is the desk's own
+   glass, the caption breathes the way the masthead does when he is asked. */
+.closer.ruler{border-color:rgba(var(--key),.45)}
+.closer.ruler .cc{color:var(--amber)}
+.drow .closer{width:auto;flex:0 0 auto;height:24px;margin:0 0 0 8px;padding:0 10px}
+.rsheet{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.72);display:flex;
+  align-items:center;justify-content:center;padding:18px}
+.rsbox{width:min(440px,94vw);display:flex;flex-direction:column;gap:9px;padding:14px;
+  background:var(--glass2);border:1px solid rgba(var(--key),.45);border-radius:7px;
+  box-shadow:0 18px 50px rgba(0,0,0,.6);backdrop-filter:blur(14px)}
+.rsbox .rcap{font:700 9px/1 var(--mono);letter-spacing:.22em;color:var(--amber);
+  animation:handbreathe 3.8s ease-in-out infinite}
+.rsbox .rst{font:600 12.5px/1.35 var(--sans);color:var(--ink)}
+.rsbox .rsl{font:700 8.5px/1 var(--mono);letter-spacing:.15em;color:var(--dim)}
+.rsbox textarea{width:100%;box-sizing:border-box;min-height:96px;resize:vertical;padding:9px 10px;
+  outline:none;background:rgba(var(--wash),.06);border:1px solid var(--line);border-radius:4px;
+  color:var(--ink);font:400 13px/1.5 var(--sans)}
+.rsbox textarea:focus{border-color:rgba(var(--key),.7)}
+.rsbox .rserr{font:400 10px/1.4 var(--mono);color:var(--hot)}
+.rsbox .closer{margin-top:2px;height:34px}
+@media (prefers-reduced-motion: reduce){ .rsbox .rcap{animation:none} }
 
 .chan{flex:1 1 auto;min-height:0;display:flex;flex-direction:column-reverse;gap:6px;overflow-y:auto;padding-right:3px}
 .chan::-webkit-scrollbar{width:0}
@@ -2663,6 +2686,7 @@ function docketHTML(h){
     <span class="body"><span class="ti">${esc(o.i.ref)} · ${esc(o.i.title)}</span>
       <span class="dwhy">${esc(o.i.why)}</span></span>
     ${o.i.act ? `<button class="dact" data-di="${o.x}">${esc(o.i.act.label || "DO IT")}</button>` : ""}
+    ${o.i.kind === "ruling" && /^#\d+$/.test(o.i.ref) ? ruleBtn(o.i.ref.slice(1), o.i.title) : ""}
     <button class="go" data-dgo="${esc(o.i.room)}">GO</button>
   </div>`;
   const tag = h.items.map((i, x) => ({i, x}));
@@ -2847,6 +2871,8 @@ function renderDocket(){
     closeDocket();
     if(idx >= 0) enter(idx);
   });
+  /* a ruling row's RULE is a HOLD, the same body as the board's (#87) */
+  wireRulers(el);
   el.querySelectorAll(".dact").forEach(b => b.onclick = async () => {
     const item = snap && snap.items[+b.dataset.di];
     if(!item || !item.act) return;
@@ -3446,6 +3472,8 @@ function workRoom(){
           ${c.needs_bryan?'<span class="bry">YOUR HAND</span>':""}
           <span class="pb"><i style="width:${pct}%"></i></span>
           <span>${p.total ? p.done+"/"+p.total : "—"}</span></div>` +
+          /* the RULE hold rides ONLY a card that carries the flag (#87) */
+          (c.needs_bryan ? ruleBtn(c.id, c.title) : "") +
           (k==="qa" ? `<button class="closer" data-close="${c.id}">
             <span class="r2"></span><span class="cc">HOLD TO CLOSE</span></button>` : "") + `</div>`;
       }).join("") : `<p class="nodata" style="font-size:12px">nothing here</p>`) +
@@ -6778,46 +6806,138 @@ function wireCards(){
     });
   });
   /* A CLOSE IS A WRITE — held, never tapped, and only his hand (qa-gate) */
-  document.querySelectorAll(".closer").forEach(btn => {
-    const kc = btn.closest(".kc"); let t = 0, anim = null;
-    btn.addEventListener("pointerdown", e => {
-      e.preventDefault(); e.stopPropagation();
-      if(btn.disabled || document.visibilityState !== "visible") return;
-      const r2 = btn.querySelector(".r2"), cc = btn.querySelector(".cc");
-      cc.textContent = "HOLDING";
-      anim = r2.animate({transform:["scaleX(0)","scaleX(1)"]},
-        {duration:640, easing:"cubic-bezier(.22,.61,.36,1)", fill:"forwards"});
-      const t0 = performance.now();
-      t = setTimeout(async () => {
-        if(performance.now() - t0 < 620) return;
-        if(document.visibilityState !== "visible") return;
-        btn.disabled = true; cc.textContent = "CLOSING";
-        try{
-          const res = await fetch(url(`/api/cards/${btn.dataset.close}/move`), {
-            method:"POST", headers: hdr({"Content-Type":"application/json"}),
-            body: JSON.stringify({ to:"done" })
-          });
-          const out = await res.json().catch(() => ({}));
-          if(!res.ok) throw new Error(out.error || ("the spine answered " + res.status));
-          cc.textContent = "CLOSED"; kc.classList.add("closed");
-          toast("#" + btn.dataset.close + " CLOSED BY YOUR HAND");
-          setTimeout(() => { btn.remove(); load(true); }, 700);
-        }catch(err){
-          btn.disabled = false;
-          cc.textContent = "HOLD TO CLOSE";
-          r2.getAnimations().forEach(a => a.cancel()); r2.style.transform = "scaleX(0)";
-          toast("NOT CLOSED — " + (err.message || err));
-        }
-      }, 640);
+  document.querySelectorAll(".closer[data-close]").forEach(btn => {
+    const kc = btn.closest(".kc");
+    holdToAct(btn, {idle:"HOLD TO CLOSE", busy:"CLOSING", refused:"NOT CLOSED",
+                   released:"released before it closed — nothing was approved"}, async cc => {
+      const res = await fetch(url(`/api/cards/${btn.dataset.close}/move`), {
+        method:"POST", headers: hdr({"Content-Type":"application/json"}),
+        body: JSON.stringify({ to:"done" })
+      });
+      const out = await res.json().catch(() => ({}));
+      if(!res.ok) throw new Error(out.error || ("the spine answered " + res.status));
+      cc.textContent = "CLOSED"; kc.classList.add("closed");
+      toast("#" + btn.dataset.close + " CLOSED BY YOUR HAND");
+      setTimeout(() => { btn.remove(); load(true); }, 700);
     });
-    ["pointerup","pointerleave","pointercancel"].forEach(ev => btn.addEventListener(ev, () => {
-      clearTimeout(t); if(anim) anim.cancel();
-      const cc = btn.querySelector(".cc"), r2 = btn.querySelector(".r2");
-      if(cc.textContent === "HOLDING"){
-        cc.textContent = "HOLD TO CLOSE"; r2.style.transform = "scaleX(0)";
-        toast("released before it closed — nothing was approved");
-      }
-    }));
+  });
+  /* A RULING IS A HOLD — the same body as the close (#87). Scoped to the
+     board: the drawer wires its own rows, and a second listener on the same
+     button would be two timers and two toasts. */
+  const bd = document.querySelector(".board"); if(bd) wireRulers(bd);
+}
+
+/* ── THE RULING (cards #87/#100) ─────────────────────────────────────
+   'Nothing closes but by his hand' — and 'the gesture grammar: HOLD is
+   constitutional (a close, a confirm, the acts that are yours alone and
+   irreversible in meaning); TAP is a reversible ack; a 409 WITH CANDIDATES
+   is the machine asking'. A RULING is his highest-stakes act — it is a HOLD,
+   twice: once on the card to open the sheet, once on RECORD to write his
+   words. A tap does nothing on either. The words go to the spine verbatim
+   and the SPINE lowers needs_bryan — the desk never clears a flag itself. */
+
+/* ONE HOLD, THREE ACTS. The close's mechanics — the 640 ms ring, the 620 ms
+   guard against a stale timer, the visibility guard, the release toast —
+   sat inline in wireCards; they are one body now, so RULE and RECORD are
+   the same gesture as CLOSE and not a near copy of it. onHeld(cc) runs once
+   the hold lands: return false to re-arm quietly (the sheet opened); throw
+   to refuse in words (the toast carries o.refused + the reason); return
+   anything else to leave the button as it set itself (CLOSED, RECORDED).
+   holdToAct, not wireHold — the money room owns wireHold (its drag-to-read
+   hold, ~7860), and a second declaration of that name would hoist over it. */
+function holdToAct(btn, o, onHeld){
+  let t = 0, anim = null;
+  const r2 = btn.querySelector(".r2"), cc = btn.querySelector(".cc");
+  const rest = () => { btn.disabled = false; cc.textContent = o.idle;
+    r2.getAnimations().forEach(a => a.cancel()); r2.style.transform = "scaleX(0)"; };
+  btn.addEventListener("pointerdown", e => {
+    e.preventDefault(); e.stopPropagation();
+    if(btn.disabled || document.visibilityState !== "visible") return;
+    cc.textContent = "HOLDING";
+    anim = r2.animate({transform:["scaleX(0)","scaleX(1)"]},
+      {duration:640, easing:"cubic-bezier(.22,.61,.36,1)", fill:"forwards"});
+    const t0 = performance.now();
+    t = setTimeout(async () => {
+      if(performance.now() - t0 < 620) return;
+      if(document.visibilityState !== "visible") return;
+      btn.disabled = true; cc.textContent = o.busy;
+      let took = false;
+      try{ took = (await onHeld(cc)) !== false; }
+      catch(err){ toast(o.refused + " — " + (err.message || err)); }
+      if(!took) rest();
+    }, 640);
+  });
+  ["pointerup","pointerleave","pointercancel"].forEach(ev => btn.addEventListener(ev, () => {
+    clearTimeout(t); if(anim) anim.cancel();
+    if(cc.textContent === "HOLDING"){ rest(); toast(o.released); }
+  }));
+}
+const RULE_HOLD = {idle:"HOLD TO RULE", busy:"OPENING", refused:"NOT OPENED",
+                   released:"released before it took — nothing was opened"};
+/* Renders ONLY on a card that carries needs_bryan: the board passes the flag
+   itself; the docket's 'ruling' rows are needs_bryan=1 by the spine's own
+   query (hand.py) and their ref IS the id — '#N' by construction. Any other
+   shape gets no control rather than a guessed one. */
+function ruleBtn(id, title){
+  return `<button class="closer ruler" data-rule="${id}" data-rt="${esc(title || "")}">
+    <span class="r2"></span><span class="cc">HOLD TO RULE</span></button>`;
+}
+function wireRulers(root){
+  root.querySelectorAll(".ruler[data-rule]").forEach(btn => holdToAct(btn, RULE_HOLD, () => {
+    openRuleSheet(+btn.dataset.rule, btn.dataset.rt); return false;
+  }));
+}
+function closeRuleSheet(){ const s = $("rsheet"); s && s.remove(); }
+function openRuleSheet(id, title){
+  closeRuleSheet();
+  const c = ((State.board || {}).cards || []).find(x => x.id === id);
+  const s = document.createElement("div"); s.className = "rsheet"; s.id = "rsheet";
+  s.innerHTML = `<div class="rsbox" role="dialog" aria-label="your ruling on #${id}">
+    <div class="rcap">YOUR RULING · #${id}</div>
+    <div class="rst">${esc((c && c.title) || title || "")}</div>
+    <label class="rsl" for="rsWords">Your words, verbatim</label>
+    <textarea id="rsWords" rows="5" maxlength="2000" spellcheck="false"
+      placeholder="what you ruled, as you said it — nothing is paraphrased"></textarea>
+    <div class="rserr" id="rsErr" hidden></div>
+    <button class="closer ruler" id="rsRec"><span class="r2"></span><span class="cc">HOLD TO RECORD</span></button>
+    <button class="mi off" id="rsX">never mind — nothing is recorded</button>
+  </div>`;
+  /* the backdrop dismisses; the box does not — a thumb resting on the sheet
+     must never lose his words */
+  s.addEventListener("click", e => { if(e.target === s) closeRuleSheet(); });
+  document.body.appendChild(s);
+  s.querySelector("#rsX").onclick = closeRuleSheet;
+  const ta = s.querySelector("#rsWords"), err = s.querySelector("#rsErr");
+  ta.focus();
+  holdToAct(s.querySelector("#rsRec"),
+    {idle:"HOLD TO RECORD", busy:"RECORDING", refused:"NOT RECORDED",
+     released:"released before it took — nothing was recorded"}, async cc => {
+    const words = ta.value.trim();
+    err.hidden = true;
+    if(!words){
+      err.textContent = "a ruling needs your words — the field is empty"; err.hidden = false;
+      return false;
+    }
+    try{
+      const res = await fetch(url(`/api/cards/${id}/rule`), {
+        method:"POST", headers: hdr({"Content-Type":"application/json"}),
+        body: JSON.stringify({ words })
+      });
+      const out = await res.json().catch(() => ({}));
+      if(!res.ok) throw new Error(out.error || ("the spine answered " + res.status));
+    }catch(e){
+      /* the refusal renders IN the sheet too — a toast is gone in 2.4 s and a
+         tooltip does not exist under a thumb (review of #84); his words stay */
+      err.textContent = String(e.message || e); err.hidden = false;
+      throw e;
+    }
+    cc.textContent = "RECORDED";
+    toast("#" + id + " RULED BY YOUR HAND");
+    closeRuleSheet();
+    /* repaint from the spine's answer — the board (the flag down, the RULED
+       block on the card), the masthead's docket count, the drawer if open */
+    await load(true);
+    if(!$("dockWrap").hidden) renderDocket();
   });
 }
 function wireCapMedia(){
