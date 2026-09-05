@@ -1646,6 +1646,11 @@ const money = v => v == null ? null :
 const short = v => v == null ? "——" :
   "$" + Math.round(Number(v)).toLocaleString("en-US");
 
+/* roadMode — PARTIAL / FULL follows the book, not the device (card #192, his
+   Fold UAT of #179): the spine holds the mode in its settings row. What this
+   device remembers is only the echo painted before the first payload lands;
+   takeRoadMode() overwrites it with the spine's word and nothing else writes
+   it. DONE taps stay device-local by his request. */
 const State = { fieldLoad:null, loads:null, day:null, loadsErr:null, dayErr:null, road:null, roadErr:null, roadMode:(function(){ try{ return localStorage.getItem('almanac_road_mode') || 'full'; }catch(_){ return 'full'; } })(), standing:null, standings:null, board:null, radio:null, learn:null,
                 soul:null, held:null, watch:null, at:null, err:null, glasses:null,
                 hand:null, sidech:null, diet:null, brief:null,
@@ -1902,8 +1907,14 @@ function tempFacts(){
   const days = daysLeftInMonth();
   if(p.uncovered != null && p.uncovered > 0 && days <= 7)
     f.push(`<b>${days} day${days===1?"":"s"}</b> left`);
-  const down = (State.watch && State.watch.down) || [];
+  /* the dead-man row (card #184) is the watch reporting on ITSELF — a dropped
+     tick means the next death earns no push, so it gets its own words here
+     instead of hiding inside the down count (card #192 follow-up) */
+  const W = State.watch || {};
+  const dead = (W.checks || []).find(c => c && c.target === "the watch itself" && !c.ok);
+  const down = (W.down || []).filter(t => t !== "the watch itself");
   if(down.length) f.push(`<b>${down.length}</b> down on the watch (${esc(down.join(", "))})`);
+  if(dead) f.push(`the watch itself is dark — ${esc(dead.detail || "no tick recorded")}`);
   return f;
 }
 function daysLeftInMonth(){
@@ -2085,8 +2096,7 @@ function paintDay(){
     });
     (d.unplaced || []).forEach(s => {
       h += `<div class="warn">unplaced: ${esc(s.kind)} ${
-        esc(s.company || s.city || "unnamed stop")} — ${
-        s.geocode_miss ? "the geocoder refused this address" : "no city on the sheet"}</div>`;
+        esc(s.company || s.city || "unnamed stop")} — ${esc(pinWhy(s))}</div>`;
     });
   }
 
@@ -2189,8 +2199,10 @@ function roadHTML(){
     const when = [s.date_raw || s.date, s.time_window].filter(Boolean).join(" · ");
     const leg = s.leg_mi != null ? `${s.loaded_leg ? "loaded" : "empty"} ${s.leg_mi} mi / ${s.leg_h} h` : "";
     const lg = (r.legs || [])[i];
+    /* s.why is the blind leg's word (#182): no clock here, and why — it must
+       show, or an ETA-less stop reads like a stop with nothing to say */
     const extra = [s.wait_h ? `waits ${s.wait_h}h for the appointment` : "", s.rest_h ? `${s.rest_h}h off on the way` : "",
-                   s.window_assumed || "", s.note || "", lg && lg.geometry_why ? `line not drawn — ${lg.geometry_why}` : ""].filter(Boolean).join(" · ");
+                   s.why || "", s.window_assumed || "", s.note || "", lg && lg.geometry_why ? `line not drawn — ${lg.geometry_why}` : ""].filter(Boolean).join(" · ");
     h += `<div class="stopline"><span class="seq">${i + 1}.</span>
       <span>${s.kind === "pickup" ? "PICKUP" : "DROP"} · #${esc(s.load_number) || "——"} · ${esc(place) || esc(s.company) || "——"}${when ? ` · ${esc(when)}` : ""}</span>
       <span>${s.eta ? `eta ${esc(s.eta)}` : ""}${leg ? ` · ${esc(leg)}` : ""}${
@@ -2198,7 +2210,7 @@ function roadHTML(){
     if(extra) h += `<div class="sub" style="margin-top:2px">${esc(extra)}</div>`;
   });
   (r.unplaced || []).forEach(s => {
-    h += `<div class="warn">unplaced: ${esc(s.kind)} #${esc(s.load_number) || "——"} ${esc(s.city || s.company || "")} — ${s.geocode_miss ? "the geocoder refused this address" : "no pin yet"}</div>`;
+    h += `<div class="warn">unplaced: ${esc(s.kind)} #${esc(s.load_number) || "——"} ${esc(s.city || s.company || "")} — ${esc(pinWhy(s))}</div>`;
   });
   const W = r.weather || {};
   if((W.lines || []).length || (W.why || []).length){
@@ -2296,18 +2308,53 @@ function drawRoadMap(){
   setTimeout(() => { try{ m.invalidateSize(); fit(); }catch(_){} }, 60);
 }
 
+/* why a stop has no pin, in the spine's own order (#182): a geocoder that
+   went quiet THIS request (geocode_why, never stored), a verdict on the
+   address, a blank city — and "no city on the sheet" only when the city IS
+   blank. Before this the desk read geocode_miss alone, and a quiet geocoder
+   read as a missing city. */
+function pinWhy(s){
+  if(s.geocode_why) return s.geocode_why;
+  if(s.geocode_miss) return "the geocoder refused this address";
+  if(!String(s.city || "").trim()) return "no city on the sheet";
+  return "no pin yet";
+}
+
+/* the spine's word on the road mode, wherever it arrives (the loads or day
+   payload's road_mode, the route's mode, the seg tap's answer): State takes
+   it, the seg repaints, and the device keeps an echo for the next open
+   before the spine has answered (card #192) */
+function takeRoadMode(m){
+  if(m !== "full" && m !== "partial") return;
+  State.roadMode = m;
+  try{ localStorage.setItem("almanac_road_mode", m); }catch(_){}
+  document.querySelectorAll(".roadMode").forEach(x => x.classList.toggle("on", x.dataset.m === m));
+}
+
 function wireRoadMode(scope){
   scope.querySelectorAll(".roadMode").forEach(b =>
-    b.addEventListener("click", e => {
+    b.addEventListener("click", async e => {
       e.stopPropagation();
       const m = b.dataset.m;
       if(m === State.roadMode) return;
-      State.roadMode = m;
-      try{ localStorage.setItem("almanac_road_mode", m); }catch(_){}
-      State.road = null; State.roadErr = null;
-      scope.querySelectorAll(".roadMode").forEach(x => x.classList.toggle("on", x.dataset.m === m));
-      paintRoad();
-      loadRoad(GEO.fix).catch(() => {});
+      /* the tap asks the BOOK to change its mode; the seg paints from the
+         spine's answer, never from the tap — a Pro that said PARTIAL and a
+         Fold that opened FULL were drawing two roads off one book (#192) */
+      const seg = scope.querySelectorAll(".roadMode");
+      seg.forEach(x => { x.disabled = true; });
+      try{
+        const r = await fetch(url("/api/hotshot/road-mode"), { method:"POST",
+          headers: hdr({"Content-Type":"application/json"}), body: JSON.stringify({ mode: m }) });
+        const v = await r.json().catch(() => ({}));
+        if(!r.ok || !v.ok) throw new Error(v.error || v.unavailable || ("HTTP " + r.status));
+        takeRoadMode(v.mode);
+        State.road = null; State.roadErr = null;
+        paintRoad();
+        loadRoad(GEO.fix).catch(() => {});
+      }catch(err){
+        toast("the mode did not take — " + (err.message || err));
+      }
+      seg.forEach(x => { x.disabled = false; x.classList.toggle("on", x.dataset.m === State.roadMode); });
     }));
 }
 
@@ -2317,13 +2364,16 @@ async function loadRoad(fix){
   State.roadPending = true;
   if(State.road) paintRoad();     // keep the old map, say it is being redrawn
   try{
+    /* no mode in the body: the spine draws the road in the BOOK's mode and
+       says which it used; the seg follows the answer (card #192) */
     const r = await fetch(url("/api/hotshot/route"), { method:"POST",
       headers: hdr({"Content-Type":"application/json"}),
-      body: JSON.stringify({ origin: fix || null, mode: State.roadMode, done: Object.keys(doneStops()).map(Number) }) });
+      body: JSON.stringify({ origin: fix || null, done: Object.keys(doneStops()).map(Number) }) });
     const v = await r.json().catch(() => ({}));
     if(!r.ok) throw new Error(v.unavailable || v.error || ("HTTP " + r.status));
     if(seq !== ROAD_SEQ) return;
     State.road = v; State.roadErr = null;
+    takeRoadMode(v.mode);
   }catch(e){
     if(seq !== ROAD_SEQ) return;
     State.road = null; State.roadErr = String(e.message || e);
@@ -3445,7 +3495,10 @@ function wireLaneBtn(){
     e.stopPropagation();
     b.disabled = true; b.textContent = "RAISING…";
     try{
-      const r = await fetch(url("/api/glasses/arm"), { method:"POST", headers: hdr() });
+      /* a JSON body like every other desk POST (#180): the spine's 415 arm
+         is for strangers, and a bare-bearer POST should not have to ride it */
+      const r = await fetch(url("/api/glasses/arm"), { method:"POST",
+        headers: hdr({"Content-Type":"application/json"}), body: "{}" });
       if(!r.ok) throw new Error("the spine answered " + r.status);
       State.glasses = await r.json();
       const bad = (State.glasses.steps || []).filter(s => !s.ok);
@@ -3878,7 +3931,7 @@ function wireBookMap(){
 async function loadHaul(){
   /* ONE home for the book: State.loads — the field and this tab read the
      same payload, and a refresh here repaints the field too */
-  try{ State.loads = await grab("/api/hotshot/loads"); State.loadsErr = null; }
+  try{ State.loads = await grab("/api/hotshot/loads"); State.loadsErr = null; takeRoadMode(State.loads.road_mode); }
   catch(e){ State.loadsErr = String(e.message || e); }
   paintDay();
 }
@@ -6691,8 +6744,13 @@ async function sendSnap(file){
        happened" — both snaps had LANDED; the only feedback was well text
        sitting below the fold after the full-room re-render). The toast
        lands where his eyes are, wherever they are; the well scrolls in. */
+    /* the truck's odometer sync (#186) rides the answer: when it did not
+       take, the receipt says why in words — a snap that landed but never
+       reached the truck's own odometer is not a silent success */
+    const os = o.odometer_sync;
     const read = `read: odo ${(o.snap.odometer||0).toLocaleString()}` +
-      (o.snap.trailer ? ` · ${o.snap.trailer}` : "");
+      (o.snap.trailer ? ` · ${o.snap.trailer}` : "") +
+      (os && os.ok === false ? ` · odometer not synced — ${os.why || "no reason given"}` : "");
     toast(read);
     const w1 = $("snapWell");
     if(w1){
@@ -7756,7 +7814,8 @@ async function loadFin(){
   if(st != null && st > 6 && !State.fin._refreshed){
     State.fin._refreshed = true;
     try{
-      await fetch(url("/api/fin/loads/refresh"), {method:"POST", headers:hdr()});
+      await fetch(url("/api/fin/loads/refresh"), { method:"POST",
+        headers: hdr({"Content-Type":"application/json"}), body: "{}" });   // a JSON body like every other desk POST (#180)
       const again = await grab("/api/fin/loads"+q); State.fin.loads = again;
       const ro2 = await grab("/api/fin/rollup"+q); State.fin.rollup = ro2;
     }catch(e){}
@@ -7822,14 +7881,16 @@ async function loadDay(fresh, force){
   const fix = fresh ? await grabFix()
                     : (GEO.fix || await grabFix());
   await Promise.all([
+    /* both payloads carry the book's road_mode (card #192) — whichever
+       answers first sets the seg before the card paints */
     grab("/api/hotshot/loads")
-      .then(v => { if(seq !== DAY_SEQ) return; State.loads = v; State.loadsErr = null; })
+      .then(v => { if(seq !== DAY_SEQ) return; State.loads = v; State.loadsErr = null; takeRoadMode(v.road_mode); })
       .catch(e => { if(seq !== DAY_SEQ) return; State.loadsErr = String(e.message || e); }),
     fetch(url("/api/hotshot/day"), { method:"POST",
       headers: hdr({"Content-Type":"application/json"}),
       body: JSON.stringify({ origin: fix, force: !!(fresh || force) }) })
       .then(r => { if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(v => { if(seq !== DAY_SEQ) return; State.day = v; State.dayErr = null; })
+      .then(v => { if(seq !== DAY_SEQ) return; State.day = v; State.dayErr = null; takeRoadMode(v.road_mode); })
       .catch(e => { if(seq !== DAY_SEQ) return; State.day = null; State.dayErr = String(e.message || e); })
   ]);
   if(seq !== DAY_SEQ) return;
