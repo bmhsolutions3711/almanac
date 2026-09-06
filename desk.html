@@ -2238,6 +2238,23 @@ function roadHTML(){
   h += mappable ? `<div class="roadmap" id="roadMap"></div>`
     : `<div class="sub">no map — ${esc(r.unordered ? (r.why || "the router did not answer") : (typeof L === "undefined" ? "the map library did not load" : "no legs to draw"))}</div>`;
   if(mappable && L.Browser && L.Browser.mobile) h += `<div class="sub" style="margin-top:4px">pinch to zoom · two fingers to move the map</div>`;
+  /* what he drives INTO, in his own words — the docks already have their own
+     weather above; this is the road between them (card #198 pass two) */
+  const rw = r.road_wx || {};
+  if((rw.intercepts || []).length){
+    const worst = rw.intercepts.some(x => x.sev === "danger");
+    h += `<div class="wxbox"${worst ? ' style="border-left-color:#ff4444"' : ""}>
+      <div class="t">${worst ? "🚨 YOU DRIVE INTO THIS" : "⚠️ ON THE ROAD BETWEEN STOPS"}</div>`;
+    rw.intercepts.forEach(x => {
+      h += `<div>${x.sev === "danger" ? "🚨" : "⚠️"} ${esc(x.words)}</div>`;
+    });
+    if(rw.why) h += `<div class="sub" style="margin-top:6px">${esc(rw.why)}</div>`;
+    h += `</div>`;
+  } else if(rw.why){
+    h += `<div class="sub" style="margin-top:8px">the road between stops was not read — ${esc(rw.why)}</div>`;
+  } else if((rw.samples || []).length){
+    h += `<div class="sub" style="margin-top:8px">the road between stops is clear at every hour you are on it — ${rw.samples.length} point(s) checked</div>`;
+  }
   stops.forEach((s, i) => {
     const place = [s.city, s.state].filter(Boolean).join(", ");
     const when = [s.date_raw || s.date, s.time_window].filter(Boolean).join(" · ");
@@ -2520,6 +2537,25 @@ function drawRoadMap(){
       bounds.extend(ll);
     }
   });
+  /* THE INTERCEPT (card #198 pass two): the road he is driving, painted by
+     what he drives INTO at the hour he is there. Drawn ON the route and above
+     it — the line says where, this says what is waiting. A stretch the
+     forecast could not answer is drawn in NEITHER colour: unknown is not
+     clear, and a gap that looks calm is the one lie this must not tell. */
+  const rwx = (r.road_wx || {});
+  const smp = rwx.samples || [];
+  for(let i = 1; i < smp.length; i++){
+    const a = smp[i - 1], b = smp[i];
+    if(!a.sev || !b.sev) continue;                 // unknown: draw nothing
+    const sev = (a.sev === "danger" || b.sev === "danger") ? "danger"
+              : (a.sev === "bad" || b.sev === "bad") ? "bad" : null;
+    if(!sev) continue;
+    L.polyline([[a.lat, a.lng], [b.lat, b.lng]], {
+      color: sev === "danger" ? "#ff4444" : "#FFA726",
+      weight: 11, opacity: .38, lineCap: "round", interactive: false
+    }).addTo(m);
+  }
+
   const fit = () => { if(ROAD_VIEW) m.setView(ROAD_VIEW.c, ROAD_VIEW.z); else if(bounds.isValid()) m.fitBounds(bounds, { padding: [26, 26], maxZoom: 9 }); };
   fit();
   setTimeout(() => { try{ m.invalidateSize(); fit(); }catch(_){} }, 60);
