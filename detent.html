@@ -298,11 +298,128 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
 .fig.quiet{font-size:.55em; font-weight:400; letter-spacing:.12em; color:var(--dim);
   text-shadow:var(--engrave); text-box:trim-both cap alphabetic}
 
+/* ── SIDE CH · CH 21 — the conversation, in node grammar (card #91) ───────
+   The cab is the primary theater, not the adaptation (SIDECHANNEL §6). So the
+   carrier gets NO 44px strip of its own here: it COLLAPSES INTO THE KEY — a
+   registered conic ring round TALK whose sweep is his live RMS — and during
+   playback into the top edge of the answer card itself. Nothing at 340px is
+   spent on chrome. The beam loses nothing: it is text, ink tiers, one bloom,
+   and it is fully present with every animation off.
+
+   @property is registered ABOVE every rule that reads --sc-sweep. An
+   unregistered custom property is a string, and a conic-gradient handed a
+   string silently paints nothing — the first arm would no-op with no error.
+   inherits:true is load-bearing for the same reason: the ring is drawn by
+   .sc-talk::before, and the rAF sets the angle on the BUTTON. With
+   inherits:false the pseudo-element never sees it and falls back to 0deg —
+   a ring that computes perfectly and never moves. Proven in the browser. */
+@property --sc-sweep{syntax:"<angle>";inherits:true;initial-value:0deg}
+:root{--sc-moon:#C6D4E4}   /* MOONGLASS — the conversation's identity hue, and
+                              its whole jurisdiction: bloom, glyph, run marker */
+
+/* the arc glyph — a state diagram that cannot lie: derived fact, never mood */
+.sc-arc{flex:0 0 auto;margin-top:11px;display:flex;align-items:center;gap:6px}
+.sc-arc i{width:7px;height:7px;border-radius:50%;background:#3A403D;
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.6);transition:background .3s,box-shadow .3s}
+.sc-arc b{width:26px;height:2px;border-radius:1px;background:#3A403D;transition:all .3s}
+.sc-arc i.on{background:var(--sc-moon);box-shadow:0 0 9px -1px var(--sc-moon)}
+.sc-arc b.on{background:var(--sc-moon);box-shadow:0 0 11px -2px var(--sc-moon)}
+
+/* the log — runs as tape, newest nearest the bench. It takes the height the
+   plate has left rather than a fixed window: a conversation is the node. */
+.work.sc-log{flex:1 1 auto;max-height:none;min-height:88px;flex-direction:column-reverse;
+  -webkit-mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 26px),transparent 100%);
+          mask-image:linear-gradient(0deg,#000 0,#000 calc(100% - 26px),transparent 100%)}
+.work.sc-log .card{display:block;position:relative;overflow:hidden}
+@starting-style{ .work.sc-log .card{opacity:0; translate:0 6px} }
+.work.sc-log .card{transition:opacity .28s ease-out, translate .28s ease-out}
+/* nth-CHILD, not nth-last-child: this log is newest-FIRST in the DOM (the flex
+   column is reversed), so nth-last-child(n+61) would skip the 60 OLDEST and
+   contain the rows he is actually reading — the exact inverse of the budget. */
+.work.sc-log .card:nth-child(n+61){content-visibility:auto;contain-intrinsic-size:auto 92px}
+.sc-row.atl{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+  inset 2px 0 0 var(--sc-moon);transition:box-shadow .4s}
+.sc-row.atl.heard{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+  inset 2px 0 0 var(--etch)}
+.sc-row.bry{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+  inset -2px 0 0 var(--mid)}
+.sc-row.und{box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+  inset 2px 0 0 var(--unknown)}
+.sc-row .st{display:flex;gap:8px;align-items:center;min-height:14px;
+  font:600 8.5px/1 var(--mono);letter-spacing:.18em;color:var(--etch);text-transform:uppercase}
+.sc-row .st .play{margin-left:auto;background:none;border:0;padding:3px 7px;margin:-3px -7px -3px 0;
+  cursor:pointer;color:var(--sc-moon);font:700 12px/1 var(--mono)}
+.sc-row .st .play[disabled]{color:var(--etch);cursor:default}
+.sc-row .bd{margin-top:5px;font:400 13.5px/1.55 var(--sans);color:var(--mid);
+  text-shadow:var(--emboss);transition:text-shadow .4s}
+.sc-row.bry .bd{color:var(--ink);text-shadow:var(--engrave)}
+/* PROUD wants his hand; CUT is at rest. An already-heard answer pulled from
+   history is at rest — without this it rendered embossed until he replayed it,
+   so a whole scrollback of settled conversation stood up asking to be read. */
+.sc-row.atl.heard .bd{text-shadow:var(--engrave)}
+.sc-row.und .bd{font-style:italic;color:var(--dim)}
+.sc-row.und .mk{color:var(--unknown);font-weight:700;font-style:normal}
+/* THE BEAM — words go --dim → --ink inside char-weighted windows over the
+   clip's REAL duration; the current word carries the moonglass bloom. The
+   light IS playback: stall the audio and the light freezes with it. */
+.sc-row .w{color:var(--dim);transition:color .28s linear}
+.sc-row .w.lit{color:var(--ink)}
+.sc-row .w.now{color:#FFF;text-shadow:0 0 10px rgba(198,212,228,.8)}
+.sc-row.done .bd{text-shadow:var(--engrave)}
+.sc-row.done .w{transition:none;color:var(--ink);text-shadow:none}
+/* the carrier, collapsed: the live trace rides the answer card's own top edge */
+canvas.sc-trace{position:absolute;left:0;top:0;width:100%;height:9px;display:block;pointer-events:none}
+/* SETTLE-TO-TAPE — the exchange, painted once from real decoded peaks */
+canvas.sc-tape{display:block;width:100%;height:12px;margin-top:7px;opacity:.7}
+.card.sc-quiet{display:block;font:italic 400 12.5px/1.6 var(--sans);color:var(--dim)}
+
+/* the bench — runs rail, the dial, composer + TALK: all inside the thumb arc,
+   and the spindle's right 92px is never touched (margin-right:78px stands). */
+.sc-well{flex:0 0 auto;z-index:1;margin:10px 78px 12px 0;display:flex;flex-direction:column;gap:7px}
+.sc-rail{display:flex;gap:6px;overflow-x:auto;overscroll-behavior-x:contain;
+  scroll-snap-type:x proximity;touch-action:pan-x;padding-bottom:2px}
+.sc-rail::-webkit-scrollbar{height:0}
+.sc-chip{flex:0 0 auto;scroll-snap-align:start;border:0;border-radius:2px;padding:6px 9px;cursor:pointer;
+  background:linear-gradient(180deg,#313735,#232827);
+  font:700 9.5px/1 var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase;
+  max-width:136px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset}
+.sc-chip.on{color:var(--ink);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+             inset 0 -2px 0 var(--sc-moon)}
+.sc-chip.unheard{color:var(--sc-moon)}
+.sc-chip .n{margin-left:7px;color:var(--etch)}
+.sc-mode.on{color:var(--lamp);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 -1px 0 rgba(0,0,0,.35) inset,
+             inset 0 -2px 0 var(--lamp)}
+.sc-bench{display:flex;gap:7px;align-items:stretch}
+/* the well is ~140px at 340px once TALK and the spindle are paid — 12.5px is
+   what makes a whole placeholder fit rather than a truncated one */
+.sc-bench .micin{flex:1 1 auto;min-width:0;font-size:12.5px;padding:10px 9px}
+/* 56px, not 66: at 340px the plate leaves the bench ~210px, and every pixel
+   TALK does not take is a pixel of his own words he can still read */
+.sc-talk{position:relative;flex:0 0 auto;width:56px;border:0;border-radius:2px;cursor:pointer;
+  background:linear-gradient(180deg,#373D3A,#242927);color:#D8DDD9;padding:0;
+  box-shadow:0 2px 0 rgba(0,0,0,.6),inset 0 1px 0 rgba(150,158,154,.2)}
+.sc-talk::before{content:"";position:absolute;inset:2px;border-radius:2px;pointer-events:none;
+  background:conic-gradient(from -90deg,var(--sc-moon) var(--sc-sweep),rgba(198,212,228,.09) 0);
+  opacity:0;transition:opacity .18s}
+.sc-talk::after{content:"";position:absolute;inset:4px;border-radius:1px;pointer-events:none;
+  background:linear-gradient(180deg,#373D3A,#242927)}
+.sc-talk.rec::before{opacity:1}
+.sc-talk.rec{color:var(--sc-moon)}
+.sc-talk .cap{position:relative;z-index:2;display:block;padding:0 3px;
+  font:700 8.5px/1.2 var(--mono);letter-spacing:.08em;text-shadow:var(--emboss)}
+
 @media (prefers-reduced-motion:reduce){
   .lever[data-state="seating"] .rail{animation:none}
   .rung i{transition:none}
   .work.radio .card{transition:none}
   .card .rt, .card.rx{transition:none}
+  /* the beam degrades to a whole-message brighten; the voice, the tail, the
+     haptics and the clock survive untouched — they are information, not theater */
+  .work.sc-log .card, .sc-row .w, .sc-row .bd, .sc-row.atl{transition:none}
+  .sc-row .w.now{text-shadow:none}
 }
 </style>
 
@@ -319,6 +436,11 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
 
   <div class="stage">
     <div class="head" id="head"></div>
+    <!-- SIDE CH's arc glyph: left pole = his mic open, arc = a voice on the
+         channel, right pole = ATLAS holds the mic. Derived fact, never mood. -->
+    <div class="sc-arc" id="arcg" hidden aria-hidden="true">
+      <i class="you"></i><b class="arc"></b><i class="atl"></i>
+    </div>
     <div class="fig" id="fig"></div>
     <div class="sub" id="sub"></div>
     <div class="why" id="whyLine" hidden></div>
@@ -328,6 +450,20 @@ canvas.wheel{position:absolute;right:22px;top:84px;width:48px;height:600px;displ
       <div class="strip"><canvas id="stripcv" width="640" height="14"></canvas></div>
       <input id="mic" class="micin" enterkeyhint="done" autocomplete="off" maxlength="500"
              aria-label="key up a message to the operation">
+    </div>
+    <!-- THE BENCH (CH 21) — runs rail, the dial, then the two wells side by
+         side inside the thumb arc: type and hold the lever, or tap TALK and
+         just speak. Roll → listen → hold → talk, with no re-grip. -->
+    <div class="sc-well" id="scwell" hidden>
+      <div class="sc-rail" id="scrail"></div>
+      <div class="sc-rail" id="scmodes" role="radiogroup" aria-label="the dial"></div>
+      <div class="sc-bench">
+        <input id="say" class="micin" enterkeyhint="done" autocomplete="off" maxlength="2000"
+               aria-label="say something on the side channel">
+        <button class="sc-talk" id="talk" type="button" aria-label="open the mic">
+          <span class="cap" id="talkcap">TALK</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -442,9 +578,11 @@ if(!location.hash && localStorage.getItem("almanac_view") === "desk" &&
   location.replace("desk.html");
 }
 
-/* A push tap arrives as #radio — remember it, scrub it, answer after boot. */
-let WANT_RADIO = location.hash === "#radio";
-if(WANT_RADIO) history.replaceState(null, "", location.pathname + location.search);
+/* A push tap arrives as #radio — remember it, scrub it, answer after boot.
+   #sidech is the same plumbing for CH 21's door (card #91 / §4.1). */
+let WANT_RADIO  = location.hash === "#radio";
+let WANT_SIDECH = location.hash === "#sidech";
+if(WANT_RADIO || WANT_SIDECH) history.replaceState(null, "", location.pathname + location.search);
 
 const configured = () => localStorage.getItem("almanac_token") !== null && TOK !== "";
 const $ = id => document.getElementById(id);
@@ -494,11 +632,18 @@ const thud      = () => tone(150, 90, .10, "triangle");        // refused
 const keyThump  = () => tone(95, 45, .08, "sine");             // mic keyed — felt
 const rogerBeep = () => tone(2000, 70, .045, "sine");          // end of transmission
 const T = [];                                                  // grain timers, cleared on pagehide
+/* The grains are chosen up front and RETURNED: SIDECHANNEL §3.2's law is that
+   one seed drives the oscillator AND the carrier — the spikes the eye sees are
+   the grains the ear hears, not a decorative animation that merely rhymes. */
 function squelchTail(){
-  for(let i = 0; i < 6; i++)
-    T.push(setTimeout(() => tone(1400 + Math.random()*1600, 14 + Math.random()*10,
-                                 .05 * (1 - i/6), "sawtooth", .6),
-                      i*18 + Math.random()*8));
+  const grains = [];
+  for(let i = 0; i < 6; i++){
+    const at = i*18 + Math.random()*8;
+    const freq = 1400 + Math.random()*1600, gain = .05 * (1 - i/6);
+    grains.push({ at, freq, gain });
+    scT(() => tone(freq, 14 + Math.random()*10, gain, "sawtooth", .6), at);
+  }
+  return grains;
 }
 addEventListener("pagehide", () => { try{ AC && AC.close(); }catch(e){} AC = null; });
 document.addEventListener("visibilitychange", () => {
@@ -527,6 +672,11 @@ function buildNodes(){
   // ruling ("radio first") inside this plate's law ("today is position zero").
   // Crossing to it earns the heavy detent: the channel costs a boundary.
   N.push({ sec:"RADIO", kind:"radio", first:true });
+  // SIDE CH at index 2, directly after RADIO — the two halves of one radio
+  // (card #91 / SIDECHANNEL §4.1). Crossing to it earns the heavy detent for
+  // the same reason RADIO does: the conversation costs a boundary, which is
+  // true. `first:true` IS that ruling — crosses() reads it, landOn() feels it.
+  N.push({ sec:"SIDE CH", kind:"sidech", first:true });
   N.push({ sec:"WORK",  kind:"work",  first:true });
   const st = (State.standings && State.standings.standings) || [];
   st.forEach((s, i) => N.push({ sec:"FINANCES", kind:"standing", s, first: i === 0 }));
@@ -588,7 +738,7 @@ function drawWheel(){
 }
 
 /* ── render ───────────────────────────────────────────────────────────── */
-const SECS = ["TODAY","RADIO","WORK","FINANCES","LEARN","SOUL","CLOSE"];
+const SECS = ["TODAY","RADIO","SIDE CH","WORK","FINANCES","LEARN","SOUL","CLOSE"];
 SECS.forEach(k => { const d = document.createElement("button");
   d.type = "button"; d.className = "rung"; d.dataset.k = k;
   d.setAttribute("aria-label", "go to " + k.toLowerCase());
@@ -867,10 +1017,928 @@ document.addEventListener("visibilitychange", () => {
   if(!document.hidden && NODES[spin.pos] && NODES[spin.pos].kind === "radio") paint();
 });
 
+/* ══ SIDE CH · CH 21 — the conversation, on the plate (card #91) ═══════════
+   The node at spindle index 2. CH 19 is the operation keying up through the
+   budget, once a day; CH 21 is TWO SEATS — he talks, ATLAS answers in a voice.
+   Everything here is a consumer of spine endpoints that are already live
+   (threads / say / heard / voice / stt / pins); this file adds no law to them.
+
+   The one-verb room: this surface performs exactly one act — talk. Anything
+   ATLAS names is a door somewhere else. A second verb appearing here is the
+   bearing firing, not a feature. */
+const SC = {
+  runs:[], run:null, msgs:[], mounted:false,
+  waiting:null,           // {sayId, t0, clockT, followT} — the dead-air watch
+  audio:null, beamRaf:0, playingRow:0,
+  gen:0,                  // playback generation: a stale tap's late fetch is DEAD
+  vox:new Map(),          // msg id -> object URL (revoked on room exit + pagehide)
+  peaks:new Map(),        // msg id -> [0..1] buckets — this glass's tape memory
+  rec:null, vuRaf:0, loop:false, emptyTakes:0, mounting:false, newing:false,
+  takeGen:0,              // mic generation — a stale getUserMedia must NOT become the take
+  tuneGen:0,              // run generation — run A's late fetch must not paint under run B
+
+  defer:null,             // an answer that landed hidden — deferred, NOT fired
+  wake:null,
+  mode: localStorage.getItem("almanac_sc_mode") || "analysis",
+};
+/* the same key companion.html writes — one dial, both surfaces, or the phone
+   and the desk quietly answer him in different voices */
+const SC_MODES = ["analysis","chat","therapist"];
+/* short on purpose: at 340px the well is ~140px wide, and a placeholder that
+   truncates mid-word is worse than one that fits */
+const SC_PLACEHOLDER = {
+  analysis:"say it, or tap TALK",
+  chat:"shoot the breeze",
+  therapist:"say what's on you",
+};
+const SC_QUIET = {
+  analysis:"a fresh run — say something into the dark. the operation answers in a voice that knows your numbers.",
+  chat:"a fresh run — say anything. off the clock, no ledger, quick voice.",
+  therapist:"a fresh run — say what's on you. this room is walled from the work.",
+};
+const muted = () => localStorage.getItem("almanac.mute") === "1";
+const mmss  = s => { s = Math.max(0, Math.round(Number(s) || 0));
+  return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+const onSC  = () => !!(NODES[spin.pos] && NODES[spin.pos].kind === "sidech");
+/* CSS.escape is the sanitizer; the manual pass is only the fallback. A raw
+   newline in an id makes a hand-quoted selector INVALID, and querySelector
+   throws — which in the deferred-reveal handler would take the whole handler
+   down, `scHeard()` included. */
+const scSel = id => `[data-id="${(typeof CSS !== "undefined" && CSS.escape)
+  ? CSS.escape(String(id)) : String(id).replace(/["\\\n\r]/g, "\\$&")}"]`;
+/* Every id that becomes a path segment goes through this. Origin escape is not
+   reachable behind the /api/ prefix, but a '?' or '#' in an id would silently
+   truncate the path and hit a DIFFERENT door on the spine. */
+const scSeg = v => encodeURIComponent(String(v));
+/* A timer that forgets itself. T[] is swept on pagehide; without this the
+   settle, retry and mic-reopen ids pile up for a whole road session. */
+function scT(fn, ms){
+  const id = setTimeout(() => { const i = T.indexOf(id); if(i >= 0) T.splice(i, 1); fn(); }, ms);
+  T.push(id); return id;
+}
+
+let scWhyT = 0;
+function scWhy(msg){
+  const w = $("whyLine"); w.hidden = false; w.textContent = msg;
+  clearTimeout(scWhyT); scWhyT = setTimeout(() => { w.hidden = true; }, 5200);
+}
+function scArc(pole, on){
+  const el = $("arcg").querySelector("." + pole);
+  if(el) el.classList.toggle("on", !!on);
+}
+/* the state word rides the readout: QUIET · ATL HAS THE MIC · 0:42 · SPEAKING.
+   During dead air it is the ONLY thing moving on the surface. ONE interval,
+   cleared by scClearWait on exactly three deaths: the answer landing, the room
+   exit, and pagehide. Hiding does NOT clear it — §6 says the clock keeps true
+   time in his pocket, and t0-arithmetic means a throttled tick still reads
+   right when he looks. (This comment used to claim a fourth death. It did not
+   exist; in this file a comment that lies about teardown is how the next
+   teardown bug gets written.) */
+function scState(w){
+  if(!onSC()) return;
+  const f = $("fig"); f.className = "fig quiet";
+  if(w){ f.textContent = w; return; }
+  f.textContent = SC.waiting
+    ? `ATL HAS THE MIC · ${mmss((Date.now() - SC.waiting.t0)/1000)}` : "QUIET";
+}
+
+/* ── the log ─────────────────────────────────────────────────────────── */
+function scStamp(m, dur){
+  const who = m.sender === "operation" ? "ATLAS" : "BRYAN";
+  const md = (m.mode && m.mode !== "analysis" && who === "ATLAS")
+    ? " · " + String(m.mode).toUpperCase() : "";
+  return who + md + " · " + rel(m.at) + (dur ? " · " + mmss(dur) : "");
+}
+function scRow(m){
+  const el = document.createElement("div");
+  const atl = m.sender === "operation";
+  el.className = "card sc-row " + (m.kind === "undelivered" ? "und"
+                 : atl ? ("atl" + (m.read_at ? " heard" : "")) : "bry");
+  el.dataset.id = m.id;
+  const st = document.createElement("div"); st.className = "st";
+  const who = document.createElement("span"); who.className = "who";
+  who.textContent = scStamp(m);
+  st.appendChild(who);
+  const bd = document.createElement("div"); bd.className = "bd";
+  if(m.kind === "answer"){
+    /* every word pre-wrapped ONCE, at render, through esc() — the beam's rails.
+       ATLAS's text is hostile until escaped; this is the only interpolation. */
+    bd.innerHTML = String(m.body ?? "").split(/(\s+)/).map(t =>
+      /^\s+$/.test(t) ? t : `<span class="w">${esc(t)}</span>`).join("");
+    const play = document.createElement("button");
+    play.type = "button"; play.className = "play"; play.textContent = "▶";
+    play.setAttribute("aria-label", "hear it again");
+    play.addEventListener("click", e => { e.stopPropagation(); scHear(m, el, false); });
+    st.appendChild(play);
+  } else if(m.kind === "undelivered"){
+    const mk = document.createElement("span"); mk.className = "mk"; mk.textContent = "△ ";
+    bd.appendChild(mk);
+    /* The spine's own body already opens "your words hold — …", so this adds
+       the part it does not say. It must NOT tell him to promote the turn: the
+       →19 hold lives on the desk, not on this plate, and a failure line that
+       hands him an instruction he cannot follow here is worse than silence. */
+    bd.append(String(m.body ?? "") + " — the turn stands in the run. only a"
+              + " promotion makes the session read it, and that hold is on the desk.");
+  } else {
+    bd.textContent = m.body ?? "";
+  }
+  el.appendChild(st); el.appendChild(bd);
+  return el;
+}
+function scRender(){
+  const w = $("work");
+  w.textContent = ""; w.hidden = false;
+  w.classList.remove("radio"); w.classList.add("sc-log");
+  if(!SC.msgs.length){
+    const q = document.createElement("div"); q.className = "card sc-quiet";
+    q.textContent = SC.run ? (SC_QUIET[SC.mode] || SC_QUIET.analysis)
+      : "no run is open — tap + NEW RUN and the channel opens. starting one is a"
+        + " write, so it waits for your hand.";
+    w.appendChild(q); w.scrollTop = 0; return;
+  }
+  let stag = 0;
+  for(const m of SC.msgs.slice().reverse()){        // column-reverse: first = newest
+    const el = scRow(m);
+    if(!reduce() && stag < 8){
+      el.style.transitionDelay = (stag*28) + "ms";
+      /* the stagger belongs to the ENTRANCE only; left on, it delays every
+         later transition the row has, including the settle */
+      scT(() => { el.style.transitionDelay = ""; }, 400);
+      stag++;
+    }
+    w.appendChild(el);
+  }
+  w.scrollTop = 0;
+}
+function scAppend(m){
+  const w = $("work");
+  if(!SC.msgs.length) w.textContent = "";          // the quiet line steps aside
+  SC.msgs.push(m);
+  w.prepend(scRow(m));                             // node append, never a re-render mid-talk
+  w.scrollTop = 0;
+}
+
+/* ── the runs rail + the dial ────────────────────────────────────────── */
+function scRail(){
+  const r = $("scrail"); r.textContent = "";
+  const plus = document.createElement("button");
+  plus.type = "button"; plus.className = "sc-chip"; plus.textContent = "+ NEW RUN";
+  plus.addEventListener("click", scNewRun);
+  r.appendChild(plus);
+  for(const t of SC.runs){
+    const c = document.createElement("button");
+    c.type = "button";
+    c.className = "sc-chip" + (SC.run === t.id ? " on" : "") + (t.unheard ? " unheard" : "");
+    c.textContent = t.name;                        // textContent, never innerHTML — his own titles
+    const n = document.createElement("span"); n.className = "n"; n.textContent = t.turns;
+    c.appendChild(n);
+    c.addEventListener("click", () => { buzz(HAPTIC.arm); tickLight(); scTune(t.id); });
+    r.appendChild(c);
+    if(SC.run === t.id) c.scrollIntoView({ block:"nearest", inline:"nearest" });
+  }
+}
+function scDial(){
+  const box = $("scmodes"); box.textContent = "";
+  for(const m of SC_MODES){
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "sc-chip sc-mode" + (SC.mode === m ? " on" : "");
+    b.textContent = m.toUpperCase();
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-checked", SC.mode === m ? "true" : "false");
+    b.addEventListener("click", () => {
+      if(SC.mode === m) return;
+      SC.mode = m; localStorage.setItem("almanac_sc_mode", m);
+      buzz(HAPTIC.arm); tickLight();
+      $("say").placeholder = SC_PLACEHOLDER[m];
+      scDial();
+      if(!SC.msgs.length) scRender();              // the quiet line speaks the mode
+    });
+    box.appendChild(b);
+  }
+}
+
+/* ── the spine, consumed ─────────────────────────────────────────────── */
+async function scLoadRuns(){
+  const d = await grab("/api/threads");
+  SC.runs = d.runs || [];
+  scRail();
+}
+async function scTune(tid){
+  /* THE TUNE TOKEN. Two chips tapped in quick succession race, and the loser
+     resolving LAST wins the assignment: run A's turns would paint under run
+     B's header — and then scHeard() would POST /threads/B/heard on the
+     strength of messages belonging to A, marking read what he never saw. */
+  const gen = ++SC.tuneGen;
+  scStopPlayback(); scClearWait(); scSweepVox();
+  SC.run = tid; SC.msgs = []; SC.peaks.clear(); SC.defer = null;
+  let msgs = [];
+  try{
+    const d = await grab(`/api/threads/${scSeg(tid)}/messages`);
+    msgs = d.messages || [];
+  }catch(e){
+    if(gen !== SC.tuneGen) return;
+    scWhy("the spine did not answer with that run: " + (e.message || e));
+  }
+  if(gen !== SC.tuneGen || tid !== SC.run) return;  // a newer tune owns the room
+  if(!onSC()) return;                               // he rolled away mid-fetch
+  SC.msgs = msgs;
+  scRail(); scRender(); scHeard();
+  paint();
+}
+/* Starting a run is a WRITE, so it is his hand and only his hand: the node
+   never auto-creates one on arrival. It also latches like every other write
+   here — one in flight at a time, an Idempotency-Key, a 9s abort — because a
+   double-tap on + NEW RUN otherwise leaves two empty runs on his rail. */
+async function scNewRun(){
+  if(SC.newing) return;
+  SC.newing = true;
+  const net = new AbortController();
+  const kill = setTimeout(() => net.abort(), 9000);
+  try{
+    const r = await fetch(url("/api/threads"), { method:"POST", signal: net.signal,
+      headers: hdr({ "Content-Type":"application/json",
+                     "Idempotency-Key": crypto.randomUUID
+                       ? crypto.randomUUID() : String(Math.random()).slice(2) }),
+      body:"{}" });
+    clearTimeout(kill);
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok || !d.id) throw new Error(d.error || ("the spine answered " + r.status));
+    await scLoadRuns();
+    await scTune(d.id);
+  }catch(e){
+    clearTimeout(kill); thud();
+    scWhy(e && e.name === "AbortError"
+      ? "no answer from the spine in 9s — no run was started"
+      : "no new run — " + (e.message || e));
+  }finally{ SC.newing = false; }
+}
+/* Rendered is not heard — his eyes are, on a visible document, on this node. */
+function scHeard(){
+  if(document.visibilityState !== "visible" || !SC.run || !onSC()) return;
+  if(!SC.msgs.some(m => m.sender === "operation" && !m.read_at)) return;
+  fetch(url(`/api/threads/${scSeg(SC.run)}/heard`), { method:"POST",
+    headers: hdr({ "Content-Type":"application/json" }), body:"{}" })
+    .then(r => {
+      if(!r.ok) return;
+      /* only the operation's rows — the spine's UPDATE is scoped to
+         sender='operation', and marking his own turns read here would leave
+         the model quietly disagreeing with the table it came from */
+      SC.msgs.forEach(m => { if(m.sender === "operation" && !m.read_at) m.read_at = "now"; });
+      document.querySelectorAll("#work .sc-row.atl:not(.heard)")
+        .forEach(el => el.classList.add("heard"));
+      scLoadRuns().catch(() => {});
+    }).catch(() => {});
+}
+
+/* ── THE BREAK — tail → 60ms of nothing → the voice, light walking the words ── */
+async function scVoice(id){
+  if(SC.vox.has(id)) return SC.vox.get(id);        // a replay over 5G must not refetch
+  /* A wedged spine or a dropped tailnet must not leave ▶ disabled forever with
+     no way back. Every write on this surface is aborted on a clock; the read
+     that gates the ▶ button gets the same discipline. */
+  const net = new AbortController();
+  const kill = setTimeout(() => net.abort(), 20000);
+  try{
+    const r = await fetch(url(`/api/voice/${scSeg(id)}`), { headers: hdr(), signal: net.signal });
+    if(!r.ok) return null;
+    const obj = URL.createObjectURL(await r.blob());
+    /* the cache is bounded: a long run is hundreds of clips at ~500KB each,
+       and the oldest one he might replay is not worth the memory */
+    if(SC.vox.size >= 12){
+      const oldest = SC.vox.keys().next().value;
+      try{ URL.revokeObjectURL(SC.vox.get(oldest)); }catch(e){}
+      SC.vox.delete(oldest);
+    }
+    SC.vox.set(id, obj);
+    return obj;
+  }catch(e){ return null; }
+  finally{ clearTimeout(kill); }
+}
+function scSweepVox(){
+  SC.vox.forEach(o => { try{ URL.revokeObjectURL(o); }catch(e){} });
+  SC.vox.clear();
+}
+function scWordTimes(bd, dur){
+  const ws = [...bd.querySelectorAll(".w")];
+  const total = ws.reduce((n, w) => n + w.textContent.length, 0) || 1;
+  let t = 0;
+  return ws.map(w => {
+    const span = dur * (w.textContent.length / total);
+    const win = { w, from:t, to:t + span };
+    t += span; return win;
+  });
+}
+/* THE CARRIER, COLLAPSED (§6): no 44px strip at 340px — the trace is drawn on
+   the answer card's own top edge, so the glass costs the log nothing. */
+function scTrace(el){
+  let cv = el.querySelector("canvas.sc-trace");
+  if(!cv){ cv = document.createElement("canvas"); cv.className = "sc-trace"; el.prepend(cv); }
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  const w = Math.max(1, el.clientWidth), h = 9;
+  if(cv.width !== Math.round(w*dpr) || cv.height !== Math.round(h*dpr)){
+    cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr);
+  }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [g, w, h];
+}
+function scSpikeRun(grains, el){
+  /* the tail's OWN grains spike the glass — same seed, sound and light */
+  const [g, w, h] = scTrace(el);
+  g.clearRect(0, 0, w, h);
+  const span = 150;
+  for(const gr of grains){
+    const x = w*.5 + (gr.at/span)*w*.45;
+    const sh = Math.min(h, 2 + gr.gain*120);
+    g.fillStyle = `rgba(198,212,228,${Math.min(.9, .25 + gr.gain*8)})`;
+    g.fillRect(x, (h-sh)/2, 2, sh);
+  }
+  /* if a voice is on the channel the playhead owns this canvas; otherwise the
+     tail was all there was, and dead air must render as dead air */
+  scT(() => { if(SC.playingRow !== 0) return; scDeadLine(el); }, 900);
+}
+function scDeadLine(el){
+  /* dead air renders as dead air: one flat etched line, zero rAF running */
+  if(!el || !el.isConnected) return;
+  const [g, w, h] = scTrace(el);
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = "rgba(107,114,110,.4)";
+  g.fillRect(0, Math.round(h/2), w, 1);
+}
+function scPlayhead(m, a, el){
+  const pk = SC.peaks.get(m.id);
+  const [g, w, h] = scTrace(el);
+  g.clearRect(0, 0, w, h);
+  const dur = a.duration || 1, frac = Math.min(1, a.currentTime / dur);
+  if(pk && pk.length){
+    const px = w*.5;                               // a FIXED 1px playhead; peaks scroll past
+    pk.forEach((v, i) => {
+      const x = px + (i/pk.length - frac) * w * .9;
+      if(x < 0 || x > w) return;
+      const sh = Math.min(h, 2 + v*(h-3));
+      g.fillStyle = i/pk.length <= frac ? "rgba(198,212,228,.75)" : "rgba(107,114,110,.5)";
+      g.fillRect(x, (h-sh)/2, 1.6, sh);
+    });
+    g.fillStyle = "rgba(233,237,240,.95)"; g.fillRect(px, 1, 1, h-2);
+  } else {
+    g.fillStyle = "rgba(198,212,228,.6)";
+    g.fillRect(0, Math.round(h/2), w*frac, 1.5);
+  }
+}
+async function scPeaksFor(m){
+  /* decode-only, on an OfflineAudioContext — the live AC budget is untouched */
+  if(SC.peaks.has(m.id)) return SC.peaks.get(m.id);
+  const vox = SC.vox.get(m.id); if(!vox) return null;
+  try{
+    const buf = await (await fetch(vox)).arrayBuffer();
+    const oc = new OfflineAudioContext(1, 16000, 16000);
+    const dec = await oc.decodeAudioData(buf.slice(0));
+    const ch = dec.getChannelData(0), n = 180, out = new Array(n).fill(0);
+    const step = Math.max(1, Math.floor(ch.length / n));
+    for(let i = 0; i < n; i++){
+      let mx = 0;
+      for(let j = i*step; j < Math.min(ch.length, (i+1)*step); j += 16)
+        mx = Math.max(mx, Math.abs(ch[j]));
+      out[i] = mx;
+    }
+    SC.peaks.set(m.id, out);
+    return out;
+  }catch(e){ return null; }
+}
+function scStopPlayback(){
+  if(SC.audio){ try{ SC.audio.pause(); }catch(e){} }
+  cancelAnimationFrame(SC.beamRaf); SC.beamRaf = 0;
+  SC.audio = null; SC.playingRow = 0;
+  /* THE LOCK SCREEN LETS GO TOO. Leaving these set means a phone lying on the
+     seat still advertises "ATLAS · SIDE CHANNEL" after the answer ended, and a
+     lock-screen play tap resumes the clip from a buffer that revoking the blob
+     does not touch. In THERAPIST mode that is a private conversation replayable
+     by whoever picks the phone up. Nothing speaks once the room is quiet. */
+  try{
+    if("mediaSession" in navigator){
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.setActionHandler("play", null);
+      navigator.mediaSession.setActionHandler("pause", null);
+      navigator.mediaSession.playbackState = "none";
+    }
+  }catch(e){}
+  scArc("arc", false);
+  if(onSC()) scState();
+}
+function scDone(el){
+  el.classList.add("done");
+  el.querySelectorAll(".w").forEach(w => { w.classList.add("lit"); w.classList.remove("now"); });
+}
+async function scSettle(m, el, a){
+  /* SETTLE-TO-TAPE: the exchange becomes tape you can see */
+  scDone(el);
+  let dur = a && a.duration;
+  if(a && !(dur > 0)){
+    /* the muted path settles a clip that was never played, so its metadata may
+       not have loaded and duration is NaN — the stamp would silently lose its
+       length. Wait a beat for the header rather than print a half-truth. */
+    dur = await new Promise(res => {
+      const done = () => res(a.duration);
+      const t = setTimeout(() => res(a.duration), 1200);
+      a.addEventListener("loadedmetadata",
+        () => { clearTimeout(t); done(); }, { once:true });
+    });
+  }
+  if(dur > 0){ const who = el.querySelector(".who"); if(who) who.textContent = scStamp(m, dur); }
+  const pk = await scPeaksFor(m);
+  if(pk && el.isConnected && !el.querySelector(".sc-tape")){
+    const cv = document.createElement("canvas");
+    cv.className = "sc-tape"; cv.width = 360; cv.height = 12;
+    const g = cv.getContext("2d"); g.fillStyle = "#6B726E";
+    pk.forEach((v, i) => { const h = 1 + v*10; g.fillRect(i*2, (12-h)/2, 1.4, h); });
+    el.appendChild(cv);
+  }
+  const tr = el.querySelector("canvas.sc-trace");
+  if(tr) tr.remove();                              // the carrier exhales to nothing
+  scHeard();
+}
+async function scHear(m, el, isArrival){
+  /* The three-condition autoplay gate rides the CALLER for arrivals (answer
+     just landed ∧ document visible ∧ he is standing on the side channel); a ▶
+     tap is itself the gesture gate. THE GENERATION TOKEN: every await below is
+     a window for a second tap, and a stale invocation must die at each one or
+     two voices play over each other. */
+  const gen = ++SC.gen;
+  scStopPlayback();
+  /* A RADIO IS HALF-DUPLEX, and this is not a nicety. He can tap TALK while
+     ATLAS composes; if the answer then plays with the mic still open, af_heart
+     goes into a live capture, the 2.3s-silence rule closes that take, and the
+     spine transcribes ATLAS's own words and sends them back as HIS turn.
+     echoCancellation is not a guarantee against media-element playback on
+     Android. The voice takes the channel; SC.loop stays true, so scReopenMic
+     hands the mic straight back when the answer is done. It also settles
+     §7's "one rAF owner per moment" — the VU loop dies with the take. */
+  if(SC.rec) scStopTracks();
+  const pb = el.querySelector(".play");
+  const restore = () => { if(pb){ pb.textContent = "▶"; pb.disabled = false; } };
+  if(pb){ pb.textContent = "…"; pb.disabled = true; }   // a slow fetch must read as WORKING
+  let obj = await scVoice(m.id);
+  if(gen !== SC.gen){ restore(); return; }
+  if(!obj && isArrival){
+    /* the row lands before the WAV finishes cutting — an arrival waits a few
+       beats for its voice before conceding. No consolation beep, ever. */
+    for(let i = 0; i < 4 && !obj; i++){
+      await new Promise(res => scT(res, 2200));
+      if(gen !== SC.gen){ restore(); return; }
+      obj = await scVoice(m.id);
+    }
+    if(gen !== SC.gen){ restore(); return; }
+    if(!obj){ restore(); scDone(el); scReopenMic(); return; }
+  }
+  if(!obj){ restore(); scWhy("no voice for this row — the text is the record"); return; }
+  if(isArrival && !muted()){
+    scSpikeRun(squelchTail(), el);                 // THE TAIL — one seed, ear and eye
+    buzz(HAPTIC.rx);                               // his hand is on the instrument
+    await new Promise(res => scT(res, 190));      // …then 60ms of NOTHING
+    if(gen !== SC.gen){ restore(); return; }
+  }
+  restore();
+  const a = new Audio(obj);
+  SC.audio = a; SC.playingRow = m.id;
+  try{
+    if("mediaSession" in navigator){
+      /* SCREEN-OFF SURVIVAL: the answer keeps speaking with the screen dark and
+         the steering wheel can pause it; the light picks up when he looks. */
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title:"ATLAS", artist:"SIDE CHANNEL · ALMANAC", album:"CH 21" });
+      navigator.mediaSession.setActionHandler("play",  () => { a.play().catch(() => {}); });
+      navigator.mediaSession.setActionHandler("pause", () => { try{ a.pause(); }catch(e){} });
+    }
+  }catch(e){}
+  if(muted()){ scSettle(m, el, a); scReopenMic(); return; }
+  try{ await a.play(); }
+  catch(e){
+    /* autoplay refused (no gesture yet) — the row stands, ▶ is the door */
+    if(gen === SC.gen){ scStopPlayback(); scDone(el); }
+    scReopenMic(); return;
+  }
+  if(gen !== SC.gen){ try{ a.pause(); }catch(e){} return; }
+  scPeaksFor(m);                                   // the tape decodes while it speaks
+  scArc("arc", true); scState("SPEAKING");
+  const bd = el.querySelector(".bd");
+  /* EMPTY until the clip's real duration is known. Seeding this with
+     scWordTimes(bd, 0) looks harmless and is not: it returns one window per
+     word with from=to=0, so `!wins.length` is already false, the real
+     durations are never filled in, and every word passes `t >= 0` on the
+     first frame — the whole message lights at once and the beam is dead.
+     Proven on row 50 (10.8s clip) before this line was changed. */
+  const wins = [];
+  /* REDUCED MOTION IS NOT A COSTUME CHANGE — it is less work. §7: the beam
+     becomes a whole-message brighten on `play`, and the carrier draws no live
+     trace at all (the tape still engraves on `ended`). Running the rAF anyway
+     and merely re-adding .lit to every word 60 times a second would honour the
+     look and none of the reason. So under reduce() there is no loop at all. */
+  if(reduce()){
+    bd.querySelectorAll(".w").forEach(w => w.classList.add("lit"));
+  } else {
+    const beam = () => {
+      if(!SC.audio || SC.audio !== a) return;      // ONE rAF owner per moment
+      const t = a.currentTime, dur = a.duration || 0;
+      if(dur && !wins.length) wins.push(...scWordTimes(bd, dur));
+      for(const win of wins){
+        const on = t >= win.from;
+        win.w.classList.toggle("lit", on);
+        win.w.classList.toggle("now", on && t < win.to);
+      }
+      scPlayhead(m, a, el);
+      if(!a.paused && !a.ended) SC.beamRaf = requestAnimationFrame(beam);
+    };
+    /* THE LIGHT IS PLAYBACK, BOTH WAYS. A steering-wheel or lock-screen pause
+       freezes the beam because the loop stops rescheduling — but nothing ever
+       restarted it, so the second half of the answer used to speak with the
+       words frozen mid-sentence. The glyph and the state word are wired to the
+       same two events: they must never say SPEAKING at a paused clip. */
+    a.addEventListener("play", () => {
+      if(SC.audio !== a) return;
+      scArc("arc", true); scState("SPEAKING");
+      if(!SC.beamRaf) SC.beamRaf = requestAnimationFrame(beam);
+    });
+    a.addEventListener("pause", () => {
+      if(SC.audio !== a || a.ended) return;
+      cancelAnimationFrame(SC.beamRaf); SC.beamRaf = 0;
+      scArc("arc", false); scState("HELD");
+    });
+    SC.beamRaf = requestAnimationFrame(beam);
+  }
+  a.addEventListener("ended", () => {
+    scT(() => {                                  // THE SETTLE — a 240ms hold
+      scSettle(m, el, a);
+      if(SC.audio === a) scStopPlayback();         // never tear down a NEWER playback
+      scReopenMic();
+    }, 240);
+  }, { once:true });
+}
+
+/* ── the dead-air watch: the honest clock, the follow, the arrival ────── */
+async function scHoldWake(){
+  /* The request is an await. If the answer lands inside it, scReleaseWake()
+     has already run against a null sentinel and the lock that arrives after
+     is owned by nobody — the screen then stays lit until the document hides.
+     Never held at idle means never, including the idle that started mid-grant. */
+  try{
+    const s = await navigator.wakeLock?.request("screen");
+    if(!s) return;
+    if(!SC.waiting){ try{ s.release(); }catch(e){} return; }
+    SC.wake = s;
+  }catch(e){}
+}
+function scReleaseWake(){ try{ SC.wake?.release(); }catch(e){} SC.wake = null; }
+function scClearWait(){
+  if(!SC.waiting) return;
+  clearInterval(SC.waiting.clockT); clearTimeout(SC.waiting.followT);
+  SC.waiting = null;
+  scArc("atl", false);
+  if(onSC()) scState();
+  scReleaseWake();
+}
+function scStartWait(sayId){
+  scClearWait();
+  SC.waiting = { sayId, t0: Date.now(), clockT:0, followT:0 };
+  scArc("atl", true); scState();
+  SC.waiting.clockT = setInterval(() => scState(), 1000);   // the ONE interval
+  scHoldWake();                                             // held only while live
+  scFollow();
+}
+/* ZERO poll intervals: a single-timeout chain with four deaths — room exit,
+   the answer landing, the 6-minute cap, and pagehide. */
+function scFollow(delay){
+  if(!SC.waiting) return;
+  if(Date.now() - SC.waiting.t0 > 360000){
+    scClearWait();
+    scWhy("six minutes and no answer — your words hold; nothing was lost");
+    scEndLoop(null);      // the loop ends HERE, or his next tap only mutes
+    return;
+  }
+  SC.waiting.followT = setTimeout(async () => {
+    if(!SC.waiting) return;
+    if(document.visibilityState !== "visible"){ scFollow(); return; }  // clock keeps true time
+    const sayId = SC.waiting.sayId;
+    try{
+      const d = await grab(`/api/threads/${scSeg(SC.run)}/messages`);
+      if(!SC.waiting) return;
+      const known = new Set(SC.msgs.map(m => String(m.id)));
+      const fresh = (d.messages || []).filter(m => !known.has(String(m.id)));
+      const landed = fresh.find(m => m.sender === "operation" && Number(m.id) > Number(sayId));
+      if(landed){
+        scClearWait();
+        for(const m of fresh) scAppend(m);
+        scLoadRuns().catch(() => {});
+        const el = $("work").querySelector(scSel(landed.id));
+        if(landed.kind === "undelivered"){
+          scWhy("no answer came — your words hold. the turn stays in the run;"
+                + " promoting it to the session is a hold on the desk");
+          if(el) scDone(el);
+          scEndLoop(null);      // the loop ends HERE, or his next tap only mutes
+        } else if(landed.kind === "answer" && el){
+          if(document.visibilityState === "visible" && onSC()) scHear(landed, el, true);
+          else SC.defer = { m: landed, id: landed.id };   // deferred, NOT fired
+        }
+        return;
+      }
+    }catch(e){ /* the follow never breaks the room */ }
+    scFollow();
+  }, delay == null ? 5000 : delay);
+}
+
+/* ── TALK — the road loop. His ruling: he cannot hold-to-talk on the road.
+   ONE tap opens the mic; ~2.3s of quiet closes the take and SENDS it; when
+   the answer finishes speaking the mic REOPENS. The same tap is the panic
+   button the cab needs, and hidden kills it outright. ─────────────────── */
+function scCap(t){ $("talkcap").textContent = t; }
+function scStopTracks(){
+  SC.takeGen++;                 // any getUserMedia still in flight is now DEAD on arrival
+  const r = SC.rec; if(!r) return;
+  try{ r.proc.disconnect(); }catch(e){}
+  try{ r.src.disconnect(); }catch(e){}
+  try{ r.stream.getTracks().forEach(t => t.stop()); }catch(e){}   // EVERY path — a
+  try{ r.ctx.close(); }catch(e){}                                 // leaked pill reads
+  cancelAnimationFrame(SC.vuRaf); SC.vuRaf = 0;                   // as surveillance
+  const btn = $("talk");
+  btn.classList.remove("rec");
+  btn.style.setProperty("--sc-sweep", "0deg");
+  scArc("you", false);
+  SC.rec = null;
+}
+function scEndLoop(msg){
+  SC.loop = false; SC.emptyTakes = 0;
+  scStopTracks(); scCap("TALK");
+  if(msg) scWhy(msg);
+}
+async function scStartTake(){
+  if(SC.rec || document.visibilityState !== "visible" || !SC.loop || !onSC()) return;
+  /* THE TAKE TOKEN. getUserMedia is an await, and the guard above ran BEFORE
+     it: two invocations (a permission prompt he taps through twice, or a
+     reopen timer landing on top of an empty-take restart) both get past it,
+     both get a live stream, and the second overwrites SC.rec — leaving the
+     first stream's tracks owned by nobody. scStopTracks only ever stops what
+     SC.rec holds, so that mic stays HOT until the page unloads, with its own
+     orphan rAF still running. A leaked pill reads as surveillance; this is
+     the door it would come through. */
+  const gen = ++SC.takeGen;
+  let stream;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ audio:{
+      channelCount:1, echoCancellation:true, noiseSuppression:true } });
+  }catch(err){
+    if(gen !== SC.takeGen) return;
+    thud();
+    scEndLoop("the mic refused — the keyboard's own mic key is the floor that never breaks");
+    return;
+  }
+  /* re-check EVERYTHING the pre-await guard checked, SC.rec included */
+  if(gen !== SC.takeGen || SC.rec || !SC.loop || !onSC()
+     || document.visibilityState !== "visible"){
+    stream.getTracks().forEach(t => t.stop());
+    return;
+  }
+  let ctxA, src, proc, analyser;
+  try{
+    ctxA = new (window.AudioContext || window.webkitAudioContext)();
+    src = ctxA.createMediaStreamSource(stream);
+    proc = ctxA.createScriptProcessor(4096, 1, 1);
+    analyser = ctxA.createAnalyser(); analyser.fftSize = 512;
+    const mute = ctxA.createGain(); mute.gain.value = 0;   // the zero-gain node is load-bearing
+    src.connect(analyser); src.connect(proc); proc.connect(mute).connect(ctxA.destination);
+  }catch(e){
+    try{ stream.getTracks().forEach(t => t.stop()); }catch(x){}
+    try{ ctxA && ctxA.close(); }catch(x){}
+    thud(); scEndLoop("this device would not open an audio context — nothing was recorded");
+    return;
+  }
+  const chunks = [];
+  proc.onaudioprocess = ev => chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0)));
+  SC.rec = { stream, ctx:ctxA, src, proc, analyser, chunks, t0: performance.now(),
+             rate: ctxA.sampleRate, spoke:false, lastVoice:0 };
+  const btn = $("talk");
+  btn.classList.add("rec"); scCap("LISTENING TAP=MUTE");
+  keyThump(); buzz(HAPTIC.arm); scArc("you", true);
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  const vu = () => {
+    const rec = SC.rec; if(!rec) return;
+    analyser.getByteTimeDomainData(data);
+    let rms = 0; for(const v of data) rms += (v-128)*(v-128);
+    rms = Math.sqrt(rms/data.length)/128;
+    /* THE CARRIER, COLLAPSED INTO THE KEY: the ring's sweep IS his live RMS */
+    btn.style.setProperty("--sc-sweep", (Math.min(1, rms*6)*360).toFixed(1) + "deg");
+    const t = performance.now();
+    if(rms > 0.028){ rec.spoke = true; rec.lastVoice = t; }
+    if(rec.spoke && t - rec.lastVoice > 2300) return scFinishTake("silence");
+    if(!rec.spoke && t - rec.t0 > 9000)       return scFinishTake("nothing");
+    if(t - rec.t0 > 60000)                    return scFinishTake("cap");
+    SC.vuRaf = requestAnimationFrame(vu);
+  };
+  SC.vuRaf = requestAnimationFrame(vu);
+}
+async function scFinishTake(why){
+  const rec = SC.rec; if(!rec) return;
+  const { chunks, rate, spoke } = rec;
+  scStopTracks();
+  if(!spoke || why === "nothing"){
+    SC.emptyTakes = (SC.emptyTakes || 0) + 1;
+    if(SC.loop && SC.emptyTakes < 2){ scCap("STILL HERE TAP=MUTE"); scStartTake(); }
+    else scEndLoop("the mic closed — tap TALK when you want me");
+    return;
+  }
+  SC.emptyTakes = 0;
+  const n = chunks.reduce((s, c) => s + c.length, 0);
+  if(!n){ if(SC.loop) scStartTake(); return; }
+  /* Float32 → Int16 RIFF WAV, client-side, downsampled to 16k for the spine */
+  const flat = new Float32Array(n); let off = 0;
+  for(const c of chunks){ flat.set(c, off); off += c.length; }
+  const ratio = rate / 16000, mlen = Math.floor(n / ratio);
+  const pcm = new Int16Array(mlen);
+  for(let i = 0; i < mlen; i++){
+    const v = Math.max(-1, Math.min(1, flat[Math.floor(i*ratio)]));
+    pcm[i] = v < 0 ? v*0x8000 : v*0x7FFF;
+  }
+  const wav = new ArrayBuffer(44 + pcm.length*2), dv = new DataView(wav);
+  const ws = (o, s) => { for(let i = 0; i < s.length; i++) dv.setUint8(o+i, s.charCodeAt(i)); };
+  ws(0,"RIFF"); dv.setUint32(4, 36 + pcm.length*2, true); ws(8,"WAVE");
+  ws(12,"fmt "); dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+  dv.setUint32(24,16000,true); dv.setUint32(28,32000,true); dv.setUint16(32,2,true);
+  dv.setUint16(34,16,true); ws(36,"data"); dv.setUint32(40, pcm.length*2, true);
+  new Int16Array(wav, 44).set(pcm);
+  scCap("READING…");
+  /* TWO STAGES, TWO FAILURES. Wrapping the transcribe and the send in one try
+     made scSend's 9s abort surface as "the transcriber ran past 30s" — the
+     wrong stage, the wrong number, and a claim about what failed that was not
+     true. Worse, a send failure dropped his already-transcribed words and
+     reopened the mic with NOTHING on the glass saying the turn never went. */
+  let text = "";
+  const ctrl = new AbortController();
+  const kill = setTimeout(() => ctrl.abort(), 30000);   // cleared on BOTH exits
+  try{
+    const r = await fetch(url("/api/stt"), { method:"POST",
+      headers: hdr({ "Content-Type":"audio/wav" }), body: wav, signal: ctrl.signal });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok || !d.text) throw new Error(d.error
+      || "the spine has not answered with the transcript — your take was not kept");
+    text = d.text;
+  }catch(err){
+    thud(); buzz(HAPTIC.refuse);
+    scWhy(err && err.name === "AbortError"
+      ? "the transcriber ran past 30s — your take was not kept"
+      : (err && err.message ? err.message : String(err)));
+    if(SC.loop && onSC()){ scCap("LISTENING TAP=MUTE"); scStartTake(); }
+    else scCap(SC.loop ? "MIC CLOSED" : "TALK");
+    return;
+  }finally{ clearTimeout(kill); }
+  try{
+    scCap("SENT");
+    await scSend(text);        // spoken turns SEND: the road cannot review a screen
+  }catch(err){
+    thud(); buzz(HAPTIC.refuse);
+    /* his words are read and NOT sent — say both halves, and put the text he
+       already spoke into the well so the lever can send it by hand */
+    scWhy((err && err.name === "AbortError"
+      ? "no answer from the spine in 9s — nothing was sent"
+      : `the channel didn't take it: ${err && err.message ? err.message : err} — nothing was sent`)
+      + "; your words are in the well");
+    $("say").value = text;
+    $("say").dispatchEvent(new Event("input", { bubbles:true }));
+    scEndLoop(null);           // the road loop stops on a real refusal, by itself
+    return;
+  }
+  if(!SC.rec) scCap(SC.loop ? "MIC CLOSED" : "TALK");
+}
+function scReopenMic(){
+  if(SC.loop && !SC.rec && onSC()) scT(() => scStartTake(), 350);
+}
+
+/* ── the transmission itself — one door for typed and spoken turns ────── */
+async function scSend(body, key){
+  const words = String(body || "").trim();
+  if(!words) throw new Error("an empty transmission is not a turn");
+  if(!SC.run) throw new Error("no run is tuned — start one first");
+  const net = new AbortController();
+  const kill = setTimeout(() => net.abort(), 9000);
+  try{
+    const r = await fetch(url(`/api/threads/${scSeg(SC.run)}/say`), { method:"POST", signal: net.signal,
+      headers: hdr({ "Content-Type":"application/json",
+                     "Idempotency-Key": key || (crypto.randomUUID
+                       ? crypto.randomUUID() : String(Math.random()).slice(2)) }),
+      body: JSON.stringify({ body: words, mode: SC.mode }) });
+    clearTimeout(kill);
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
+    rogerBeep(); buzz(HAPTIC.seat);                 // ONLY after a parsed 2xx
+    scAppend({ id: d.id, at: new Date().toISOString(), sender:"bryan", kind:"say",
+               body: words, thread_id: SC.run, mode: SC.mode });
+    if(d.answering) scStartWait(d.id);
+    else {
+      /* no answer is coming, so nothing will ever hand the mic back — end the
+         loop here or his next TALK tap merely mutes a loop that is already idle
+         and he has to tap twice, in the cab, right after it failed him */
+      scWhy("sent — but ATLAS could not take the mic; the turn stands");
+      scEndLoop(null);
+    }
+    scLoadRuns().catch(() => {});
+    return d;
+  }catch(err){ clearTimeout(kill); throw err; }
+}
+
+/* ── mount / teardown ────────────────────────────────────────────────── */
+async function scMount(){
+  /* Re-entrancy guard, not decoration: rolling off the node and straight back
+     on while the first mount is still awaiting would start a SECOND one, and
+     on an empty rail that is two runs created for one arrival. */
+  if(SC.mounting) return;
+  SC.mounting = true;
+  try{
+    await scLoadRuns();
+    if(!onSC()) return;
+    /* An empty rail does NOT auto-create a run. Rolling onto index 2, or a
+       push tap landing here, would otherwise write a thread to the spine with
+       no hand on it. The room says so instead and waits for + NEW RUN. */
+    if(!SC.runs.length){ SC.run = null; SC.msgs = []; scRender(); }
+    /* Re-entering the room always refetches the tuned run. He rolls away, the
+       answer lands, he rolls back — painting the cached turns would show him a
+       log the spine already disagrees with, which is the one thing this plate
+       must never do. */
+    else await scTune(SC.runs.some(r => r.id === SC.run) ? SC.run : SC.runs[0].id);
+    if(onSC()) paint();
+  }catch(e){
+    scWhy("the spine has not answered with the runs: " + (e.message || e));
+  }finally{ SC.mounting = false; }
+}
+/* THE SINGLE TEARDOWN POINT (§6). This node owns a rAF, an <audio>, a mic, an
+   interval and a timeout chain; leaving it kills every one of them. */
+function scTeardown(){
+  SC.mounted = false;
+  SC.gen++;                                  // any in-flight scHear dies at its next await
+  scStopPlayback();
+  scClearWait();
+  scEndLoop(null);
+  scSweepVox();
+  clearTimeout(scWhyT);          // or a stale 5.2s timer blanks the NEXT node's why line
+  SC.defer = null;
+  scArc("you", false); scArc("atl", false); scArc("arc", false);
+  $("scwell").hidden = true;
+  $("arcg").hidden = true;
+  /* The transcript LEAVES with the room. paint() only hides #work, and the
+     nodes that render nothing into it leave whatever was last painted sitting
+     in the live DOM — which for CH 21 in THERAPIST mode is the last thing that
+     should still be lying around after he has rolled away. Re-entry refetches. */
+  $("work").textContent = "";
+  $("work").classList.remove("sc-log");
+}
+$("say").addEventListener("input", () => {
+  if(!onSC()) return;
+  $("lever").disabled = !($("say").value.trim() && State.source === "live" && SC.run);
+});
+$("talk").addEventListener("click", () => {
+  if(!onSC() || document.visibilityState !== "visible") return;
+  ctx();
+  if(SC.rec){ scEndLoop("muted — tap TALK to open the mic again"); return; }
+  if(SC.audio && !SC.audio.paused){
+    scStopPlayback(); scEndLoop("quiet — tap TALK to open the mic again"); return;
+  }
+  if(SC.loop){ scEndLoop("mic closed — the answer still lands in the run"); return; }
+  if(!SC.run){ scWhy("no run is tuned yet — the rail's + NEW RUN starts one"); return; }
+  SC.loop = true; SC.emptyTakes = 0;
+  scStartTake();
+});
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden){
+    /* HIDDEN = ABORT: a held take he cannot see is discarded, tracks stopped,
+       the pill dark. The clock keeps true time; the reveal is deferred. */
+    if(SC.rec || SC.loop) scEndLoop(null);
+    return;
+  }
+  if(!onSC()) return;
+  scState();
+  if(SC.defer){
+    const d = SC.defer; SC.defer = null;
+    const el = $("work").querySelector(scSel(d.id));
+    if(el) scHear(d.m, el, true);          // the detent reveal law, applied to sound
+  } else if(SC.waiting){
+    /* The follow does no work while hidden, so an answer that landed in his
+       pocket is not discovered until the next ~5s tick. His first LOOK is the
+       gesture: kick the chain now rather than making him watch dead air for a
+       message the spine has already written. And the browser drops a screen
+       wake lock on hide — §3.1 says re-acquired on visible return, so it is. */
+    clearTimeout(SC.waiting.followT);
+    scFollow(0);            // his LOOK is the gesture — check now, not in five seconds
+    if(!SC.wake) scHoldWake();
+  }
+  scHeard();
+});
+addEventListener("pagehide", () => {
+  SC.gen++;
+  scStopPlayback(); scClearWait(); scEndLoop(null); scSweepVox();
+  clearTimeout(scWhyT);
+});
+
 function paint(){
   const n = NODES[spin.pos]; if(!n) return;
   rxCancel && rxCancel();
   clearTimeout(readT);
+  if(SC.mounted && n.kind !== "sidech") scTeardown();
   $("micwell").hidden = true;
   $("work").classList.remove("radio");
   $("kick").innerHTML = `<b>${n.sec}</b> &nbsp;·&nbsp; ${spin.pos+1} / ${NODES.length}`;
@@ -949,6 +2017,31 @@ function paint(){
     lever.disabled = !($("mic").value.trim() && State.source === "live");
     $("leverCap").textContent = "KEY UP";
     armRead();
+  }
+  else if(n.kind === "sidech"){
+    /* CH 21 · TWO SEATS. The masthead + arc glyph, the runs rail, the tape,
+       and the bench — the whole instrument in node grammar, at 340px. */
+    $("kick").innerHTML = `<b>CH 21</b> &nbsp;·&nbsp; TWO SEATS`;
+    $("head").textContent = "The side channel";
+    $("arcg").hidden = false;
+    $("scwell").hidden = false;
+    $("say").placeholder = SC_PLACEHOLDER[SC.mode] || SC_PLACEHOLDER.analysis;
+    const run = SC.runs.find(r => r.id === SC.run);
+    /* one line, not two: at 340px every wrapped line of the readout is a line
+       of the log he does not get. The lever already says KEY UP. */
+    $("sub").textContent = State.source !== "live" ? "spine unavailable"
+      : SC.run ? `${run ? run.name : "run " + SC.run} · ${SC.msgs.length} turns`
+               : "reading the runs…";
+    if(!SC.mounted){
+      SC.mounted = true;
+      scDial(); scRail(); scRender();
+      scMount();
+    }
+    $("work").hidden = false;
+    $("work").classList.add("sc-log");
+    scState();
+    lever.disabled = !($("say").value.trim() && State.source === "live" && SC.run);
+    $("leverCap").textContent = "KEY UP";
   }
   else if(n.kind === "empty"){
     $("head").textContent = "Nothing standing";
@@ -1072,17 +2165,18 @@ $("mic").addEventListener("input", () => {
    heavy tick, real travel — then the waiting message plays its resolve.
    hashchange matters: a live window gets hash-only changes from the service
    worker's navigate(); boot never re-runs. */
-function swingToRadio(){
-  const i = NODES.findIndex(x => x.kind === "radio");
+function swingTo(kind){
+  const i = NODES.findIndex(x => x.kind === kind);
   if(i < 0) return;
-  if(i !== spin.pos) landOn(i);
+  if(i !== spin.pos) landOn(i);          // landOn supplies the heavy detent
   glideTo(TRAVEL[i]);
 }
+const swingToRadio = () => swingTo("radio");
 addEventListener("hashchange", () => {
-  if(location.hash === "#radio"){
-    history.replaceState(null, "", location.pathname + location.search);
-    swingToRadio();
-  }
+  const h = location.hash;
+  if(h !== "#radio" && h !== "#sidech") return;
+  history.replaceState(null, "", location.pathname + location.search);
+  swingTo(h === "#radio" ? "radio" : "sidech");
 });
 
 /* The instrument switch. Flips to the desk — the almanac laid open flat
@@ -1166,9 +2260,11 @@ let hintT = 0;
 
 function leverDown(e){
   const n = NODES[spin.pos];
-  if(!n || (n.kind !== "standing" && n.kind !== "close" && n.kind !== "radio")) return;
+  if(!n || (n.kind !== "standing" && n.kind !== "close" && n.kind !== "radio"
+            && n.kind !== "sidech")) return;
   if(n.kind === "close" && !n.c) return;
   if(n.kind === "radio" && !$("mic").value.trim()) return;   // a mic with nothing to say
+  if(n.kind === "sidech" && (!$("say").value.trim() || !SC.run)) return;
   if(lever.disabled || lever.dataset.state === "seating") return;
   if(State.source !== "live") return;
   if(document.visibilityState !== "visible") return;      // a hold he cannot see is not a hold
@@ -1177,7 +2273,7 @@ function leverDown(e){
   clearTimeout(hintT); $("whyLine").hidden = true;
   lever.dataset.state = "arming"; rail.style.willChange = "transform";
   buzz(HAPTIC.arm); ctx();
-  if(n.kind === "radio"){ keyThump(); $("kick").innerHTML = `<b>KEYED</b>`; }
+  if(n.kind === "radio" || n.kind === "sidech"){ keyThump(); $("kick").innerHTML = `<b>KEYED</b>`; }
   const r = reduce(), DUR = r ? 260 : 460;
   L.held = true; L.t0 = performance.now();
   if(!L.key) L.key = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
@@ -1208,8 +2304,10 @@ function leverUp(){
   rail.style.willChange = ""; lever.dataset.state = "";
   /* A silent reset here is indistinguishable from a broken button. Say it. */
   const w = $("whyLine"); w.hidden = false;
-  if(NODES[spin.pos] && NODES[spin.pos].kind === "radio"){
-    $("kick").innerHTML = `<b>CH 19</b> &nbsp;·&nbsp; ONE CHANNEL`;
+  const upK = NODES[spin.pos] && NODES[spin.pos].kind;
+  if(upK === "radio" || upK === "sidech"){
+    $("kick").innerHTML = upK === "radio"
+      ? `<b>CH 19</b> &nbsp;·&nbsp; ONE CHANNEL` : `<b>CH 21</b> &nbsp;·&nbsp; TWO SEATS`;
     w.textContent = "released before it keyed — nothing was sent. the mic is held, not tapped";
   } else {
     w.textContent = "released before it seated — nothing was written. the lever is held, not tapped";
@@ -1221,6 +2319,26 @@ async function seat(){
   clearTimeout(L.boundary); L.boundary = null;
   lever.dataset.state = "seating";
   const node = NODES[spin.pos];
+  if(node.kind === "sidech"){
+    /* CH 21 rides the same latch — press-to-talk IS press-and-hold — but its
+       transmission lives in scSend(): one door for typed and spoken turns, so
+       the road loop and the lever can never drift apart. */
+    $("leverCap").textContent = "TRANSMITTING";
+    const words = $("say").value.trim(), key = L.key;
+    try{
+      await scSend(words, key);
+      L.key = null;
+      lever.dataset.state = "";
+      $("whyLine").hidden = true;
+      $("say").value = "";
+      lever.disabled = true;
+      $("leverCap").textContent = "SENT";
+      $("kick").innerHTML = `<b>CH 21</b> &nbsp;·&nbsp; TWO SEATS`;
+      scT(() => { if(onSC()) $("leverCap").textContent = "KEY UP"; }, 900);
+    }catch(err){ refuse(err); }
+    finally{ rail.style.willChange = ""; }
+    return;
+  }
   $("leverCap").textContent = node.kind === "radio" ? "TRANSMITTING" : "WRITING";
   /* Only the book and the radio seat here now. The settle branch that stood
      third died 2026-08-01 with the lever's pay arm — leaving a dead route to
@@ -1296,13 +2414,21 @@ function refuse(err){
   rail.animate({transform:["scaleX(1)","scaleX(0)"]},
     {duration:520, easing:EASE.refuse, fill:"forwards"});
   const w = $("whyLine"); w.hidden = false;
-  const isRadio = NODES[spin.pos] && NODES[spin.pos].kind === "radio";
-  if(isRadio) $("kick").innerHTML = `<b>CH 19</b> &nbsp;·&nbsp; ONE CHANNEL`;
+  const k = NODES[spin.pos] && NODES[spin.pos].kind;
+  const sends = k === "radio" || k === "sidech";     // both send; nothing is written
+  if(k === "radio")  $("kick").innerHTML = `<b>CH 19</b> &nbsp;·&nbsp; ONE CHANNEL`;
+  if(k === "sidech") $("kick").innerHTML = `<b>CH 21</b> &nbsp;·&nbsp; TWO SEATS`;
+  const why = err && err.message ? err.message : err;
+  /* CH 19 keeps its own words, unchanged — the split does not get to rewrite
+     the refusal voice of the channel it split FROM. CH 21 adds where the draft
+     went, because it has a well to keep it in and CH 19 does not. */
   w.textContent = (err && (err.name === "AbortError" || String(err.message) === "timeout"))
-    ? (isRadio ? "no answer from the spine in 9s — nothing was sent"
+    ? (k === "sidech" ? "no answer from the spine in 9s — nothing was sent; your words stay in the well"
+       : sends ? "no answer from the spine in 9s — nothing was sent"
                : "no answer from the spine in 9s — nothing was written")
-    : (isRadio ? `the channel didn't take it: ${err && err.message ? err.message : err} — nothing was sent`
-               : `the spine refused: ${err && err.message ? err.message : err} — nothing was written`);
+    : (k === "sidech" ? `the channel didn't take it: ${why} — nothing was sent; your words stay in the well`
+       : sends ? `the channel didn't take it: ${why} — nothing was sent`
+               : `the spine refused: ${why} — nothing was written`);
   /* The lamp does not change. Nothing in the world changed, so nothing in the light does. */
 }
 lever.addEventListener("pointerdown", leverDown);
@@ -1338,7 +2464,8 @@ async function load(keepPos){
     spin.pos = keepPos ? Math.min(at, NODES.length-1) : 0;
     spin.cont = TRAVEL[spin.pos];
     paint();
-    if(WANT_RADIO){ WANT_RADIO = false; swingToRadio(); }
+    if(WANT_RADIO){ WANT_RADIO = false; swingTo("radio"); }
+    if(WANT_SIDECH){ WANT_SIDECH = false; swingTo("sidech"); }
   }catch(e){
     State.source = "stale";
     $("kick").textContent = "NO DATA";
