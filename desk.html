@@ -266,6 +266,21 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .roadmap.night .leaflet-control-attribution{background:rgba(10,14,24,.75);color:#9fb0cc}
 .roadmap.night .leaflet-control-attribution a{color:#c9d6ee}
 @media (max-width:520px){.roadmap{height:220px}}
+/* ── THE RADAR (card #198) — weather rides UNDER the line, OVER the map.
+   The pane is a SIBLING of .leaflet-tile-pane, which is the whole trick:
+   night's invert filter above targets the tile pane by name, so it never
+   reaches reflectivity. Inverted radar is a lie told in green. ─────────── */
+.leaflet-radar-pane{pointer-events:none}
+.radarctl{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin:8px 8px 0 0}
+.radarctl .rbtn{font:700 8.5px/1 var(--mono);letter-spacing:.14em;padding:5px 8px;cursor:pointer;
+  color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:6px;
+  box-shadow:0 1px 5px rgba(0,0,0,.35)}
+.radarctl .rbtn:hover{color:var(--ink)}
+.radarctl .rbtn.on{color:var(--amber);border-color:rgba(var(--key),.55);background:rgba(var(--key),.12)}
+.radarctl .rlab{font:400 8.5px/1.35 var(--mono);letter-spacing:.06em;color:var(--dim);text-align:right;
+  background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 7px;max-width:180px}
+.radarctl .rlab.warn{color:var(--amber)}
+.radarctl [hidden]{display:none}
 .wxbox{margin-top:12px;border-left:3px solid var(--amber);background:rgba(var(--key),.08);border-radius:0 8px 8px 0;padding:10px 13px;font:400 12px/1.65 var(--sans)}
 .wxbox .t{font:700 9.5px/1 var(--mono);letter-spacing:.18em;color:var(--amber);margin-bottom:6px}
 .wxbox.danger{border-left-color:#ff4444;background:rgba(255,68,68,.09)}
@@ -1040,7 +1055,13 @@ body.hot .act .h .n{color:var(--hot)}
    same ring the close uses, the same tokens YOUR HAND and the docket's breath
    already wear. No new colour, no new metaphor: the sheet is the desk's own
    glass, the caption breathes the way the masthead does when he is asked. */
-.closer.ruler{border-color:rgba(var(--key),.45)}
+/* pan-y, not the .closer default of none: the RULE bar rides EVERY flagged
+   card — 29 of them today, most in NEXT — so a full-width dead zone would
+   mean a thumb that starts its scroll on a bar cannot pan the column at
+   all, and past 640 ms opens a sheet he never asked for. pan-y lets the
+   scroll through; the browser then fires pointercancel, which the hold
+   already clears itself on. */
+.closer.ruler{border-color:rgba(var(--key),.45);touch-action:pan-y}
 .closer.ruler .cc{color:var(--amber)}
 .drow .closer{width:auto;flex:0 0 auto;height:24px;margin:0 0 0 8px;padding:0 10px}
 .rsheet{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.72);display:flex;
@@ -2285,6 +2306,178 @@ function markDone(stopId){
   loadRoad(GEO.fix).catch(() => {});
 }
 
+/* ═══ THE RADAR (card #198, his ask 2026-09-05) ══════════════════════════
+   "a custom radar that shows the route that i am on … overlay the radar over
+   the route." So the z-order IS the answer: base map 200, reflectivity 250,
+   the road he is driving 400. The storm never buries the line.
+
+   Frames are IEM's own five-minute steps back from the latest scan. The clock
+   on the label is FETCHED from IEM and never computed here — when that fetch
+   is quiet the label says the lag it actually knows and admits it has no scan
+   time, because a confident wrong timestamp on weather is worse than none.
+
+   The loop is opt-in twice over: the lamp is off until he lights it (one
+   frame), and history is only fetched when he asks for the loop (eleven).  */
+const RADAR_TILES = "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913{lag}/{z}/{x}/{y}.png";
+const RADAR_SCANS = "https://mesonet.agron.iastate.edu/json/radar?operation=list&product=n0q&radar=USCOMP";
+const RADAR_LAGS  = [50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0];   // minutes behind the latest scan
+const RADAR_OP    = .62;
+let RADAR_SCAN = null;      // { ts: Date, at: ms } — IEM's word, or null for "unread"
+
+/* IEM's own scan clock. Cached two minutes: long enough that stepping the
+   loop is free, short enough that a desk left open all evening is not still
+   quoting the scan it read at supper. */
+async function radarScanTime(){
+  if(RADAR_SCAN && Date.now() - RADAR_SCAN.at < 120000) return RADAR_SCAN;
+  try{
+    const r = await fetch(RADAR_SCANS, { cache: "no-store" });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    let best = null;
+    (j.scans || []).forEach(s => {
+      const raw = String(s && s.ts || "");
+      const d = raw ? new Date(/[Zz]$/.test(raw) ? raw : raw + "Z") : null;
+      if(d && !isNaN(d) && (!best || d > best)) best = d;
+    });
+    if(best){ RADAR_SCAN = { ts: best, at: Date.now() }; return RADAR_SCAN; }
+  }catch(_){}
+  RADAR_SCAN = null;
+  return null;
+}
+
+function radarLabel(lag){
+  const lagTxt = lag ? `− ${lag} min` : "latest scan";
+  if(!RADAR_SCAN) return `${lagTxt} · scan time unread`;
+  const d = new Date(RADAR_SCAN.ts.getTime() - lag * 60000);
+  return `${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · ${lagTxt}`;
+}
+
+function radarFrame(m, lag){
+  const st = m._radar;
+  if(!st.layers[lag]){
+    const tl = L.tileLayer(RADAR_TILES, {
+      lag: lag ? `-m${String(lag).padStart(2, "0")}m` : "",
+      pane: "radar", opacity: 0, maxZoom: 18, updateWhenIdle: true,
+      attribution: 'NEXRAD &copy; <a href="https://mesonet.agron.iastate.edu/" target="_blank" rel="noopener">Iowa State Mesonet</a>'
+    });
+    /* a layer that cannot draw says so — a blank map that looks like clear
+       skies is the one failure this must never ship */
+    tl.on("tileerror", () => { st.err = true; radarPaint(m); });
+    st.layers[lag] = tl;
+  }
+  const tl = st.layers[lag];
+  if(!m.hasLayer(tl)) tl.addTo(m);
+  return tl;
+}
+
+function radarPaint(m){
+  const st = m._radar; if(!st || !st.ctl) return;
+  const { lamp, play, lab } = st.ctl;
+  lamp.classList.toggle("on", st.on);
+  play.hidden = !st.on;
+  lab.hidden  = !st.on;
+  play.classList.toggle("on", st.playing);
+  play.textContent = st.playing ? "❚❚ LOOP" : "▶ LOOP";
+  if(!st.on) return;
+  lab.classList.toggle("warn", !!st.err);
+  lab.textContent = st.err ? "the radar did not answer — no reflectivity drawn"
+                           : radarLabel(RADAR_LAGS[st.i]);
+}
+
+function radarShow(m, i){
+  const st = m._radar; if(!st) return;
+  st.i = i;
+  RADAR_LAGS.forEach((lag, k) => {
+    const tl = st.layers[lag];
+    if(tl) tl.setOpacity(k === i ? RADAR_OP : 0);
+  });
+  radarPaint(m);
+}
+
+function radarStop(m){
+  const st = m._radar; if(!st) return;
+  clearInterval(st.timer); st.timer = null; st.playing = false;
+  radarPaint(m);
+}
+
+/* PLAY is where the eleven frames get paid for, and only here. The newest
+   frame holds ~3x longer: an hour of weather that ends and immediately
+   restarts reads as noise, and the frame that matters is the one that is
+   nearly now. */
+function radarPlay(m){
+  const st = m._radar; if(!st) return;
+  RADAR_LAGS.forEach(lag => radarFrame(m, lag));
+  radarShow(m, st.i);
+  st.playing = true;
+  let hold = 0;
+  st.timer = setInterval(() => {
+    if(st.i === RADAR_LAGS.length - 1 && hold < 2){ hold++; return; }
+    hold = 0;
+    radarShow(m, (st.i + 1) % RADAR_LAGS.length);
+  }, 420);
+  radarPaint(m);
+}
+
+async function radarOn(m){
+  const st = m._radar;
+  st.on = true; st.err = false;
+  try{ localStorage.setItem("almanac_radar", "1"); }catch(_){}
+  radarFrame(m, 0);
+  radarShow(m, RADAR_LAGS.length - 1);
+  await radarScanTime();
+  radarPaint(m);
+  /* the label ages; re-read the scan clock while the lamp is lit so a desk
+     open for an hour is not still naming the scan it saw when it opened */
+  clearInterval(st.clock);
+  st.clock = setInterval(async () => {
+    const was = RADAR_SCAN && RADAR_SCAN.ts.getTime();
+    RADAR_SCAN = null;
+    await radarScanTime();
+    const now = RADAR_SCAN && RADAR_SCAN.ts.getTime();
+    if(now && now !== was) Object.values(st.layers).forEach(tl => tl.redraw());
+    radarPaint(m);
+  }, 300000);
+}
+
+function radarOff(m){
+  const st = m._radar;
+  radarStop(m);
+  st.on = false;
+  clearInterval(st.clock); st.clock = null;
+  try{ localStorage.setItem("almanac_radar", "0"); }catch(_){}
+  Object.values(st.layers).forEach(tl => { if(m.hasLayer(tl)) m.removeLayer(tl); });
+  st.layers = {};
+  radarPaint(m);
+}
+
+function radarMount(m){
+  m.createPane("radar").style.zIndex = 250;   // above the base map, below the road
+  m._radar = { on: false, playing: false, err: false, i: RADAR_LAGS.length - 1,
+               layers: {}, timer: null, clock: null, ctl: null };
+  const Ctl = L.Control.extend({
+    options: { position: "topright" },
+    onAdd(){
+      const d = L.DomUtil.create("div", "radarctl");
+      d.innerHTML = `<button type="button" class="rbtn lamp" title="NEXRAD reflectivity under the road">RADAR</button>
+        <button type="button" class="rbtn play" hidden>▶ LOOP</button>
+        <span class="rlab" hidden></span>`;
+      L.DomEvent.disableClickPropagation(d);
+      L.DomEvent.disableScrollPropagation(d);
+      const st = m._radar;
+      st.ctl = { lamp: d.querySelector(".lamp"), play: d.querySelector(".play"), lab: d.querySelector(".rlab") };
+      st.ctl.lamp.addEventListener("click", () => { st.on ? radarOff(m) : radarOn(m); });
+      st.ctl.play.addEventListener("click", () => { st.playing ? radarStop(m) : radarPlay(m); });
+      return d;
+    }
+  });
+  m.addControl(new Ctl());
+  m.on("unload", () => { clearInterval(m._radar.timer); clearInterval(m._radar.clock); });
+  let want = "0";
+  try{ want = localStorage.getItem("almanac_radar") || "0"; }catch(_){}
+  radarPaint(m);
+  if(want === "1") radarOn(m).catch(() => {});
+}
+
 let ROAD_VIEW = null;
 function drawRoadMap(){
   const el = $("roadMap"), r = State.road;
@@ -2304,6 +2497,7 @@ function drawRoadMap(){
   el.classList.toggle("night", !paper);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors', maxZoom: 18 }).addTo(m);
+  radarMount(m);   // card #198 — the pane goes down before the road, so the road lands on top
   const pin = color => L.divIcon({ className: "", iconSize: [14, 14], iconAnchor: [7, 7],
     html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>` });
   const bounds = L.latLngBounds([]);
@@ -6867,9 +7061,11 @@ function holdToAct(btn, o, onHeld){
       if(!took) rest();
     }, 640);
   });
-  ["pointerup","pointerleave","pointercancel"].forEach(ev => btn.addEventListener(ev, () => {
+  ["pointerup","pointerleave","pointercancel"].forEach(ev => btn.addEventListener(ev, e => {
     clearTimeout(t); if(anim) anim.cancel();
-    if(cc.textContent === "HOLDING"){ rest(); toast(o.released); }
+    /* a CANCEL is the browser taking the gesture for a scroll, not his
+       release — panning past a RULE bar must not toast a refusal at him */
+    if(cc.textContent === "HOLDING"){ rest(); if(e.type !== "pointercancel") toast(o.released); }
   }));
 }
 const RULE_HOLD = {idle:"HOLD TO RULE", busy:"OPENING", refused:"NOT OPENED",
@@ -6918,6 +7114,9 @@ function openRuleSheet(id, title){
       err.textContent = "a ruling needs your words — the field is empty"; err.hidden = false;
       return false;
     }
+    /* the spine says whether the day's page took the decision line; declared
+       out here because the toast below has to be able to say it */
+    let book = null;
     try{
       const res = await fetch(url(`/api/cards/${id}/rule`), {
         method:"POST", headers: hdr({"Content-Type":"application/json"}),
@@ -6925,6 +7124,7 @@ function openRuleSheet(id, title){
       });
       const out = await res.json().catch(() => ({}));
       if(!res.ok) throw new Error(out.error || ("the spine answered " + res.status));
+      book = out.logged_to_entry;
     }catch(e){
       /* the refusal renders IN the sheet too — a toast is gone in 2.4 s and a
          tooltip does not exist under a thumb (review of #84); his words stay */
@@ -6932,12 +7132,25 @@ function openRuleSheet(id, title){
       throw e;
     }
     cc.textContent = "RECORDED";
-    toast("#" + id + " RULED BY YOUR HAND");
-    closeRuleSheet();
-    /* repaint from the spine's answer — the board (the flag down, the RULED
-       block on the card), the masthead's docket count, the drawer if open */
-    await load(true);
-    if(!$("dockWrap").hidden) renderDocket();
+    /* A RULING THAT MISSED THE BOOK SAYS SO, HERE (review of #87). The spine
+       only logs the decision move when exactly ONE entry lies open, and it
+       shouts the skip to its own stderr — which he never sees from a phone.
+       Today NO entry is open, so that is EVERY ruling made from the road: the
+       card would carry it and the day's page would not, and nothing on the
+       glass would tell him. So the toast carries it. */
+    toast("#" + id + " RULED BY YOUR HAND" +
+          (book ? "" : " — no entry open; the card holds it, the day does not"));
+    /* THE WRITE LANDED — nothing past this line may claim otherwise (the
+       same rule the .dact handler keeps, ~2899). The repaints — the board
+       with the flag down and the RULED block, the masthead's docket count,
+       the drawer if open — degrade quietly; a phone that drops off the
+       tailnet after the 2xx must never toast NOT RECORDED over a ruling
+       that is already in the book, or he holds again and rules twice. */
+    try{
+      closeRuleSheet();
+      await load(true);
+      if(!$("dockWrap").hidden) renderDocket();
+    }catch(_){}
   });
 }
 function wireCapMedia(){
