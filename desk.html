@@ -270,7 +270,12 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
    The pane is a SIBLING of .leaflet-tile-pane, which is the whole trick:
    night's invert filter above targets the tile pane by name, so it never
    reaches reflectivity. Inverted radar is a lie told in green. ─────────── */
-.leaflet-radar-pane{pointer-events:none}
+.leaflet-radar-pane,.leaflet-radarfx-pane{pointer-events:none}
+/* RULE 1 made visible (card #216): an EXTRAPOLATED frame is ghosted and
+   slightly desaturated, so at a glance it never reads as an observed scan.
+   The label says it in words; this says it before you read anything. */
+.leaflet-radarfx-pane{filter:saturate(.62) contrast(.88)}
+.radarctl .rlab.fx{color:var(--amber);border-color:rgba(var(--key),.5);border-style:dashed}
 .radarctl{display:flex;flex-direction:column;align-items:flex-end;gap:4px;margin:8px 8px 0 0}
 .radarctl .rbtn{font:700 8.5px/1 var(--mono);letter-spacing:.14em;padding:5px 8px;cursor:pointer;
   color:var(--dim);background:var(--panel2);border:1px solid var(--line);border-radius:6px;
@@ -2369,6 +2374,230 @@ function radarLabel(lag){
   return `${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · ${lagTxt}`;
 }
 
+
+/* ═══ THE NOWCAST (card #216) ═══════════════════════════════════════════
+   Radar sees only what IS. Everything past the newest scan is inference, and
+   the Weather Channel's "future radar" is a MODEL wearing radar's clothes.
+   So this does the one forward thing radar itself can honestly support:
+   advection. Find how the echo actually MOVED between two real scans, and
+   carry the newest scan along that vector.
+
+   The motion comes from the radar imagery, not from a wind model — IEM sends
+   Access-Control-Allow-Origin: * on the tiles (verified 2026-09-06), so the
+   pixels are readable and the answer is derived from the storm rather than
+   assumed about it.
+
+   Two rules this must never break:
+     1. An extrapolated frame is LABELLED extrapolated and drawn differently.
+        A forecast that looks like an observation is the lie pass one refuses.
+     2. It stops at 60 minutes. Advection decays as cells grow and die, and
+        past about an hour it is fiction. When the correlation is weak it
+        draws NOTHING and says why — a confident wrong storm is worse than
+        no storm.                                                            */
+const RADAR_FX_MINS = [10, 20, 30, 40, 50, 60];   // never further; see rule 2
+/* Baselines to try, longest first. A 50-min gap resolves slow drift well but
+   convective cells GROW AND DIE across it and stop correlating — measured
+   2026-09-07 over north Texas: 0.32, below threshold, correctly refused. A
+   shorter gap keeps the same cells recognisable at the cost of resolution, so
+   try several and keep the one the echo actually supports. */
+const RADAR_FX_BASES = [50, 30, 20];
+const RADAR_FX_MINSCORE = 0.35;  // below this the echo did not correlate
+const RADAR_FX_MINECHO = 1.5;    // mean alpha; below this there is no weather
+let RADAR_MOTION = null;         // {vx, vy, z, score, at} px/min at zoom z
+
+function _radarURL(lag, z, x, y){
+  return RADAR_TILES
+    .replace("{lag}", lag ? `-m${String(lag).padStart(2, "0")}m` : "")
+    .replace("{z}", z).replace("{x}", x).replace("{y}", y);
+}
+
+function _img(url){
+  return new Promise(done => {
+    const im = new Image();
+    im.crossOrigin = "anonymous";          // the pixels are the whole point
+    im.onload = () => done(im);
+    im.onerror = () => done(null);
+    im.src = url;
+  });
+}
+
+/* a 3x3 tile block around the view's centre tile, as one canvas */
+async function _radarPatch(lag, z, cx, cy){
+  const N = 3, S = 256;
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = N * S;
+  const ctx = cv.getContext("2d", { willReadFrequently: true });
+  await Promise.all([].concat(...Array.from({length: N}, (_, i) =>
+    Array.from({length: N}, (_, j) =>
+      _img(_radarURL(lag, z, cx - 1 + i, cy - 1 + j))
+        .then(im => { if(im) ctx.drawImage(im, i * S, j * S); })))));
+  return ctx.getImageData(0, 0, N * S, N * S);
+}
+
+/* alpha only: n0q tiles are transparent where there is no echo, so alpha IS
+   the weather mask and it ignores the colour ramp entirely.
+
+   THRESHOLDED, and that is the whole difference between a working nowcast and
+   a broken one. Measured 2026-09-07: correlating raw alpha put the peak at a
+   0-2 grid-unit shift everywhere — 0 to 10 mph, when real cells run 20-40.
+   A 730 km patch is ~98% empty, and what echo there is skews to faint
+   stratiform and ground clutter that genuinely does not move. Both outvote
+   the convective cells we actually care about. Keeping only STRONG echo makes
+   the correlation track the storms instead of the background. */
+const RADAR_ECHO_FLOOR = 90;      // of 255 alpha — faint returns are not cells
+
+function _grid(img, size){
+  const W = img.width, d = img.data, step = W / size, g = new Float32Array(size * size);
+  for(let y = 0; y < size; y++){
+    for(let x = 0; x < size; x++){
+      let sum = 0;
+      const y0 = y * step, x0 = x * step;
+      for(let yy = y0; yy < y0 + step; yy++)
+        for(let xx = x0; xx < x0 + step; xx++){
+          const a = d[((yy * W) + xx) * 4 + 3];
+          if(a >= RADAR_ECHO_FLOOR) sum += a;
+        }
+      g[y * size + x] = sum / (step * step);
+    }
+  }
+  return g;
+}
+
+/* normalised cross-correlation over integer shifts — the shift that best
+   carries `a` onto `b` is how far the weather travelled between them */
+function _bestShift(a, b, size, range, cx, cy){
+  let best = null;
+  for(let dy = cy - range; dy <= cy + range; dy++){
+    for(let dx = cx - range; dx <= cx + range; dx++){
+      /* ZERO-MEAN. Plain cross-correlation rewards any two bright-ish
+         windows for both being bright, so a featureless background scores
+         high at every shift and the true peak drowns. Subtracting each
+         window's own mean scores the PATTERN, not the brightness. */
+      let sa = 0, sb = 0, n = 0;
+      for(let y = 0; y < size; y++){
+        const by = y + dy;
+        if(by < 0 || by >= size) continue;
+        for(let x = 0; x < size; x++){
+          const bx = x + dx;
+          if(bx < 0 || bx >= size) continue;
+          sa += a[y * size + x]; sb += b[by * size + bx]; n++;
+        }
+      }
+      if(!n) continue;
+      const ma = sa / n, mb = sb / n;
+      let num = 0, na = 0, nb = 0;
+      for(let y = 0; y < size; y++){
+        const by = y + dy;
+        if(by < 0 || by >= size) continue;
+        for(let x = 0; x < size; x++){
+          const bx = x + dx;
+          if(bx < 0 || bx >= size) continue;
+          const va = a[y * size + x] - ma, vb = b[by * size + bx] - mb;
+          num += va * vb; na += va * va; nb += vb * vb;
+        }
+      }
+      const score = (na > 0 && nb > 0) ? num / Math.sqrt(na * nb) : 0;
+      if(!best || score > best.score) best = { dx, dy, score };
+    }
+  }
+  return best;
+}
+
+async function radarMotion(m){
+  if(RADAR_MOTION && Date.now() - RADAR_MOTION.at < 300000) return RADAR_MOTION;
+  /* ALWAYS z7, never the map's zoom. Storm motion is a REGIONAL quantity: a
+     3x3 patch at z7 is ~730 km across, which is the weather he is driving
+     through. Sampled at the map's own zoom-5 view the patch spans the whole
+     continent, so cells moving in opposite directions cancel and one pixel of
+     quantisation is ~2.8 mph — the first run measured 9 mph due east for the
+     entire USA, which correlated at 0.69 and meant nothing. */
+  const z = 7;
+  const pt = m.project(m.getCenter(), z).divideBy(256).floor();
+  let old_, now_;
+  try{
+    [old_, now_] = await Promise.all([_radarPatch(RADAR_FX_BASES[0], z, pt.x, pt.y),
+                                      _radarPatch(0, z, pt.x, pt.y)]);
+  }catch(e){
+    RADAR_MOTION = { at: Date.now(), why: "the radar tiles would not open for reading" };
+    return RADAR_MOTION;
+  }
+  const gNow = _grid(now_, 64);
+  const echo = gNow.reduce((s, v) => s + v, 0) / gNow.length;
+  if(echo < RADAR_FX_MINECHO){
+    RADAR_MOTION = { at: Date.now(), why: "almost no echo on screen — nothing to carry forward" };
+    return RADAR_MOTION;
+  }
+  const fNow = _grid(now_, 256);
+  /* Every baseline is an INDEPENDENT measurement of the same wind. Measured
+     2026-09-07: where cells were genuinely organised (Florida) all three
+     agreed — 9 mph toward ~125 deg at 0.67-0.81 — and where they were not
+     (N Texas, Ohio Valley) they disagreed with each other AND scored low.
+     So agreement between baselines is the real confidence signal, better than
+     any single score, and disagreement is the case that must refuse. */
+  const runs = [];
+  for(const base of RADAR_FX_BASES){
+    const old2 = (base === RADAR_FX_BASES[0]) ? old_ : await _radarPatch(base, z, pt.x, pt.y);
+    const coarse = _bestShift(_grid(old2, 64), gNow, 64, 8, 0, 0);      // 12 tile-px steps
+    const fine = _bestShift(_grid(old2, 256), fNow, 256, 5, coarse.dx * 4, coarse.dy * 4);
+    if(fine) runs.push({ vx: fine.dx / base, vy: fine.dy / base, score: fine.score, base });
+  }
+  const best = runs.length ? runs.reduce((a, b) => b.score > a.score ? b : a) : null;
+  if(!best || best.score < RADAR_FX_MINSCORE){
+    RADAR_MOTION = { at: Date.now(),
+      why: `the echo did not correlate between scans (best ${(best ? best.score : 0).toFixed(2)} over ${RADAR_FX_BASES.join("/")} min) — cells are growing or dying, not drifting` };
+    return RADAR_MOTION;
+  }
+  const speed = Math.hypot(best.vx, best.vy);
+  /* Zero trivially agrees with zero, so a FAILED measurement would sail past
+     the agreement check and draw a "+60 min" frame identical to the present —
+     a forecast that is really just the newest scan wearing a future label.
+     Measured 2026-09-07 over N Texas: exactly 0,0 at score 0.51. Below about
+     3 mph we cannot tell drift from a flat correlation surface, so we say so. */
+  if(speed * 3 * 1000 / 1609.34 * 60 < 3){       // ~3 mph at this zoom's scale
+    RADAR_MOTION = { at: Date.now(),
+      why: "no measurable drift — the echo is holding still, or the match is too flat to tell" };
+    return RADAR_MOTION;
+  }
+  const agree = runs.filter(r => {
+    if(r.base === best.base) return false;
+    const sp = Math.hypot(r.vx, r.vy);
+    if(sp === 0 || speed === 0) return sp === 0 && speed === 0;
+    const cos = (r.vx * best.vx + r.vy * best.vy) / (sp * speed);
+    return cos > 0.7 && sp > speed * 0.4 && sp < speed * 2.5;   // ~45 deg, same order
+  }).length;
+  if(!agree){
+    RADAR_MOTION = { at: Date.now(),
+      why: `the ${RADAR_FX_BASES.length} scan gaps disagree about which way the echo is moving — no drift this confident is worth drawing` };
+    return RADAR_MOTION;
+  }
+  // 256-grid px -> tile px at z (x3), over ITS OWN baseline -> per minute
+  RADAR_MOTION = { vx: best.vx * 3, vy: best.vy * 3,      // 256-grid -> tile px at z
+                   z, score: best.score, base: best.base, agree, at: Date.now() };
+  return RADAR_MOTION;
+}
+
+/* the forecast layer is the NEWEST observed scan, slid along that vector */
+function radarFxShow(m, mins){
+  const st = m._radar, mo = RADAR_MOTION;
+  if(!st.fx || !mo || mo.vx === undefined) return;
+  const scale = Math.pow(2, m.getZoom() - mo.z);
+  const px = mo.vx * mins * scale, py = mo.vy * mins * scale;
+  const pane = m.getPane("radarfx");
+  pane.style.transform = `translate(${px}px, ${py}px)`;
+  pane.style.opacity = mins ? String(RADAR_OP * 0.85) : "0";
+  Object.values(st.layers).forEach(tl => tl.setOpacity(0));
+  st.fxMins = mins;
+  radarPaint(m);
+}
+
+function radarFxOff(m){
+  const st = m._radar;
+  if(st.fx && m.hasLayer(st.fx)) m.removeLayer(st.fx);
+  st.fx = null; st.fxMins = 0;
+  const pane = m.getPane("radarfx");
+  if(pane){ pane.style.transform = ""; pane.style.opacity = "0"; }
+}
+
 function radarFrame(m, lag){
   const st = m._radar;
   if(!st.layers[lag]){
@@ -2396,14 +2625,34 @@ function radarPaint(m){
   play.classList.toggle("on", st.playing);
   play.textContent = st.playing ? "❚❚ LOOP" : "▶ LOOP";
   if(!st.on) return;
-  lab.classList.toggle("warn", !!st.err);
-  lab.textContent = st.err ? "the radar did not answer — no reflectivity drawn"
-                           : radarLabel(RADAR_LAGS[st.i]);
+  lab.classList.toggle("warn", !!st.err || !!st.fxMins);
+  if(st.err){
+    lab.textContent = "the radar did not answer — no reflectivity drawn";
+  }else if(st.fxMins){
+    /* RULE 1: an extrapolated frame says so, in the label AND in its own
+       ink. Never let a forecast wear an observation's clothes. */
+    const s2 = RADAR_MOTION && RADAR_MOTION.score;
+    lab.textContent = `+${st.fxMins} min · EXTRAPOLATED, not observed`
+      + (s2 ? ` · match ${s2.toFixed(2)}` : "");
+  }else{
+    lab.textContent = radarLabel(RADAR_LAGS[st.i])
+      + (st.fxWhy ? " · no +1h" : "");
+  }
+  lab.classList.toggle("fx", !!st.fxMins);
+  lab.title = st.fxWhy
+    ? `no forecast frames: ${st.fxWhy}`
+    : (st.fxMins ? "carried forward from the newest scan along the measured echo motion — not an observation"
+                 : "NEXRAD base reflectivity, Iowa State Mesonet");
 }
 
 function radarShow(m, i){
   const st = m._radar; if(!st) return;
   st.i = i;
+  if(st.fxMins){                       // leaving the future — put it away
+    st.fxMins = 0;
+    const pane = m.getPane("radarfx");
+    if(pane){ pane.style.opacity = "0"; pane.style.transform = ""; }
+  }
   RADAR_LAGS.forEach((lag, k) => {
     const tl = st.layers[lag];
     if(tl) tl.setOpacity(k === i ? RADAR_OP : 0);
@@ -2426,11 +2675,23 @@ function radarPlay(m){
   RADAR_LAGS.forEach(lag => radarFrame(m, lag));
   radarShow(m, st.i);
   st.playing = true;
-  let hold = 0;
+  let hold = 0, fxStep = -1;
   st.timer = setInterval(() => {
-    if(st.i === RADAR_LAGS.length - 1 && hold < 2){ hold++; return; }
-    hold = 0;
-    radarShow(m, (st.i + 1) % RADAR_LAGS.length);
+    const canFx = st.fx && RADAR_MOTION && RADAR_MOTION.vx !== undefined;
+    if(fxStep >= 0){                                   // walking the forecast
+      fxStep++;
+      if(fxStep >= RADAR_FX_MINS.length){ fxStep = -1; radarShow(m, 0); return; }
+      radarFxShow(m, RADAR_FX_MINS[fxStep]);
+      return;
+    }
+    if(st.i === RADAR_LAGS.length - 1){                // sitting on the newest
+      if(hold < 2){ hold++; return; }
+      hold = 0;
+      if(canFx){ fxStep = 0; radarFxShow(m, RADAR_FX_MINS[0]); return; }
+      radarShow(m, 0);
+      return;
+    }
+    radarShow(m, st.i + 1);
   }, 420);
   radarPaint(m);
 }
@@ -2442,6 +2703,19 @@ async function radarOn(m){
   radarFrame(m, 0);
   radarShow(m, RADAR_LAGS.length - 1);
   await radarScanTime();
+  radarPaint(m);
+  /* measure how the echo actually moved, then stand up the forecast layer.
+     A failure here costs the loop its forward half and NOTHING else — the
+     observed frames are untouched, and the why is said out loud. */
+  try{
+    const mo = await radarMotion(m);
+    if(mo && mo.vx !== undefined && !st.fx){
+      st.fx = L.tileLayer(RADAR_TILES, { lag: "", pane: "radarfx", opacity: 1,
+                                         maxZoom: 18, updateWhenIdle: true }).addTo(m);
+      m.getPane("radarfx").style.opacity = "0";
+    }
+    st.fxWhy = (mo && mo.why) || null;
+  }catch(e){ st.fxWhy = String(e && e.message || e); }
   radarPaint(m);
   /* the label ages; re-read the scan clock while the lamp is lit so a desk
      open for an hour is not still naming the scan it saw when it opened */
@@ -2459,6 +2733,7 @@ async function radarOn(m){
 function radarOff(m){
   const st = m._radar;
   radarStop(m);
+  radarFxOff(m);
   st.on = false;
   clearInterval(st.clock); st.clock = null;
   try{ localStorage.setItem("almanac_radar", "0"); }catch(_){}
@@ -2469,8 +2744,12 @@ function radarOff(m){
 
 function radarMount(m){
   m.createPane("radar").style.zIndex = 250;   // above the base map, below the road
+  const fxp = m.createPane("radarfx");        // the extrapolated frame rides here
+  fxp.style.zIndex = 251;                     // still UNDER the road (400)
+  fxp.style.opacity = "0";
+  fxp.style.transition = "transform .28s linear";
   m._radar = { on: false, playing: false, err: false, i: RADAR_LAGS.length - 1,
-               layers: {}, timer: null, clock: null, ctl: null };
+               layers: {}, fx: null, fxMins: 0, timer: null, clock: null, ctl: null };
   const Ctl = L.Control.extend({
     options: { position: "topright" },
     onAdd(){
@@ -2508,6 +2787,10 @@ function drawRoadMap(){
                                   dragging: !(L.Browser && L.Browser.mobile) });
   m._roadFor = r;
   m.on("moveend", () => { ROAD_VIEW = { c: m.getCenter(), z: m.getZoom() }; });
+  m.on("zoomend", () => {          // the vector is px/min at ITS zoom, not this one
+    const st = m._radar;
+    if(st && st.fxMins) radarFxShow(m, st.fxMins);
+  });
   /* OSM's own tiles — the book map's proven source; CARTO's free tiles now
      stamp "API KEY REQUIRED" (caught in the pane 09-04). Night gets its dark
      map from a CSS invert on the tile pane, not from a keyed provider. */
