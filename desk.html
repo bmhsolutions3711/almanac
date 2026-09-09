@@ -319,6 +319,12 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .hlStop .who{margin-top:6px;font:400 10.5px/1.4 var(--mono);color:var(--dim)}
 .hlStop .who a{color:var(--amber);text-decoration:none}
 .hlSpec{margin-top:11px;border-left:3px solid rgba(var(--key),.5);background:rgba(var(--key),.06);border-radius:0 8px 8px 0;padding:10px 13px;font:400 11.5px/1.55 var(--sans);color:var(--dim)}
+/* HEAR IT sits inside the instructions it reads. Gloves-on target (his UX
+   rule for anything touched at a dock), and it floats left of the text so the
+   paragraph still reads as a paragraph. */
+.hlSpec .hearBtn{ float:left; margin:0 10px 4px 0; min-height:38px; padding:6px 12px;
+                  font-size:12px; letter-spacing:.06em; white-space:nowrap; }
+
 .hlBrokerLn{margin-top:10px;font:400 10.5px/1.5 var(--mono);color:var(--dim)}
 .hlBrokerLn a{color:var(--amber);text-decoration:none}
 .hlPeek{margin-top:8px}
@@ -4539,13 +4545,66 @@ function haulCard(l, opts){
     ${tags.length ? `<div class="hlTags">${tags.map(t => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
     <div class="hlStops">${l.stops.map(s => haulStopHTML(s, l.pu_number)).join("")}</div>
     ${drops.length > 1 ? `<div class="hlBrokerLn">${drops.length} drops on this load</div>` : ""}
-    ${l.instructions_rest ? `<div class="hlSpec">${esc(l.instructions_rest)}</div>` : ""}
+    ${l.instructions_rest ? `<div class="hlSpec">
+      <button type="button" class="btn hearBtn" data-hear="${l.id}" title="read these instructions out loud">▶ HEAR IT</button>
+      ${esc(l.instructions_rest)}</div>` : ""}
     ${broker ? `<div class="hlBrokerLn">${broker}</div>` : ""}
     ${(l.drive_folder_link || "").startsWith("http") ? `<div class="hlBrokerLn"><a href="${esc(l.drive_folder_link)}" target="_blank" rel="noopener">THE PAPERS — rate con, BOL, invoice</a></div>` : ""}
     <div class="hlActs"><button class="btn go bolBtn" data-bol="${esc(l.load_number)}">📄 MAKE BOL</button>
       <a class="btn go" href="./sign.html" target="_blank" rel="noopener" style="text-decoration:none">✍️ FILL &amp; SIGN</a>${
       opts.road ? `<span class="roadSeg"><button type="button" class="btn roadMode${State.roadMode === "partial" ? " on" : ""}" data-m="partial" title="running partials — the cheapest legal order across the book">PARTIAL</button><button type="button" class="btn roadMode${State.roadMode === "full" ? " on" : ""}" data-m="full" title="one load at a time — finish it, then the next pickup">FULL</button></span>` : ""}</div>
   </div>`;
+}
+
+/* HEAR IT (card #221, his ask 2026-09-09) — the load's instructions out loud,
+   because the moment he most needs the tarp/dunnage/call-when-loaded line is
+   the moment he should not be reading a screen.
+
+   The first tap on a load CUTS the audio (Kokoro, a few seconds); every tap
+   after is instant from the spine's cache. So the button says which of those
+   is happening — a control that looks identical while it works and while it
+   is broken is one he stops trusting at the wheel, and at the wheel he cannot
+   lean in to find out. Every failure ends in WORDS on the button. */
+let HEARD = null;                      // the one Audio element — never a chorus
+function wireHearBtns(root){
+  root.querySelectorAll("[data-hear]").forEach(b => b.addEventListener("click", async () => {
+    const id = b.dataset.hear, label = "▶ HEAR IT";
+    // A second tap while it plays STOPS it. Driving, the thing he wants most
+    // from a voice he did not mean to start is a way to end it.
+    if(HEARD && !HEARD.paused && HEARD.dataset.id === id){
+      HEARD.pause(); HEARD.currentTime = 0; b.textContent = label; return;
+    }
+    if(HEARD){ HEARD.pause(); }
+    b.disabled = true; b.textContent = "⏳ CUTTING…";
+    try{
+      // grab() carries the bearer; this answers WAV bytes, not JSON.
+      const r = await fetch(url(`/api/hotshot/loads/${id}/voice`), { headers: hdr({}) });
+      if(!r.ok){
+        let why = `the spine said ${r.status}`;
+        try{ const j = await r.json(); if(j && j.error) why = j.error; }catch(e){}
+        b.textContent = "⚠ NO VOICE";
+        toast("⚠ could not read it out — " + why);
+        setTimeout(() => { b.textContent = label; }, 4000);
+        return;
+      }
+      const blob = await r.blob();
+      if(!blob.size) throw new Error("the spine sent an empty clip");
+      const a = new Audio(URL.createObjectURL(blob));
+      a.dataset.id = id;
+      HEARD = a;
+      a.onended = () => { b.textContent = label; URL.revokeObjectURL(a.src); };
+      a.onerror = () => { b.textContent = "⚠ NO VOICE";
+                          toast("⚠ the clip would not play"); };
+      await a.play();
+      b.textContent = "⏸ STOP";
+    }catch(e){
+      b.textContent = "⚠ NO VOICE";
+      toast("⚠ could not read it out — " + (e.message || e));
+      setTimeout(() => { b.textContent = label; }, 4000);
+    }finally{
+      b.disabled = false;
+    }
+  }));
 }
 
 /* MAKE BOL — the old MC contract, spoken to the spine: need_weight comes
@@ -4573,6 +4632,11 @@ async function makeBol(loadNum, btn){
 }
 
 function wireBolBtns(scope){
+  /* HEAR IT rides along here on purpose. haulCard renders from three places
+     (the day room, the select's repaint, and the haul tab) and every one of
+     them already calls wireBolBtns — hanging the voice off the same call
+     means a fourth render site cannot quietly ship a dead button. */
+  wireHearBtns(scope);
   scope.querySelectorAll(".bolBtn").forEach(b =>
     b.addEventListener("click", e => {
       e.stopPropagation();
