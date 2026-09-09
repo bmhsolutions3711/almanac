@@ -2138,10 +2138,23 @@ function paintDay(){
     if(d.unordered && d.why) h += `<div class="warn">⚠ stops are listed, not ordered — ${esc(d.why)}</div>`;
     stops.forEach((s, i) => {
       const ld = loads[String(s.load_id)] || {};
+      /* ONE detail card per stop on this page, and it belongs to THE LOAD.
+         THE DAY used to print haulStopHTML here — the SAME component THE LOAD
+         renders below — so the load on the hook showed its Merit Brass block
+         twice, a few hundred pixels apart (his eye, 2026-09-08: "this seems
+         redundant to what is below. i think we can cut"). THE LOAD's own
+         select reaches every load on the book, so nothing became unreachable.
+         What the card carried that this line did NOT — the place and the
+         appointment window — moves UP into the line, the same shape THE ROAD
+         AHEAD already uses. Cutting the card without that would have traded a
+         duplicate for a today's-plan that never says where or when. */
+      const place = [s.city, s.state].filter(Boolean).join(", ");
+      const when = [s.date_raw || s.date, s.time_window].filter(Boolean).join(" · ");
       h += `<div class="stopline"><span class="seq">${i + 1}.</span>
-        <span>${s.kind === "pickup" ? "PICKUP" : "DROP"} · #${esc(ld.load_number) || "——"} · ${esc(ld.broker) || ""}</span>
+        <span>${s.kind === "pickup" ? "PICKUP" : "DROP"} · #${esc(ld.load_number) || "——"}${
+          place ? ` · ${esc(place)}` : s.company ? ` · ${esc(s.company)}` : ""}${
+          when ? ` · ${esc(when)}` : ""}${esc(ld.broker) ? ` · ${esc(ld.broker)}` : ""}</span>
         <span>${s.eta ? `eta ${esc(s.eta)}` : ""}${s.leg_mi != null ? ` · ${s.leg_mi} mi` : ""}</span></div>`;
-      h += haulStopHTML(s, ld.pu_number);
     });
     (d.unplaced || []).forEach(s => {
       h += `<div class="warn">unplaced: ${esc(s.kind)} ${
