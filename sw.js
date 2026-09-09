@@ -14,7 +14,7 @@
  *    network every time; the SW cache is then only ever a genuine offline
  *    fallback.
  */
-const VERSION = 'almanac-shell-v144';
+const VERSION = 'almanac-shell-v145';
 
 // The version gauge that cannot lie (Almanac #8): the page asks, the worker
 // answers — the chip renders what is actually installed, never a hardcoded
@@ -66,21 +66,68 @@ self.addEventListener('push', e => {
   try { d = e.data ? e.data.json() : {}; } catch (err) {}
   // requireInteraction + a heavy vibration: a push that costs a day's budget
   // must not scroll away with the sea — it stays until Bryan dismisses it.
+  // THE ROAD GATE (card #218). An approval push carries its own verdict door:
+  // the decision URL and a SINGLE-USE token that exists nowhere on the Mac in
+  // plaintext — only as a sha256 there and as these bytes here. That is what
+  // stops an agent on the box approving its own tool call, so the token must
+  // stay inside this worker: it rides notification.data, never a URL, never a
+  // page, never localStorage.
+  const isApproval = d.kind === 'approval' && d.approval_id && d.token;
+  // Each approval gets its OWN tag. The ambient 'almanac' tag is deliberately
+  // singular — a new push replaces the last — and that is exactly wrong here:
+  // a second question arriving would silently eat the first, and the hook
+  // behind it would sit waiting on a notification he never saw.
   e.waitUntil(self.registration.showNotification(d.title || 'Almanac', {
     body: d.body || '',
-    data: { url: d.url || './detent.html' },
+    data: isApproval
+      ? { url: d.url, kind: 'approval', approval_id: d.approval_id, token: d.token }
+      : { url: d.url || './detent.html' },
     icon: './icons/icon-192.png',
     badge: './icons/icon-192.png',
-    tag: 'almanac',
+    tag: isApproval ? `approval-${d.approval_id}` : 'almanac',
     renotify: true,
     requireInteraction: true,
     vibrate: [180, 60, 180, 60, 320],
+    actions: isApproval
+      ? [{ action: 'approve', title: 'Approve' }, { action: 'deny', title: 'Deny' }]
+      : undefined,
   }));
 });
 
 self.addEventListener('notificationclick', e => {
+  const data = e.notification.data || {};
+  // A verdict from the lock screen. It answers from INSIDE the worker so the
+  // token never reaches a page — and so a tap works with the phone locked and
+  // the app closed, which is the only state that matters when he is driving.
+  if (data.kind === 'approval' && (e.action === 'approve' || e.action === 'deny')) {
+    e.notification.close();
+    e.waitUntil(
+      fetch(data.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision: e.action, token: data.token }),
+      }).then(r => r.ok ? null : r.status).then(bad => {
+        // Silence would read as "sent" while the call sat waiting on the Mac.
+        // A failed verdict says so, on its own notification, in words.
+        if (bad) return self.registration.showNotification('Verdict did not land', {
+          body: `Your ${e.action} came back ${bad}. The call is still waiting — `
+              + `open the desk, or it expires on its own.`,
+          icon: './icons/icon-192.png', badge: './icons/icon-192.png',
+          tag: `approval-${data.approval_id}-failed`, requireInteraction: true,
+        });
+      }).catch(() => self.registration.showNotification('Verdict did not send', {
+        // Off the tailnet — the common case in a dead zone. Say which, plainly.
+        body: 'No route to the spine. Check Tailscale; the call is still waiting.',
+        icon: './icons/icon-192.png', badge: './icons/icon-192.png',
+        tag: `approval-${data.approval_id}-failed`, requireInteraction: true,
+      }))
+    );
+    return;
+  }
+  // A BODY tap on an approval (not a button) must not navigate to the POST-only
+  // decision URL — that is a dead page. Send him to the desk instead.
   e.notification.close();
-  const target = new URL((e.notification.data && e.notification.data.url) || './detent.html',
+  const target = new URL((data.kind === 'approval' ? './desk.html#hand' : data.url) || './detent.html',
                          self.registration.scope).href;
   e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
     for (const c of list)
