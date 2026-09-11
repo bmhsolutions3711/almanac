@@ -71,6 +71,24 @@ body{
    sky = chat, candle = the therapist room. */
 body[data-mode="chat"]{--key:126,198,236}
 body[data-mode="therapist"]{--key:228,188,140}
+/* brass = the chief of staff (card #224): the loads, the money, the web,
+   his folders — and the one seat whose acts go to his phone */
+body[data-mode="atlas"]{--key:214,178,96}
+.sc-modes.sub{padding-top:0}
+.sc-modes.sub .sc-mode{min-height:26px;padding:6px 10px;font-size:9px}
+.sc-atlasnote{font:600 9px/1.4 var(--mono);letter-spacing:.1em;color:var(--dim);margin-left:4px}
+.sc-row.tool{padding:4px 10px 4px 12px;margin:1px 0;border-left-color:rgba(var(--key),.25)}
+.sc-row.tool .bd{font:400 11px/1.45 var(--mono);color:var(--dim)}
+.sc-row.prop{border-left-color:rgba(var(--key),.9);background:rgba(var(--key),.05)}
+.sc-row.prop .bd{color:var(--ink)}
+.sc-row.prop pre{font:400 11px/1.4 var(--mono);color:var(--dim);white-space:pre-wrap;margin:6px 0 0;
+  max-height:220px;overflow:auto}
+.sc-row.prop .verdict{font:700 10px/1.4 var(--mono);letter-spacing:.12em;color:rgb(var(--key));margin-top:6px}
+.sc-row.live .bd{color:var(--ink)}
+.sc-row.live .bd::after{content:"▍";color:rgb(var(--key));animation:sc-blink 1s steps(2) infinite}
+@keyframes sc-blink{50%{opacity:0}}
+.sc-flag{display:inline-block;font:700 9px/1 var(--mono);letter-spacing:.1em;color:rgb(var(--key));
+  border:1px solid rgba(var(--key),.5);border-radius:3px;padding:3px 6px;margin-left:6px}
 .sc-modes{flex:0 0 auto;display:flex;gap:6px;padding:8px 0 1px;align-items:center}
 .sc-mode{font:700 9.5px/1 var(--mono);letter-spacing:.16em;color:var(--dim);
   background:transparent;border:1px solid var(--line);border-radius:3px;
@@ -221,6 +239,12 @@ body.sc-keyed .sc-wire,body.sc-keyed .sc-rail{opacity:.55;transition:opacity .28
     <button class="sc-mode" data-mode="analysis" role="radio" title="the full read — a voice that knows your numbers">ANALYSIS</button>
     <button class="sc-mode" data-mode="chat" role="radio" title="off the clock — quick voice, no ledger">CHAT</button>
     <button class="sc-mode" data-mode="therapist" role="radio" title="the inner room — walled from the work">THERAPIST</button>
+    <button class="sc-mode" data-mode="atlas" role="radio" id="modeAtlas" title="the chief of staff — the loads, the money, the web, your folders; a change goes to your phone">ATLAS</button>
+  </div>
+  <div class="sc-modes sub" id="subdials" role="group" aria-label="atlas dials" hidden>
+    <button class="sc-mode" id="dialDeep" title="TALK — local, streamed">DEEP</button>
+    <button class="sc-mode on" id="dialWeb" title="look-ups on — every one logged and cited">WEB</button>
+    <span class="sc-atlasnote" id="atlasnote"></span>
   </div>
 
   <div class="sc-rail" id="rail"></div>
@@ -349,6 +373,10 @@ const S = {
   rec: null,              // {stream, ctx, proc, analyser, chunks, t0, key}
   vuRaf: 0, holdT: 0,
   mode: localStorage.getItem("almanac_sc_mode") || "analysis",  // card #131
+  gear: localStorage.getItem("almanac_sc_gear") || "talk",      // card #224: talk | deep
+  web:  localStorage.getItem("almanac_sc_web") !== "0",         // card #224: look-ups on
+  stream: null,           // the atlas turn's AbortController while its stream is open
+  atlas: null,            // GET /api/atlas — armed / seat
 };
 
 /* ══ the mode selector — one set, three voices (card #131) ══ */
@@ -356,11 +384,13 @@ const MODE_PLACEHOLDER = {
   analysis:  "say it — or tap TALK and just speak; quiet sends it",
   chat:      "shoot the breeze — quick voice, no ledger",
   therapist: "say what's on you — this room holds it",
+  atlas:     "say it — the chief of staff reaches for the loads, the money, the web, your folders",
 };
 const MODE_QUIET = {
   analysis:  "a fresh run — say something into the dark. the operation answers in a voice that knows your numbers.",
   chat:      "a fresh run — say anything. off the clock, no ledger, quick voice.",
   therapist: "a fresh run — say what's on you. this room is walled from the work.",
+  atlas:     "a fresh run — ask the chief of staff. it looks things up, reads your loads and folders, and files any change for your phone.",
 };
 function setMode(m, first){
   if(!MODE_PLACEHOLDER[m]) m = "analysis";
@@ -373,7 +403,44 @@ function setMode(m, first){
     b.setAttribute("aria-checked", on ? "true" : "false");
   }
   $("say").placeholder = MODE_PLACEHOLDER[m];
+  $("subdials").hidden = (m !== "atlas");
+  if(m === "atlas"){ paintDials(); refreshAtlas(); warmAtlas(); }   // the mode tap lights the stove
   if(!first && !S.msgs.length) renderWire();     // the quiet line speaks the mode
+}
+
+/* ══ ATLAS — the chief of staff (card #224): the dials, the stove, the stream ══
+   DEEP and WEB are per-turn dials (his tap). The ARM is NOT here — an arm
+   control on the talk surface is the bearing-18 tripwire; it lives on the
+   spine (python3 spine/atlas.py arm) and this page only REFLECTS it. */
+function paintDials(){
+  $("dialDeep").classList.toggle("on", S.gear === "deep");
+  $("dialDeep").title = S.gear === "deep" ? "DEEP — this turn goes to Claude" : "TALK — local, streamed";
+  $("dialWeb").classList.toggle("on", S.web);
+  $("dialWeb").title = S.web ? "look-ups on — every one logged and cited" : "look-ups off — ATLAS stays on the book";
+}
+async function refreshAtlas(){
+  try{ S.atlas = await grab("/api/atlas"); }catch(e){ S.atlas = null; }
+  const off = !S.atlas || !S.atlas.armed;
+  $("modeAtlas").textContent = off ? "ATLAS · OFF" : "ATLAS";
+  $("atlasnote").textContent = off ? "off — arm it from the spine" :
+    (S.gear === "deep" ? "next turn goes to Claude" : "");
+}
+function warmAtlas(){
+  fetch(url("/api/atlas/warm"), { method:"POST", headers: hdr({"Content-Type":"application/json"}), body:"{}" })
+    .catch(() => {});
+}
+function wireDials(){
+  $("dialDeep").addEventListener("click", () => {
+    S.gear = S.gear === "deep" ? "talk" : "deep";
+    localStorage.setItem("almanac_sc_gear", S.gear); buzz([10]); paintDials(); refreshAtlas();
+    toast(S.gear === "deep" ? "DEEP — the next turn and its tool results go to Claude; the record stays here"
+                            : "TALK — local, streamed");
+  });
+  $("dialWeb").addEventListener("click", () => {
+    S.web = !S.web;
+    localStorage.setItem("almanac_sc_web", S.web ? "1" : "0"); buzz([10]); paintDials();
+    toast(S.web ? "web on — every look-up is logged and cited" : "web off — ATLAS stays on the book");
+  });
 }
 function wireModes(){
   for(const b of document.querySelectorAll(".sc-mode"))
@@ -441,11 +508,13 @@ function spikeRun(grains){
 
 /* ══ the log ══ */
 function stampFor(m, dur){
-  const who = m.kind === "answer" ? "ATLAS" : m.kind === "undelivered" ? "ATLAS" : "BRYAN";
+  const who = (m.kind === "answer" || m.kind === "undelivered" || m.sender === "operation") ? "ATLAS" : "BRYAN";
   /* the record knows which voice spoke (card #131); analysis stays unbadged —
      it is the old default and the stamp stays clean for the common case */
   const md = (m.mode && m.mode !== "analysis" && who === "ATLAS")
     ? ` · ${esc(String(m.mode).toUpperCase())}` : "";
+  if(m.kind === "tool")     return `${who}${md} · LOOKED · ${esc(rel(m.at))}`;
+  if(m.kind === "proposal") return `${who}${md} · PROPOSED · ${esc(rel(m.at))}`;
   const len = dur ? ` · ${mmss(dur)}` : "";
   return `${who}${md} · ${esc(rel(m.at))}${len}`;
 }
@@ -453,6 +522,7 @@ function wireRow(m){
   const el = document.createElement("div");
   const atl = m.sender === "operation";
   el.className = "sc-row " + (m.kind === "undelivered" ? "und" :
+                 m.kind === "tool" ? "atl tool" : m.kind === "proposal" ? "atl prop" :
                  atl ? ("atl" + (m.read_at ? " heard" : "")) : "bry");
   el.dataset.id = m.id;
   const st = document.createElement("div"); st.className = "st";
@@ -470,6 +540,10 @@ function wireRow(m){
     st.appendChild(play);
   }else if(m.kind === "undelivered"){
     bd.innerHTML = `<span class="mk">△</span> ${esc(m.body)} — your words hold; promote them if the session should read them.`;
+  }else if(m.kind === "tool"){
+    bd.textContent = m.body;                       // what ATLAS looked at — the record, small
+  }else if(m.kind === "proposal"){
+    wireProposal(m, el, bd);
   }else{
     bd.textContent = m.body;
   }
@@ -478,6 +552,61 @@ function wireRow(m){
      is a signature (→19) — both are HOLDS, never taps */
   wireHold(el, m);
   return el;
+}
+/* a proposal row: PIN? is a chip his hold clips (the visor door, never a
+   model write); an EDIT shows the diff and waits on his PHONE — the page can
+   only watch the verdict land (the token is on the phone, not here) */
+const WATCHED = new Set();
+function wireProposal(m, el, bd){
+  if(/pin\?/.test(m.title || "")){
+    bd.innerHTML = `<span class="mk">◉</span> pin this? <em>${esc(m.body)}</em> — hold to clip it to the visor`;
+    let t = 0, t0 = 0;
+    el.addEventListener("pointerdown", e => {
+      t0 = performance.now();
+      t = setTimeout(async () => {
+        if(performance.now() - t0 < 440) return;      // the wall clock decides
+        buzz([14,26,14]);
+        try{
+          const r = await fetch(url("/api/pins"), { method:"POST",
+            headers: hdr({"Content-Type":"application/json"}),
+            body: JSON.stringify({ fact: m.body.slice(0, 500), source_thread: S.run }) });
+          if(!r.ok) throw new Error("the spine answered " + r.status);
+          bd.innerHTML = `<span class="mk">◉</span> clipped to the visor — <em>${esc(m.body)}</em>`;
+          toast("clipped to the visor — rides in every seat from here.");
+        }catch(err){ thud(); toast("not clipped — " + (err.message||err)); }
+      }, 460);
+    });
+    ["pointerup","pointerleave","pointercancel"].forEach(ev => el.addEventListener(ev, () => clearTimeout(t)));
+    return;
+  }
+  const aid = ((m.title || "").match(/→ ([0-9a-f]{12})/) || [])[1];
+  const [summary, ...rest] = (m.body || "").split("\n");
+  bd.innerHTML = `<span class="mk">✎</span> ${esc(summary)}` +
+    (rest.length ? `<pre>${esc(rest.join("\n"))}</pre>` : "") +
+    `<div class="verdict">awaiting your phone — Approve or Deny on the notification</div>`;
+  if(aid) watchApproval(aid, el);
+}
+function watchApproval(aid, el){
+  if(WATCHED.has(aid)) return;
+  WATCHED.add(aid);
+  const tick = async () => {
+    try{
+      const d = await grab(`/api/approvals/${aid}`);
+      if(d && d.status && d.status !== "pending"){
+        const v = el.querySelector(".verdict");
+        if(v) v.textContent = d.status.toUpperCase() + " · the receipt is in the run";
+        WATCHED.delete(aid);
+        try{   // the receipt row landed in the run (docs.on_decision) — pick it up
+          const r = await grab(`/api/threads/${S.run}/messages`);
+          const known = new Set(S.msgs.map(x => x.id));
+          for(const x of (r.messages || [])) if(!known.has(x.id)) appendTurn(x);
+        }catch(e){}
+        return;
+      }
+    }catch(e){ /* the watch never breaks the room */ }
+    T.push(setTimeout(tick, document.visibilityState === "visible" ? 5000 : 20000));
+  };
+  T.push(setTimeout(tick, 5000));
 }
 function renderWire(){
   const w = $("wire"); w.textContent = "";
@@ -526,6 +655,7 @@ async function loadRuns(){
 }
 async function tune(tid){
   stopPlayback(); clearWait(); sweepVox();
+  if(S.stream){ try{ S.stream.abort(); }catch(e){} S.stream = null; }   // the turn continues on the spine; this glass stops watching
   S.run = tid;
   const d = await grab(`/api/threads/${tid}/messages`);
   S.msgs = d.messages || [];
@@ -577,7 +707,51 @@ function wordTimes(el, dur){
     t += span; return win;
   });
 }
+/* sentence clips (card #224): the voice starts on the first finished sentence
+   while ATLAS is still generating — buddy's signature moment. Gated like an
+   arrival (visible, not muted); a tune, a pagehide or a new turn stops them;
+   the ▶ replay is the full WAV cut at the end, never both at once. */
+const CLIPS = { q: [], busy: false, gen: 0, audio: null, played: 0, dropped: 0 };
+function stopClips(){
+  CLIPS.gen++; CLIPS.q.length = 0; CLIPS.busy = false;
+  if(CLIPS.audio){ try{ CLIPS.audio.pause(); }catch(e){} CLIPS.audio = null; }
+}
+function queueClip(sayId, n){
+  if(muted() || document.visibilityState !== "visible"){ CLIPS.dropped++; return; }
+  CLIPS.q.push({ sayId, n });
+  if(!CLIPS.busy) playClips();
+}
+async function playClips(){
+  CLIPS.busy = true;
+  const gen = CLIPS.gen;
+  while(CLIPS.q.length && gen === CLIPS.gen){
+    const { sayId, n } = CLIPS.q.shift();
+    let obj = null;
+    try{
+      const r = await fetch(url(`/api/atlas/voice/${sayId}/${n}`), { headers: hdr() });
+      if(!r.ok){ CLIPS.dropped++; continue; }
+      obj = URL.createObjectURL(await r.blob());
+      if(gen !== CLIPS.gen) break;
+      if(CLIPS.played === 0 && !muted()){       // the channel opens once: tail → the cut
+        spikeRun(squelchTail());
+        await new Promise(res => T.push(setTimeout(res, 190)));
+        if(gen !== CLIPS.gen) break;
+      }
+      const a = new Audio(obj); CLIPS.audio = a;
+      arc("arc", true); stateWord("ATL · SPEAKING");
+      await new Promise(res => {
+        a.addEventListener("ended", res, { once:true });
+        a.addEventListener("error", res, { once:true });
+        a.play().catch(res);
+      });
+      if(gen === CLIPS.gen) CLIPS.played++;
+    }catch(e){ CLIPS.dropped++; }
+    finally{ if(obj) URL.revokeObjectURL(obj); }
+  }
+  if(gen === CLIPS.gen){ CLIPS.busy = false; CLIPS.audio = null; arc("arc", false); }
+}
 function stopPlayback(){
+  stopClips();
   if(S.audio){ try{ S.audio.pause(); }catch(e){} }
   cancelAnimationFrame(S.beamRaf); S.beamRaf = 0;
   S.audio = null; S.playingRow = 0;
@@ -763,7 +937,10 @@ function follow(){
       const d = await grab(`/api/threads/${S.run}/messages`);
       const known = new Set(S.msgs.map(m => m.id));
       const fresh = (d.messages || []).filter(m => !known.has(m.id));
-      const landed = fresh.find(m => m.sender === "operation" && m.id > S.waiting.sayId);
+      /* an ANSWER lands the turn — a tool row or a proposal chip (atlas) is
+         the turn still working, never its end */
+      const landed = fresh.find(m => m.sender === "operation" && m.id > S.waiting.sayId &&
+                                     (m.kind === "answer" || m.kind === "undelivered"));
       if(landed){
         const sayId = S.waiting.sayId; clearWait();
         for(const m of fresh) appendTurn(m);
@@ -782,8 +959,183 @@ let WAKE = null;
 async function holdWake(){ try{ WAKE = await navigator.wakeLock?.request("screen"); }catch(e){} }
 function releaseWake(){ try{ WAKE?.release(); }catch(e){} WAKE = null; }
 
+/* ══ ATLAS — the streamed turn (card #224). A POST read with a reader, never
+   EventSource: the worker copies same-origin GETs. Resolves as soon as the
+   say row lands (meta) so the key releases; the stream keeps painting. If the
+   stream never opens, the legacy /say door answers in the same voice; if it
+   dies mid-turn the row still lands and the poll finishes the job. ══ */
+async function sendAtlas(body, key){
+  if(S.stream){ try{ S.stream.abort(); }catch(e){} S.stream = null; }
+  const ctrl = new AbortController(); S.stream = ctrl;
+  let r;
+  try{
+    r = await fetch(url(`/api/threads/${S.run}/atlas`), { method:"POST",
+      headers: hdr({"Content-Type":"application/json",
+        "Idempotency-Key": key || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()))}),
+      body: JSON.stringify({ body, gear: S.gear, web: S.web }), signal: ctrl.signal });
+  }catch(err){ S.stream = null; throw err; }
+  if(!r.ok){
+    S.stream = null;
+    const d = await r.json().catch(() => ({}));
+    if(r.status === 409 && d.code === "off") refreshAtlas();
+    if(r.status === 404 || r.status === 405) return sendLegacyAtlas(body, key);   // an older spine
+    throw new Error(d.error || ("the spine answered " + r.status));
+  }
+  if(!(r.headers.get("Content-Type") || "").includes("text/event-stream") || !r.body){
+    S.stream = null;
+    return sendLegacyAtlas(body, key);
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const meta = ev => { if(!settled){ settled = true; resolve({ id: ev.say_id, answering: true }); } };
+    const guard = setTimeout(() => {           // no meta in 20 s: the turn never started
+      if(settled) return;
+      settled = true; try{ ctrl.abort(); }catch(e){}
+      recoverAtlas(body, key).then(resolve, reject);
+    }, 20000);
+    readAtlasStream(r, body, ctrl, ev => { clearTimeout(guard); meta(ev); })
+      .then(() => { clearTimeout(guard); if(!settled){ settled = true; resolve({ id: null, answering: false }); } })
+      .catch(err => { clearTimeout(guard); if(!settled){ settled = true; reject(err); } });
+  });
+}
+async function readAtlasStream(r, body, ctrl, onMeta){
+  const reader = r.body.getReader(), dec = new TextDecoder();
+  let buf = "", sayId = null, live = null, liveBd = null, text = "", done = false;
+  const seen = new Set();
+  arc("atl", true); holdWake(); stateWord("ATL · LISTENING");
+  const ensureLive = () => {
+    if(live) return;
+    live = document.createElement("div"); live.className = "sc-row atl live"; live.dataset.id = "live";
+    const st = document.createElement("div"); st.className = "st";
+    st.innerHTML = `<span class="who">ATLAS${S.gear === "deep" ? " · DEEP" : ""} · now</span><span class="sp"></span>`;
+    liveBd = document.createElement("div"); liveBd.className = "bd";
+    live.appendChild(st); live.appendChild(liveBd);
+    const w = $("wire"); if(!S.msgs.length) w.textContent = ""; w.prepend(live); w.scrollTop = 0;
+  };
+  const dropLive = () => { if(live){ live.remove(); live = null; liveBd = null; } };
+  const refill = async () => {   // whatever landed in the run that this glass has not seen
+    try{
+      const d = await grab(`/api/threads/${S.run}/messages`);
+      const known = new Set(S.msgs.map(x => x.id));
+      for(const x of (d.messages || [])) if(!known.has(x.id)) appendTurn(x);
+    }catch(e){}
+  };
+  const handle = async ev => {
+    if(ev.t === "meta"){
+      sayId = ev.say_id; rogerBeep(); buzz([14,26,14]);
+      stopClips(); CLIPS.played = 0; CLIPS.dropped = 0;   // a new turn: whatever was speaking stops
+      appendTurn({ id: sayId, at: new Date().toISOString(), sender:"bryan", kind:"say", body, thread_id: S.run, mode:"atlas" });
+      ensureLive(); stateWord(ev.gear === "deep" ? "ATL · DEEP · CLAUDE" : "ATL · THINKING");
+      onMeta && onMeta(ev);
+    }else if(ev.t === "status"){
+      stateWord("ATL · " + String(ev.text || "").toUpperCase());
+    }else if(ev.t === "token"){
+      ensureLive(); text += ev.c; liveBd.textContent = text; stateWord("ATL · SPEAKING");
+    }else if(ev.t === "tool"){
+      /* a preface before a tool call is not the answer — the row clears and the
+         stamp says what it reaches for */
+      text = ""; if(liveBd) liveBd.textContent = "";
+      stateWord("ATL · " + (ev.names || []).join(", ").toUpperCase());
+    }else if(ev.t === "think"){
+      stateWord("ATL · THINKING · " + ev.n);
+    }else if(ev.t === "row"){
+      if(ev.row && !seen.has(ev.row.id)){ seen.add(ev.row.id); dropLive(); appendTurn(ev.row); }
+    }else if(ev.t === "flag"){
+      toast("withheld — " + ev.text);
+    }else if(ev.t === "voice"){
+      queueClip(ev.say_id, ev.n);                 // the first sentence speaks before the last is written
+    }else if(ev.t === "done"){
+      done = true; dropLive();
+      const m = { id: ev.id, at: new Date().toISOString(), sender:"operation", kind:"answer",
+                  body: ev.body, thread_id: S.run, mode:"atlas", read_at: null };
+      appendTurn(m);
+      const el = $("wire").querySelector(`[data-id="${m.id}"]`);
+      if(ev.flags && ev.flags.length && el)
+        el.querySelector(".st").insertAdjacentHTML("beforeend",
+          `<span class="sc-flag" title="${esc(ev.flags.join(", "))}">FIGURE WITHHELD</span>`);
+      arc("atl", false); stateWord(); releaseWake();
+      if(ev.voiced && el){
+        /* the clips ARE the arrival — wait for the ones still in the air, then
+           light the words; the full WAV stays behind ▶ for a replay */
+        const t0 = Date.now();
+        const settle = () => {
+          const heard = CLIPS.played + CLIPS.dropped;
+          if((CLIPS.busy || CLIPS.q.length || heard < ev.voiced) && Date.now() - t0 < 30000){
+            T.push(setTimeout(settle, 250)); return;
+          }
+          markDone(el); arc("arc", false); stateWord(); S.reopenMic?.();
+          primePeaks(m).catch?.(() => {});
+        };
+        settle();
+      }else if(el && document.visibilityState === "visible"){
+        hearRow(m, el, true).then(() => primePeaks(m));  // THE BREAK
+      }
+      loadRuns();
+    }else if(ev.t === "error"){
+      done = true; dropLive();
+      arc("atl", false); stateWord(); releaseWake(); thud(); buzz([12,70,12]);
+      toast(ev.error || "ATLAS could not answer — your words hold");
+      if(ev.code === "off") refreshAtlas();
+      await refill();
+    }
+  };
+  try{
+    while(true){
+      const { value, done: end } = await reader.read();
+      if(end) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while((i = buf.indexOf("\n\n")) >= 0){
+        const frame = buf.slice(0, i); buf = buf.slice(i + 2);
+        for(const line of frame.split("\n")){
+          if(!line.startsWith("data:")) continue;      // ": ping" keeps the pipe warm, says nothing
+          try{ await handle(JSON.parse(line.slice(5).trim())); }catch(e){}
+        }
+      }
+    }
+  }catch(err){
+    if(!ctrl.signal.aborted) console.warn("atlas stream cut", err);
+  }finally{
+    if(S.stream === ctrl) S.stream = null;
+  }
+  if(!done && !ctrl.signal.aborted){
+    /* the stream died mid-turn — the row still lands; the poll finishes the job */
+    dropLive();
+    if(sayId) startWait(sayId); else await recoverAtlas(body);
+  }else if(!done){ dropLive(); arc("atl", false); stateWord(); releaseWake(); }
+}
+async function recoverAtlas(body, key){
+  try{
+    const d = await grab(`/api/threads/${S.run}/messages`);
+    const mine = (d.messages || []).filter(m => m.sender === "bryan" && m.kind === "say" && m.body === body).pop();
+    if(mine){
+      if(!S.msgs.some(x => x.id === mine.id)) appendTurn(mine);
+      startWait(mine.id);
+      return { id: mine.id, answering: true };
+    }
+  }catch(e){}
+  return sendLegacyAtlas(body, key);
+}
+async function sendLegacyAtlas(body, key){
+  /* the spawn path: /say with mode atlas → brain.companion's atlas branch —
+     the same voice and tools, painted when it lands rather than as it speaks */
+  const r = await fetch(url(`/api/threads/${S.run}/say`), { method:"POST",
+    headers: hdr({"Content-Type":"application/json",
+      "Idempotency-Key": key || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()))}),
+    body: JSON.stringify({ body, mode: "atlas" }) });
+  const d = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(d.error || ("the spine answered " + r.status));
+  rogerBeep(); buzz([14,26,14]);
+  appendTurn({ id: d.id, at: new Date().toISOString(), sender:"bryan", kind:"say", body, thread_id: S.run, mode:"atlas" });
+  if(d.answering) startWait(d.id);
+  else toast("sent — but ATLAS could not take the mic; the turn stands");
+  loadRuns();
+  return d;
+}
+
 /* ══ the transmission itself — one door for typed and spoken turns ══ */
 async function sendTurn(body, key){
+  if(S.mode === "atlas") return sendAtlas(body, key);          // card #224: the streamed door
   const ctrl = new AbortController();
   const abortT = setTimeout(() => ctrl.abort(), 9000);
   try{
@@ -1102,9 +1454,10 @@ document.addEventListener("visibilitychange", () => {
 addEventListener("pagehide", () => {
   T.forEach(clearTimeout); T.length = 0;
   stopPlayback(); clearWait(); sweepVox();
+  if(S.stream){ try{ S.stream.abort(); }catch(e){} S.stream = null; }
   try{ AC && AC.close(); }catch(e){}
 });
-wireKey(); wireTalk(); wireVisor(); wireModes();
+wireKey(); wireTalk(); wireVisor(); wireDials(); wireModes();
 if(TOK === "" && !API) connect(); else boot();
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 

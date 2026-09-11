@@ -14,7 +14,7 @@
  *    network every time; the SW cache is then only ever a genuine offline
  *    fallback.
  */
-const VERSION = 'almanac-shell-v148';
+const VERSION = 'almanac-shell-v149';
 
 // The version gauge that cannot lie (Almanac #8): the page asks, the worker
 // answers — the chip renders what is actually installed, never a hardcoded
@@ -141,7 +141,12 @@ self.addEventListener('notificationclick', e => {
 
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
-  if (u.origin !== location.origin) return;        // the backend is never cached
+  // Card #209: an /api/ path is data wherever it is served from — the same
+  // origin included (a same-origin GET of a run's messages used to be copied
+  // into CacheStorage below, so a THERAPIST transcript could land in the
+  // phone's cache). Rule 1 above, made mechanical: never touch /api/.
+  if (u.pathname.startsWith('/api/')) return;
+  if (u.origin !== location.origin) return;        // a foreign origin is never cached
 
   const isShell = e.request.mode === 'navigate' ||
                   u.pathname.endsWith('/') ||
