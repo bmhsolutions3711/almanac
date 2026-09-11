@@ -426,8 +426,10 @@ async function refreshAtlas(){
     (S.gear === "deep" ? "next turn goes to Claude" : "");
 }
 function warmAtlas(){
-  fetch(url("/api/atlas/warm"), { method:"POST", headers: hdr({"Content-Type":"application/json"}), body:"{}" })
-    .catch(() => {});
+  /* the warm renders the same tool set the next turn will (the tool block is
+     part of the prompt prefix the model caches) — so it carries the WEB dial */
+  fetch(url("/api/atlas/warm"), { method:"POST", headers: hdr({"Content-Type":"application/json"}),
+    body: JSON.stringify({ web: S.web }) }).catch(() => {});
 }
 function wireDials(){
   $("dialDeep").addEventListener("click", () => {
