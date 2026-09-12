@@ -5433,7 +5433,7 @@ function finReconcile(){
     ${(H.cash || H.personal_road || H.uncategorized || H.accounted || H.on_deposit) ? `<div class="held">
       <span class="cap">held out of every load — rule on these and the month closes honestly</span>
       ${chip("cash", H.cash, "what it bought on the road is unknown until you itemize it")}
-      ${chip("tagged personal", H.personal_road, "road categories MI auto-tagged personal — flip its pin if that is wrong")}
+      ${chip("tagged personal", H.personal_road, "road rows you tagged personal — your money; right-click a row to take it back")}
       ${chip("uncategorized", H.uncategorized, "no category yet, so no lane")}
       ${chip("already accounted", H.accounted, "rows your hand declared covered elsewhere — held out of road and the line")}
       ${chip("on deposit", H.on_deposit, "parked with hotels, coming back — never cost; refunded pairs cancel silently")}
@@ -8173,6 +8173,11 @@ async function openAcct(ev, t){
     (t.deposit
       ? `<button class="mi" data-act="dep-off">not a deposit<i>count it as spend again</i></button>`
       : `<button class="mi" data-act="dep-on">deposit — wait for the refund<i>parked with the hotel; it comes back and the pair cancels</i></button>`) +
+    /* HIS MONEY (card #233): the pin that only MI's UI could set is the row's
+       own menu now — held out of road, the pile, the reserve and the placer */
+    (t.personal
+      ? `<button class="mi" data-act="pers-off">not personal after all<i>back into the business — road, the pile, the reserve</i></button>`
+      : `<button class="mi" data-act="pers-on">personal — your money<i>held out of road, the pile and the reserve; never a load</i></button>`) +
     /* HIS HAND ON THE SHELF (card #225): a dead row leaves the floor on his
        word, not the shelf's clock. Offered only where the shelf would file it
        anyway (the spine refuses the rest in words); reversible from the fold. */
@@ -8217,6 +8222,21 @@ async function openAcct(ev, t){
       : `${out.merchant || "row"} is back in the tray and the pile`);
     if(act === "monthly") return payMonthly(t.id, null, null, null);
     if(act === "load") return assignTxn(t.id, Number(row), null);
+    if(act === "pers-on" || act === "pers-off"){
+      try{
+        const r = await fetch(url("/api/fin/personal"), {method:"POST",
+          headers:{...hdr(), "Content-Type":"application/json"},
+          body: JSON.stringify({txn_id: t.id, on: act === "pers-on"})});
+        const out = await r.json().catch(() => ({}));
+        if(!r.ok){ finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true); return; }
+        await loadFin(); renderRoom();
+        try{ State.standings = await grab("/api/standings"); }catch(_){}
+        finSay(act === "pers-on"
+          ? `${out.merchant || "row"} is your money — held out of road, the pile and the reserve`
+          : `${out.merchant || "row"} is the business's again`, false);
+      }catch(e){ finSay("the spine did not answer — nothing was written: " + (e.message||e), true); }
+      return;
+    }
     if(act === "dep-on" || act === "dep-off"){
       try{
         const r = await fetch(url("/api/fin/deposit"), {method:"POST",
