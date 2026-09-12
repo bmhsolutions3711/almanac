@@ -664,6 +664,18 @@ body.hot .seg button.on{background:rgba(var(--hot-rgb),.16);color:var(--hot);box
 .ep{grid-column:1/-1;font:600 9.5px/1.3 var(--mono);letter-spacing:.05em;color:rgba(var(--key),1)}
 .ep.auto{color:var(--etch)}
 .ep.auto::before{content:"◇ "}
+/* his note on a row — quiet, quoted, never the money's colour (card #225).
+   :not(.auto) on purpose: the ◆ rule below is .ep:not(.auto)::before and would
+   outrank a bare .ep.note::before (same specificity, later in the sheet). */
+.ep.note{color:var(--dim);font-weight:400;letter-spacing:0;font-style:italic;white-space:pre-wrap;
+  overflow-wrap:anywhere;min-width:0}
+.ep.note:not(.auto)::before{content:"“"}
+.ep.note::after{content:"”"}
+/* the note line inside the row's menu */
+.movemenu .nin{display:block;width:100%;box-sizing:border-box;margin:4px 0 6px;padding:8px 9px;
+  border:1px solid var(--line);border-radius:4px;background:rgba(var(--wash),.05);
+  color:var(--ink);font:400 12px/1.3 var(--sans);outline:none}
+.movemenu .nin:focus{border-color:rgba(var(--key),.6)}
 .ep:not(.auto)::before{content:"◆ "}
 .stab{display:flex;gap:6px;margin:7px 0 2px}
 .stab button{flex:1 1 auto;font:700 9.5px/1 var(--mono);letter-spacing:.12em;
@@ -5099,8 +5111,13 @@ function finFloor(){
       ? iso.replace(" ", "T") + "Z" : iso);
     return !isNaN(d) && (Date.now() - d.getTime()) > days * 86400e3;
   };
+  /* ...AND HIS HAND FILES IT NOW (card #225, 2026-09-12: "this pre-auth needs
+     to disappear from the floor"). filed_at is his mark from the row's menu —
+     the spine only grants it to a row the shelf would file anyway, so a live
+     row can never be hidden this way. It outranks the 2-day wait. */
   const filed = t =>
-    (t.expired && aged(t.updated_at || t.date, 2))
+    !!t.filed_at
+    || (t.expired && aged(t.updated_at || t.date, 2))
     || (t.deposit_refund && aged(t.deposit_refund.refund_date || t.date, 2))
     || ((t.undraggable_because || "").startsWith("cash") && aged(t.date, 2));
   const doneRow = t => (t.placements || []).length || t.accounted || filed(t);
@@ -5214,12 +5231,19 @@ function finLine(t){
     : t.deposit ?
     `<div class="ep" style="color:rgba(255,200,60,.9)">${t.deposit_refund
         ? "deposit · refunded " + esc(t.deposit_refund.refund_date || "")
+          + (t.filed_at ? " · filed by your hand" : "")
         : "deposit · awaiting the refund"}</div>`
     : t.expired ?
-    `<div class="ep" style="color:var(--etch)">expired pre-auth — never settled · held out</div>`
+    `<div class="ep" style="color:var(--etch)">expired pre-auth — never settled · held out${
+      t.filed_at ? " · filed by your hand" : ""}</div>`
     : t.credit ?
     `<div class="ep" style="color:#7ec87e">credit — drag it onto the load it belongs to</div>`
+    : t.filed_at ?
+    `<div class="ep" style="color:var(--etch)">${(t.undraggable_because || "").startsWith("cash")
+        ? "cash — filed by your hand" : "filed by your hand"} · ${esc(String(t.filed_at).slice(0,10))}</div>`
     : "";
+  /* his note rides the row — a line for why, on the floor and in the fold */
+  const note = t.note ? `<div class="ep note">${esc(t.note)}</div>` : "";
   return `<div class="eline${lock?" locked":""}${pl.length || mp.length || t.accounted?" done":""}" data-txn="${t.id}" ${
     lock?`title="${esc(t.undraggable_because)}"`
         :t.monthly_candidate?`draggable="true" title="a bill's bank row — tap it, drag it into MONTHLY, or right-click"`
@@ -5229,7 +5253,7 @@ function finLine(t){
       t.credit ? "+" + money(Math.abs(t.amount)) : money(t.amount)}</div>
     <div class="ed">${esc(t.date)} · ${esc(t.category || "uncategorized")}${
       t.pending ? ` · <span style="color:rgba(255,200,60,.9)">pending</span>` : ""}</div>
-    ${state}</div>`;
+    ${state}${note}</div>`;
 }
 
 /* THE MONTHLY BOX — Bryan, 2026-07-29: "have a box for Monthly and i will drag
@@ -5272,6 +5296,7 @@ function finMonthlyBox(){
           data-bt="${esc(c.bill_type)}" data-bid="${esc(c.bill_id)}">
           <span>${esc(c.name)}</span><b>${money(c.due)}</b>
           <i>${esc(c.why)}</i></button>`).join("")}
+        ${askExtras(ask)}
         <button class="acand cancel">none of these — put it back</button>
       </div>` : (arrived.length || settled.length ?
         /* ARRIVED BANK ROWS FIRST (Bryan, 2026-08-02: "these... should be at
@@ -5950,19 +5975,28 @@ function finBooks(){
   const txAll = (State.fin.expenses && State.fin.expenses.transactions) || [];
   const sift = FIN.catFilter;
   const tx = sift ? txAll.filter(t => (t.category || "uncategorized") === sift) : txAll;
-  const note = t =>
+  const note = t => (
     (t.placements||[]).length ? (t.placements.length > 1
       ? `split ${t.placements.length} ways on loads` : "placed on a load")
     : (t.monthly_pay||[]).length ? `paid ${esc(t.monthly_pay[0].name)} — monthly`
     : t.accounted ? "already accounted for — your hand"
     : t.deposit ? (t.deposit_refund
         ? "deposit — refunded " + esc(t.deposit_refund.refund_date || "")
+          + (t.filed_at ? " — filed by your hand" : "")
         : "deposit — awaiting the refund")
-    : t.expired ? "the bank never settled it — held out"
+    : t.expired ? (t.filed_at ? "the bank never settled it — filed by your hand"
+                              : "the bank never settled it — held out")
     : t.credit ? "credit — place it on the load it belongs to"
     : t.personal ? "tagged personal"
     : t.transfer ? "money moved between your accounts — not spend"
-    : "unplaced";
+    /* the same words the floor and the spine use for a cash draw — one story */
+    : (t.undraggable_because || "").startsWith("cash")
+      ? (t.filed_at ? "cash — filed by your hand" : "cash — what it bought is invisible until itemized")
+    /* the record is the one home a filed one-off keeps (card #225) — it
+       must say so here, and carry his note, or the mark is invisible */
+    : t.filed_at ? "filed by your hand — a one-off, no bill"
+    : t.filed_aside ? "unplaced — a one-off filing stands aside behind this row's newer ruling"
+    : "unplaced") + (t.note ? ` · “${esc(t.note)}”` : "");
   const bank = t => t.expired ? "expired" : t.pending ? "pending" : "posted";
   /* the ask lives here too now — a MONTHLY answer begun from the record must
      come back to the record, not to a bucket on another tab */
@@ -5976,6 +6010,7 @@ function finBooks(){
         data-bt="${esc(c.bill_type)}" data-bid="${esc(c.bill_id)}">
         <span>${esc(c.name)}</span><b>${money(c.due)}</b>
         <i>${esc(c.why)}</i></button>`).join("")}
+      ${askExtras(FIN.ask)}
       <button class="acand cancel">none of these — put it back</button>
     </div>` : "";
   const record = `<div class="panel" style="min-width:0">
@@ -7717,6 +7752,8 @@ function wireFin(){
     R.querySelectorAll(".ask .acand").forEach(b =>
       b.addEventListener("click", () => {
         if(b.classList.contains("cancel")){ FIN.ask = null; renderRoom(); return; }
+        if(b.classList.contains("flip")) return flipAndPay(Number(b.dataset.txn), b.dataset.bt, b.dataset.bid, null);
+        if(b.classList.contains("oneoff")) return fileOneoff(Number(b.dataset.txn));
         payMonthly(Number(b.dataset.txn), b.dataset.bt, b.dataset.bid, null);
       }));
     return;
@@ -7900,6 +7937,8 @@ function wireFin(){
   R.querySelectorAll(".lane.monthly .acand").forEach(b =>
     b.addEventListener("click", () => {
       if(b.classList.contains("cancel")){ FIN.ask = null; renderRoom(); return; }
+      if(b.classList.contains("flip")) return flipAndPay(Number(b.dataset.txn), b.dataset.bt, b.dataset.bid, b.closest(".lane"));
+      if(b.classList.contains("oneoff")) return fileOneoff(Number(b.dataset.txn));
       payMonthly(Number(b.dataset.txn), b.dataset.bt, b.dataset.bid, b.closest(".lane"));
     }));
 }
@@ -7986,10 +8025,25 @@ async function openAcct(ev, t){
     const d = await r.json().catch(() => ({}));
     if(r.ok) loads = (d.loads || []).slice(0, 5);
   }catch(e){ /* the menu still offers the mark — loads just stay absent */ }
+  /* a TERMINAL row is one the 2-day shelf files on its own (filed() above):
+     an expired pre-auth, a deposit whose refund paired, a cash draw. Only
+     those may be filed by hand — the spine holds the same line. */
+  const terminal = !!t.expired || !!t.deposit_refund
+    || (t.undraggable_because || "").startsWith("cash");
+  /* ...and a month-level row he rules NO BILL — the dental visit the matcher
+     bound to 'Dental Insurance' on a name alone (his ruling 09-12) — files
+     as a one-off: out of the tray and the pile, the books tab keeps it. */
+  const oneoff = !terminal && !t.trip_direct && !t.transfer && !t.credit
+    && !t.personal && !t.accounted && !t.deposit
+    && !(t.monthly_pay || []).length && !(t.placements || []).length
+    && !!(t.category || "").trim()            /* a one-off's category IS its accounting */
+    && t.category !== "Credit Card Repayment";
   m.innerHTML =
     `<div class="mh">${esc(t.merchant || t.description || "this")} · ${money(t.amount)}
        <span>${esc(t.date)}</span></div>` +
-    (t.monthly_candidate
+    /* the ask is never closed to his hand (card #226): a one-off the tray
+       refused can still be NAMED against a bill — can_ask is the spine's word */
+    ((t.monthly_candidate || t.can_ask)
       ? `<button class="mi monthly" data-act="monthly">MONTHLY<i>say which bill this paid</i></button>` : "") +
     (loads.length ? `<div class="msep">the last loads, nearest this date</div>` +
       loads.map(l => `<button class="mi" data-act="load" data-row="${l.sheet_row}">
@@ -8007,6 +8061,25 @@ async function openAcct(ev, t){
     (t.deposit
       ? `<button class="mi" data-act="dep-off">not a deposit<i>count it as spend again</i></button>`
       : `<button class="mi" data-act="dep-on">deposit — wait for the refund<i>parked with the hotel; it comes back and the pair cancels</i></button>`) +
+    /* HIS HAND ON THE SHELF (card #225): a dead row leaves the floor on his
+       word, not the shelf's clock. Offered only where the shelf would file it
+       anyway (the spine refuses the rest in words); reversible from the fold. */
+    (t.filed_at
+      ? (terminal
+        ? `<button class="mi" data-act="unfile">back to the floor<i>the 2-day shelf rules it again</i></button>`
+        : `<button class="mi" data-act="unfile">not a one-off after all<i>back to the tray and the pile</i></button>`)
+      : t.filed_aside
+      /* the mark stood aside behind a newer ruling on this row (accounted,
+         placed, re-dressed as road, a deposit awaiting its refund) — it is
+         not hidden: here is the hand that clears it */
+      ? `<button class="mi" data-act="unfile">clear the one-off filing<i>it stands aside behind this row's newer ruling — clear it so it never comes back</i></button>`
+      : terminal
+      ? `<button class="mi" data-act="file">file it now<i>off the floor, into the fold — with a note if you want one</i></button>`
+      : oneoff
+      ? `<button class="mi" data-act="file">not a bill — a one-off<i>out of the tray and the pile; the books tab keeps it</i></button>`
+      : "") +
+    `<button class="mi" data-act="note">${t.note ? "edit the note" : "add a note"}<i>${
+      t.note ? esc(t.note) : "a line for why — it rides the row"}</i></button>` +
     `<button class="mi off" data-act="x">never mind</button>`;
   place();
   m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", async ev => {
@@ -8018,8 +8091,18 @@ async function openAcct(ev, t){
       splitPanel(m, t, loads, place);
       return;
     }
+    if(act === "file" || act === "note"){
+      ev.stopPropagation();               /* same law: the menu lives on as the note line */
+      notePanel(m, t, place, act === "file" ? (terminal ? "shelf" : "oneoff") : "");
+      return;
+    }
     closeMove();
     if(act === "x") return;
+    if(act === "unfile") return noteTxn(t, {filed: false}, out => t.filed_aside
+      ? `${out.merchant || "row"} — the one-off filing is cleared; this row's newer ruling stands alone`
+      : terminal
+      ? `${out.merchant || "row"} is back on the floor — the shelf's clock rules it again`
+      : `${out.merchant || "row"} is back in the tray and the pile`);
     if(act === "monthly") return payMonthly(t.id, null, null, null);
     if(act === "load") return assignTxn(t.id, Number(row), null);
     if(act === "dep-on" || act === "dep-off"){
@@ -8048,6 +8131,109 @@ async function openAcct(ev, t){
         : `${out.merchant || "row"} is back in the pile`, false);
     }catch(e){ finSay("the spine did not answer — nothing was written: " + (e.message||e), true); }
   }));
+}
+
+/* THE NOTE LINE (card #225) — the menu lives on as one input: a line for why.
+   Filing sends filed:true with it; a plain note sends the note alone. The
+   spine decides whether the row MAY be filed and says so in words. */
+function notePanel(m, t, place, mode){
+  /* mode: "shelf" files a terminal row now, "oneoff" files a no-bill row out of
+     the tray and the pile, "" is a bare note */
+  const filing = !!mode;
+  m.innerHTML = `<div class="mh">${esc(t.merchant || t.description || "this")} · ${money(Math.abs(t.amount))}
+      <span>${mode === "oneoff" ? "not a bill — a one-off; the books tab keeps it"
+            : mode === "shelf" ? "file it now — off the floor, into the fold"
+            : "a note rides the row — why, in a line"}</span></div>
+    <input class="nin" type="text" maxlength="500" autocomplete="off"
+      placeholder="${mode === "oneoff" ? "what it was — optional" : filing ? "why it is dead — optional" : "the note"}" value="${esc(t.note || "")}">
+    <button class="mi mnote">${mode === "oneoff" ? "file it as a one-off" : filing ? "file it" : (t.note ? "keep the note" : "add the note")}</button>
+    ${t.note && !filing ? `<button class="mi" data-act="clear">clear the note</button>` : ""}
+    <button class="mi off" data-act="x">never mind</button>`;
+  place();
+  const inp = m.querySelector(".nin");
+  const go = async () => {
+    const note = inp.value.trim();
+    closeMove();
+    await noteTxn(t, filing ? {note, filed: true} : {note}, out => mode === "oneoff"
+      ? `${out.merchant || "row"} filed as a one-off — out of the tray and the pile; the books tab keeps it${out.note ? ", with your note" : ""}`
+      : filing
+      ? `${out.merchant || "row"} filed — into the fold; it stays in the record${out.note ? ", with your note" : ""}`
+      : out.note ? `note kept on ${out.merchant || "the row"}` : `note cleared on ${out.merchant || "the row"}`);
+  };
+  m.querySelector('[data-act="x"]').addEventListener("click", closeMove);
+  const clr = m.querySelector('[data-act="clear"]');
+  clr && clr.addEventListener("click", () => { inp.value = ""; go(); });
+  m.querySelector(".mnote").addEventListener("click", go);
+  inp.addEventListener("keydown", ev => { if(ev.key === "Enter"){ ev.preventDefault(); go(); } });
+  inp.focus();
+}
+
+/* one write, the spine's words either way — the same contract as every mark */
+async function noteTxn(t, body, said){
+  try{
+    const r = await fetch(url("/api/fin/note"), {method:"POST",
+      headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({txn_id: t.id, ...body})});
+    const out = await r.json().catch(() => ({}));
+    if(!r.ok){ finSay(out.error || `the spine refused (${r.status}) — nothing was written`, true); return false; }
+    await loadFin(); renderRoom();
+    finSay(said(out), false);
+    return true;
+  }catch(e){ finSay("the spine did not answer — nothing was written: " + (e.message||e), true); return false; }
+}
+
+/* THE ASK'S TWO EXTRA ANSWERS (card #226). Both ask panels — the monthly lane's
+   and the record's — carry them, one definition:
+   FLIP: the spine named a card the row LOOKS like (best buy auto pymt wearing
+   Office Supplies). His tap dresses the row in Credit Card Repayment first
+   (the rules learn it), then settles that card — the 08-29 ruling holds
+   because the row rides the lane only once it wears the category.
+   ONE-OFF: no bill at all — file it out of the tray and the pile; the
+   books tab keeps it. */
+function askExtras(ask){
+  if(!ask || !ask.txn) return "";
+  /* every card at the top name-overlap rides (a tie is said aloud by the
+     spine's own words); one flip per card, his tap picks */
+  const hs = (ask.card_hints && ask.card_hints.length) ? ask.card_hints
+           : ask.card_hint ? [ask.card_hint] : [];
+  const payoff = ask.txn.category === "Transfer" || ask.txn.category === "Credit Card Repayment";
+  return hs.map(h => `<button class="acand flip" data-txn="${ask.txn.id}"
+        data-bt="${esc(h.bill_type)}" data-bid="${esc(h.bill_id)}">
+        <span>it paid the ${esc(h.name)} card</span><b>${h.due == null ? "" : money(h.due)}</b>
+        <i>${esc(h.why)} — your tap dresses it, the rules learn it, then the card is settled</i></button>`).join("")
+    + (payoff ? "" : `<button class="acand oneoff" data-txn="${ask.txn.id}">
+        <span>not a bill — a one-off</span><b>&nbsp;</b>
+        <i>out of the tray and the pile; the books tab keeps it</i></button>`);
+}
+async function flipAndPay(txn_id, bill_type, bill_id, box){
+  FIN.ask = null;
+  try{
+    const r = await fetch(url("/api/fin/categorize"), {method:"POST",
+      headers:{...hdr(), "Content-Type":"application/json"},
+      body: JSON.stringify({txn_id, category: "Credit Card Repayment", learn: true})});
+    const out = await r.json().catch(() => ({}));
+    if(!r.ok){ finSay(out.error || `the spine refused the category (${r.status}) — nothing was written`, true); renderRoom(); return; }
+  }catch(e){ finSay("the spine did not answer — nothing was written: " + (e.message||e), true); renderRoom(); return; }
+  /* the row now wears the payoff category — the named card is his tap. If
+     the settle then refuses, the FIRST write still landed: say so, and show
+     the row as it now is rather than 'nothing was written'. */
+  const ok = await payMonthly(txn_id, bill_type, bill_id, box);
+  if(!ok && !FIN.ask){
+    await loadFin(); renderRoom();
+    finSay("the row now wears Credit Card Repayment (that write landed) — the card was not settled; tap MONTHLY on it again and pick the card", true);
+  }
+  return ok;
+}
+async function fileOneoff(txn_id){
+  /* the ask comes down only when the write lands — on a refusal it is put
+     back and repainted, so the panel and FIN.ask never disagree */
+  const ask = FIN.ask;
+  FIN.ask = null;
+  const t = ((State.fin.expenses||{}).transactions||[]).find(x => x.id === txn_id) || {id: txn_id};
+  const ok = await noteTxn(t, {filed: true}, out =>
+    `${out.merchant || "row"} filed as a one-off — out of the tray and the pile; the books tab keeps it (a note is one tap away there)`);
+  if(!ok){ FIN.ask = ask; renderRoom(); }
+  return ok;
 }
 
 /* THE SPLIT PANEL — Bryan, 2026-08-04: "i have a deal with pilot to pay for my
@@ -8232,7 +8418,10 @@ async function payMonthly(txn_id, bill_type, bill_id, box){
       body: JSON.stringify({txn_id, bill_type, bill_id})});
     const out = await r.json().catch(() => ({}));
     if(r.status === 409 && out.ask){
-      FIN.ask = {txn: out.txn, candidates: out.candidates, no_match: out.no_match};
+      /* card_hint rides the ask (card #226) — dropping it here is what would
+         make the FLIP unreachable while the spine had named the card */
+      FIN.ask = {txn: out.txn, candidates: out.candidates, no_match: out.no_match,
+                 card_hint: out.card_hint || null, card_hints: out.card_hints || []};
       card && card.classList.remove("writing");
       renderRoom();
       finSay(out.no_match
