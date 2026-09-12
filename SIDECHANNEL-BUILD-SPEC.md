@@ -199,9 +199,43 @@ Pinned at the bottom, one thumb-reach group under a 1px `--line` sill (the dash 
 - **HOLD TO KEY (right):** the transmission. `:has(#sc-say:not(:placeholder-shown))` arms the cap pre-JS. Parsed 2xx → `rogerBeep` + `seat [14,26,14]`, words travel to the log. Refusal: `--ease-refuse` recoil + `thud` + the spine's words, **draft stays, lamp unchanged**.
 - **The duck** (graft, cuttable): `body.sc-keyed` during his hold dims log/steel/sky to .55 (one wrapper, compositor-only, .28s return). You duck for the man keying up. Nothing ducks for ATLAS — the beam needs full contrast.
 
-### 4.6 THE RUNS RAIL — tuning
+### 4.6 THE LOG — tuning  _(supersedes THE RUNS RAIL, 2026-09-12, card #237)_
 
-Each conversation is a **run** — a stretch of road taken together. CSS carousel under the masthead: `scroll-snap-type:x mandatory`, `::scroll-marker` 5px dots (`:target-current` in moonglass), degrades to a plain scroll row. Chips: auto-title (first say, clipped 42 chars; his rename wins), cooling with age — `color-mix(in oklch, rgb(var(--key)) calc(var(--fresh)*18%), transparent)` — one hue mixed toward the dark, never a second palette. `NEW RUN` at the rail's head. Switching = tuning: element-scoped `#log.startViewTransition()`, chips `view-transition-name: match-element` so they slide like a dial (names set in callback, cleared in `finally`, `reduce()` gated, plain repaint tier 3); `arm [8]` on detent. Rename/archive live in one anchored `popover="auto"` (`position-try-fallbacks: flip-block`; bottom-sheet <400px; **tap-shield law** on the opener).
+Each conversation is a **channel** — a stretch of road taken together. His ruling that retired the
+rail, in his words: *"chats need there own hamburger menu at the top right to choose, create, and
+archive."* The rail was a permanently-visible horizontal carousel; it cost a row of vertical height
+on every phone and it had no way to retire anything, so twelve build-probe channels buried his real
+traffic off the right edge.
+
+**The shape now.** A hamburger anchored to the top-right corner of the masthead (inside `.sc-doors`,
+a flex group that right-aligns as a unit so the hamburger holds the corner at every width, phone
+included) opens **THE LOG** — a right-edge drawer, the operator's channel log pulled off the side of
+the radio. In it: `+ OPEN A CHANNEL`; a row per channel (name, turn count, how long since, unheard
+count) that tunes on tap; `NAME` renaming inline (Enter commits, Escape backs out, blur commits);
+`OFF THE DIAL` retiring one; and an `OFF THE DIAL · n` section that expands to the back pages, each
+row restoring with `BACK ON`.
+
+**The law of the panel is the DIAL LIGHT.** A channel on the dial carries a lit lamp in `--key`; one
+off the dial carries a dead one. The light dies only AFTER the spine's 200 — nothing in this panel
+animates on hope — then the row slides out and the count ticks. Restoring reverses it.
+
+**Off the dial is a MARK, never a delete** (`threads.archived_at`, `radio.run_archive`): every turn
+is kept, the id is kept, `run_messages` still serves it, and a push answer landing on a retired
+channel is still taken. The #104 precedent governs — a hand-deletion resurrects on the next import;
+a mark does not.
+
+**What the rail did, and where each job went.** Naming the tuned channel → the kicker became the
+tuner display (`CH 21 · <channel>`, clipped, never wrapped). Listing the others → the log. Carrying
+the unheard glow → a lamp on the hamburger itself, lit when ANOTHER channel is holding words he has
+not heard, so hiding the list never hides the news.
+
+**Bearing 18 is answered, not skipped.** The one-verb test names a settle, a card move, an arm
+control, a dashboard strip — acts on the OPERATION. Tuning, opening and retiring a channel is the
+instrument's own dial, the same class as the mode selector that already ships. `ONE ACT LIVES
+HERE — TALK` stands.
+
+_The `detent.html` spindle keeps its own `SIDE CH` rail: it is a different physical instrument, and
+it inherits the cleanup for free because a retired channel leaves `runs` at the source._
 
 ### 4.7 THE VISOR — memories as soul
 
