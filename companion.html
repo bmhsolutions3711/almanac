@@ -404,7 +404,7 @@ function setMode(m, first){
   }
   $("say").placeholder = MODE_PLACEHOLDER[m];
   $("subdials").hidden = (m !== "atlas");
-  if(m === "atlas"){ paintDials(); refreshAtlas(); warmAtlas(); }   // the mode tap lights the stove
+  if(m === "atlas"){ paintDials(); refreshAtlas().then(() => { if(S.atlas?.armed) warmAtlas(); }); }   // the mode tap lights the stove — only an armed one
   if(!first && !S.msgs.length) renderWire();     // the quiet line speaks the mode
 }
 
@@ -558,7 +558,7 @@ function wireRow(m){
 /* a proposal row: PIN? is a chip his hold clips (the visor door, never a
    model write); an EDIT shows the diff and waits on his PHONE — the page can
    only watch the verdict land (the token is on the phone, not here) */
-const WATCHED = new Set();
+const WATCHED = new Map();      // aid → {el, tid}: the row currently on the glass, and its run
 function wireProposal(m, el, bd){
   if(/pin\?/.test(m.title || "")){
     bd.innerHTML = `<span class="mk">◉</span> pin this? <em>${esc(m.body)}</em> — hold to clip it to the visor`;
@@ -589,20 +589,27 @@ function wireProposal(m, el, bd){
   if(aid) watchApproval(aid, el);
 }
 function watchApproval(aid, el){
-  if(WATCHED.has(aid)) return;
-  WATCHED.add(aid);
+  const w = WATCHED.get(aid);
+  if(w){ w.el = el; return; }                    // re-rendered after a tune: watch the row that is on the glass now
+  WATCHED.set(aid, { el, tid: S.run, t0: Date.now() });
   const tick = async () => {
+    const cur = WATCHED.get(aid);
+    if(!cur) return;
+    if(Date.now() - cur.t0 > 35 * 60 * 1000){ WATCHED.delete(aid); return; }   // past any TTL — the row says expired on the next render
     try{
       const d = await grab(`/api/approvals/${aid}`);
       if(d && d.status && d.status !== "pending"){
-        const v = el.querySelector(".verdict");
-        if(v) v.textContent = d.status.toUpperCase() + " · the receipt is in the run";
+        const v = cur.el.querySelector(".verdict");
+        if(v) v.textContent = d.status === "expired" ? "EXPIRED — unanswered; nothing written"
+                            : d.status.toUpperCase() + " · the receipt is in the run";
         WATCHED.delete(aid);
-        try{   // the receipt row landed in the run (docs.on_decision) — pick it up
-          const r = await grab(`/api/threads/${S.run}/messages`);
-          const known = new Set(S.msgs.map(x => x.id));
-          for(const x of (r.messages || [])) if(!known.has(x.id)) appendTurn(x);
-        }catch(e){}
+        if(S.run === cur.tid){
+          try{   // the receipt row landed in the run (docs.on_decision) — pick it up
+            const r = await grab(`/api/threads/${cur.tid}/messages`);
+            const known = new Set(S.msgs.map(x => x.id));
+            for(const x of (r.messages || [])) if(!known.has(x.id)) appendTurn(x);
+          }catch(e){}
+        }
         return;
       }
     }catch(e){ /* the watch never breaks the room */ }
@@ -713,9 +720,9 @@ function wordTimes(el, dur){
    while ATLAS is still generating — buddy's signature moment. Gated like an
    arrival (visible, not muted); a tune, a pagehide or a new turn stops them;
    the ▶ replay is the full WAV cut at the end, never both at once. */
-const CLIPS = { q: [], busy: false, gen: 0, audio: null, played: 0, dropped: 0 };
+const CLIPS = { q: [], busy: false, gen: 0, audio: null, played: 0, dropped: 0, sayId: null, closed: true, voicedFinal: null };
 function stopClips(){
-  CLIPS.gen++; CLIPS.q.length = 0; CLIPS.busy = false;
+  CLIPS.gen++; CLIPS.dropped += CLIPS.q.length; CLIPS.q.length = 0; CLIPS.busy = false;
   if(CLIPS.audio){ try{ CLIPS.audio.pause(); }catch(e){} CLIPS.audio = null; }
 }
 function queueClip(sayId, n){
@@ -947,7 +954,9 @@ function follow(){
         const sayId = S.waiting.sayId; clearWait();
         for(const m of fresh) appendTurn(m);
         const el = $("wire").querySelector(`[data-id="${landed.id}"]`);
-        if(landed.kind === "answer" && el && document.visibilityState === "visible"){
+        if(landed.kind === "answer" && el && CLIPS.played > 0 && CLIPS.sayId === sayId){
+          markDone(el); S.reopenMic?.(); primePeaks(landed).catch?.(() => {});   // the clips already spoke this one
+        }else if(landed.kind === "answer" && el && document.visibilityState === "visible"){
           hearRow(landed, el, true).then(() => primePeaks(landed));  // THE BREAK
         }
         loadRuns();
@@ -969,23 +978,29 @@ function releaseWake(){ try{ WAKE?.release(); }catch(e){} WAKE = null; }
 async function sendAtlas(body, key){
   if(S.stream){ try{ S.stream.abort(); }catch(e){} S.stream = null; }
   const ctrl = new AbortController(); S.stream = ctrl;
+  /* nine seconds to HEADERS, same as the legacy door — a dead tailnet must
+     not hold the key at KEYED; the AbortError lands in wireKey's own words */
+  const hdrT = setTimeout(() => ctrl.abort(), 9000);
   let r;
   try{
     r = await fetch(url(`/api/threads/${S.run}/atlas`), { method:"POST",
       headers: hdr({"Content-Type":"application/json",
         "Idempotency-Key": key || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()))}),
       body: JSON.stringify({ body, gear: S.gear, web: S.web }), signal: ctrl.signal });
-  }catch(err){ S.stream = null; throw err; }
+    clearTimeout(hdrT);
+  }catch(err){ clearTimeout(hdrT); S.stream = null; throw err; }
   if(!r.ok){
     S.stream = null;
     const d = await r.json().catch(() => ({}));
     if(r.status === 409 && d.code === "off") refreshAtlas();
-    if(r.status === 404 || r.status === 405) return sendLegacyAtlas(body, key);   // an older spine
+    if(r.status === 405) return sendLegacyAtlas(body, key);   // an older spine with no atlas door
     throw new Error(d.error || ("the spine answered " + r.status));
   }
   if(!(r.headers.get("Content-Type") || "").includes("text/event-stream") || !r.body){
+    /* a 200 that is not a stream: the say row may still have landed — never
+       re-say; find it in the run */
     S.stream = null;
-    return sendLegacyAtlas(body, key);
+    return recoverAtlas(body, key, true);
   }
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -993,7 +1008,7 @@ async function sendAtlas(body, key){
     const guard = setTimeout(() => {           // no meta in 20 s: the turn never started
       if(settled) return;
       settled = true; try{ ctrl.abort(); }catch(e){}
-      recoverAtlas(body, key).then(resolve, reject);
+      recoverAtlas(body, key, true).then(resolve, reject);   // the POST was a 200: the row exists
     }, 20000);
     readAtlasStream(r, body, ctrl, ev => { clearTimeout(guard); meta(ev); })
       .then(() => { clearTimeout(guard); if(!settled){ settled = true; resolve({ id: null, answering: false }); } })
@@ -1025,12 +1040,19 @@ async function readAtlasStream(r, body, ctrl, onMeta){
   const handle = async ev => {
     if(ev.t === "meta"){
       sayId = ev.say_id; rogerBeep(); buzz([14,26,14]);
-      stopClips(); CLIPS.played = 0; CLIPS.dropped = 0;   // a new turn: whatever was speaking stops
+      stopClips(); CLIPS.played = 0; CLIPS.dropped = 0; CLIPS.sayId = sayId; CLIPS.closed = false; CLIPS.voicedFinal = null;   // a new turn: whatever was speaking stops
       appendTurn({ id: sayId, at: new Date().toISOString(), sender:"bryan", kind:"say", body, thread_id: S.run, mode:"atlas" });
       ensureLive(); stateWord(ev.gear === "deep" ? "ATL · DEEP · CLAUDE" : "ATL · THINKING");
       onMeta && onMeta(ev);
+      T.push(setTimeout(refill, 4000));   // a turn this key abandoned lands its rows on the glass anyway
     }else if(ev.t === "status"){
-      stateWord("ATL · " + String(ev.text || "").toUpperCase());
+      const s = String(ev.text || "");
+      if(/^DEEP is dark|^answering on the local seat|^Claude declined/.test(s)){
+        text = ""; if(liveBd) liveBd.textContent = ""; stopClips();   // Claude's half is not the answer
+      }
+      stateWord("ATL · " + s.toUpperCase());
+    }else if(ev.t === "voiced"){
+      CLIPS.voicedFinal = ev.n;                    // the spine's final count of clips actually cut
     }else if(ev.t === "token"){
       ensureLive(); text += ev.c; liveBd.textContent = text; stateWord("ATL · SPEAKING");
     }else if(ev.t === "tool"){
@@ -1058,13 +1080,18 @@ async function readAtlasStream(r, body, ctrl, onMeta){
       arc("atl", false); stateWord(); releaseWake();
       if(ev.voiced && el){
         /* the clips ARE the arrival — wait for the ones still in the air, then
-           light the words; the full WAV stays behind ▶ for a replay */
-        const t0 = Date.now();
+           light the words; the full WAV stays behind ▶ for a replay. The wait
+           ends when the spine's final count is met, or when the stream has
+           closed and nothing is playing (a clip that never came is not waited
+           for), or at 30 s — whichever is first. */
+        const t0 = Date.now(); let quietSince = 0;
         const settle = () => {
+          const want = CLIPS.voicedFinal ?? ev.voiced;
           const heard = CLIPS.played + CLIPS.dropped;
-          if((CLIPS.busy || CLIPS.q.length || heard < ev.voiced) && Date.now() - t0 < 30000){
-            T.push(setTimeout(settle, 250)); return;
-          }
+          const idle = !CLIPS.busy && !CLIPS.q.length;
+          if(idle && CLIPS.closed){ if(!quietSince) quietSince = Date.now(); }else quietSince = 0;
+          const drained = idle && (heard >= want || (quietSince && Date.now() - quietSince > 1500));
+          if(!drained && Date.now() - t0 < 30000){ T.push(setTimeout(settle, 250)); return; }
           markDone(el); arc("arc", false); stateWord(); S.reopenMic?.();
           primePeaks(m).catch?.(() => {});
         };
@@ -1072,9 +1099,10 @@ async function readAtlasStream(r, body, ctrl, onMeta){
       }else if(el && document.visibilityState === "visible"){
         hearRow(m, el, true).then(() => primePeaks(m));  // THE BREAK
       }
+      await refill();      // tool rows or chips this glass missed land now, not at the next tune
       loadRuns();
     }else if(ev.t === "error"){
-      done = true; dropLive();
+      done = true; dropLive(); stopClips();
       arc("atl", false); stateWord(); releaseWake(); thud(); buzz([12,70,12]);
       toast(ev.error || "ATLAS could not answer — your words hold");
       if(ev.code === "off") refreshAtlas();
@@ -1098,24 +1126,37 @@ async function readAtlasStream(r, body, ctrl, onMeta){
   }catch(err){
     if(!ctrl.signal.aborted) console.warn("atlas stream cut", err);
   }finally{
+    CLIPS.closed = true;
     if(S.stream === ctrl) S.stream = null;
   }
   if(!done && !ctrl.signal.aborted){
-    /* the stream died mid-turn — the row still lands; the poll finishes the job */
-    dropLive();
-    if(sayId) startWait(sayId); else await recoverAtlas(body);
+    /* the stream died mid-turn — the row still lands; the poll finishes the job.
+       Clips that already played are not spoken twice by the poll's arrival. */
+    dropLive(); stopClips();
+    if(sayId) startWait(sayId); else await recoverAtlas(body, null, true);
   }else if(!done){ dropLive(); arc("atl", false); stateWord(); releaseWake(); }
 }
-async function recoverAtlas(body, key){
-  try{
-    const d = await grab(`/api/threads/${S.run}/messages`);
-    const mine = (d.messages || []).filter(m => m.sender === "bryan" && m.kind === "say" && m.body === body).pop();
-    if(mine){
-      if(!S.msgs.some(x => x.id === mine.id)) appendTurn(mine);
-      startWait(mine.id);
-      return { id: mine.id, answering: true };
-    }
-  }catch(e){}
+async function recoverAtlas(body, key, landed){
+  /* landed = the atlas POST answered 200, so his words ARE in the run: find the
+     row and wait on it — never re-say through the legacy door, or one
+     transmission becomes two turns. Only a door that never opened falls back. */
+  for(let i = 0; i < (landed ? 3 : 1); i++){
+    try{
+      const d = await grab(`/api/threads/${S.run}/messages`);
+      const mine = (d.messages || []).filter(m => m.sender === "bryan" && m.kind === "say" && m.body === body).pop();
+      if(mine){
+        if(!S.msgs.some(x => x.id === mine.id)) appendTurn(mine);
+        startWait(mine.id);
+        return { id: mine.id, answering: true };
+      }
+      if(landed) break;      // the run answered and the row is not there: nothing to wait on
+    }catch(e){ if(landed) await new Promise(res => T.push(setTimeout(res, 2000))); }
+  }
+  if(landed){
+    toast("the spine has your words — the answer lands in the run; tune back if the glass goes quiet");
+    T.push(setTimeout(() => tune(S.run), 6000));
+    return { id: null, answering: true };
+  }
   return sendLegacyAtlas(body, key);
 }
 async function sendLegacyAtlas(body, key){
@@ -1182,7 +1223,6 @@ function wireKey(){
         await sendTurn(body, key);
         say.value = "";
       }catch(err){
-        clearTimeout(abortT);
         btn.dataset.state = "refused"; thud(); buzz([12,70,12]);
         toast((err.name === "AbortError" ? "nine seconds and no answer — " :
                "the channel didn't take it — ") + "nothing was sent; your words stay in the well");

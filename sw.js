@@ -106,14 +106,23 @@ self.addEventListener('notificationclick', e => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ decision: e.action, token: data.token }),
-      }).then(r => r.ok ? null : r.status).then(bad => {
+      }).then(r => r.json().catch(() => ({})).then(d => ({ ok: r.ok, status: r.status, d }))).then(({ ok, status, d }) => {
         // Silence would read as "sent" while the call sat waiting on the Mac.
         // A failed verdict says so, on its own notification, in words.
-        if (bad) return self.registration.showNotification('Verdict did not land', {
-          body: `Your ${e.action} came back ${bad}. The call is still waiting — `
+        // 409 "already <status>" is his second tap, not a failure — the first landed.
+        if (!ok && !(status === 409 && /^already/.test(d.error || ''))) return self.registration.showNotification('Verdict did not land', {
+          body: `Your ${e.action} came back ${status}. The call is still waiting — `
               + `open the desk, or it expires on its own.`,
           icon: './icons/icon-192.png', badge: './icons/icon-192.png',
           tag: `approval-${data.approval_id}-failed`, requireInteraction: true,
+        });
+        // An ATLAS document edit applies INSIDE this request (card #224). A verdict that
+        // landed but wrote nothing must say so here — the run row alone is not enough
+        // when the phone is the surface he is holding.
+        if (ok && d.applied && d.applied.ok === false) return self.registration.showNotification('Approved — but nothing was written', {
+          body: d.applied.words || 'the change did not land; check the file by hand',
+          icon: './icons/icon-192.png', badge: './icons/icon-192.png',
+          tag: `approval-${data.approval_id}-noapply`, requireInteraction: true,
         });
       }).catch(() => self.registration.showNotification('Verdict did not send', {
         // Off the tailnet — the common case in a dead zone. Say which, plainly.
