@@ -1,10 +1,10 @@
 {
-  "id": "/almanac/detent",
+  "id": "./detent",
   "name": "Almanac Detent",
   "short_name": "Detent",
   "description": "The machined plate. One thumb, one thing at a time.",
-  "start_url": "/almanac/detent.html",
-  "scope": "/almanac/",
+  "start_url": "./detent.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#2A2F2D",
