@@ -1287,7 +1287,12 @@ body.hot .act .h .n{color:var(--hot)}
 .pl-ghost{font:400 11px/1 var(--sans);color:var(--etch);padding:7px 0 3px}
 .pl-task{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dotted var(--line)}
 .pl-task.done{opacity:.55}
-.pl-done{min-width:38px;min-height:38px;border:none;background:none;color:rgb(var(--key));font-size:16px;cursor:pointer;flex:0 0 auto}
+/* a traditional checkbox, the practice's own (his word 09-12, card #232) */
+.pl-done{width:20px;height:20px;margin:0 6px 0 2px;accent-color:rgb(var(--key));cursor:pointer;flex:0 0 auto}
+.pl-task .pl-tx{cursor:pointer}
+.pl-task.dragging{opacity:.4}
+.pl-bucket{min-height:16px;border-radius:6px;transition:background .15s,box-shadow .15s}
+.pl-bucket.over{background:rgba(var(--key),.10);box-shadow:0 0 0 1px rgba(var(--key),.45) inset}
 .pl-tx{flex:1;font:400 13px/1.45 var(--sans);color:var(--ink);min-width:0}
 .pl-task.done .pl-tx{color:var(--dim)}
 .pl-dt{display:block;font:700 8px/1.6 var(--mono);letter-spacing:.1em;color:var(--etch);font-style:normal}
@@ -7037,19 +7042,26 @@ function plannerRoom(){
     const subs = t.subtasks || [];
     const subChip = subs.length
       ? `<span class="pl-subc">${subs.filter(s => s && s.done).length}/${subs.length}</span>` : "";
-    return `<div class="pl-task" data-id="${t.id}">
-      <button class="pl-done" data-id="${t.id}" title="done">○</button>
-      <span class="pl-tx">${esc(t.text)}<i class="pl-dt">${mmdd(t.created_at)}</i></span>${subChip}
+    /* HIS HAND ON THE LISTS (card #232): a real checkbox finishes it; the
+       text is the door to its moves (tap or right-click); the row drags on
+       the desk. The chip keeps its quick cycle. */
+    return `<div class="pl-task" data-id="${t.id}" data-cat="${esc(t.category)}" data-tf="${esc(t.timeframe)}" draggable="true">
+      <input type="checkbox" class="pl-done" data-id="${t.id}" title="done">
+      <span class="pl-tx" data-id="${t.id}" title="tap for its moves — reorder, another bucket, another list">${esc(t.text)}<i class="pl-dt">${mmdd(t.created_at)}</i></span>${subChip}
       <button class="pl-retime" data-id="${t.id}" data-tf="${esc(t.timeframe)}"
         title="move to the next bucket">${esc(TFL[t.timeframe] || t.timeframe)}</button>
       <button class="pl-del" data-id="${t.id}" title="remove">✕</button></div>`;
   };
+  /* every bucket is a CONTAINER (data-cat, data-tf) so a drop lands somewhere:
+     the inboxes are one flat weekly bucket each; the columns carry four */
+  const bucket = (cat, tf, rows, ghost) =>
+    `<div class="pl-bucket" data-cat="${cat}" data-tf="${tf}">${rows.map(taskRow).join("") || `<div class="pl-ghost">${ghost}</div>`}</div>`;
   const inboxPanel = (cat, icon, label, ph, cls) => {
     const rows = byCat[cat] || [];
     return `<div class="panel pl-col ${cls}">
       <div class="pl-colhead"><span>${icon} ${label}</span><b>${rows.length}</b></div>
       <input class="pl-addin" data-cat="${cat}" placeholder="${ph}" autocapitalize="off">
-      ${rows.map(taskRow).join("") || `<div class="pl-ghost">nothing waiting</div>`}</div>`;
+      ${bucket(cat, "weekly", rows, "nothing waiting")}</div>`;
   };
   const colPanel = (cat, icon, cls) => {
     const list = byCat[cat] || [];
@@ -7058,8 +7070,7 @@ function plannerRoom(){
     let buckets = "";
     for(const [tf, lbl, k] of TFS){
       const rows = list.filter(t => t.timeframe === tf);
-      buckets += `<div class="pl-bkt ${k}">${lbl}</div>`
-        + (rows.map(taskRow).join("") || `<div class="pl-ghost">—</div>`);
+      buckets += `<div class="pl-bkt ${k}">${lbl}</div>` + bucket(cat, tf, rows, "—");
     }
     return `<div class="panel pl-col ${cls}">
       <div class="pl-colhead"><span>${icon} ${cat}</span><b>${list.length}</b></div>
@@ -7159,12 +7170,27 @@ function wirePlanner(){
         await lpRefetch(); renderRoom(); }
       catch(err){ inp.disabled = false; toast(String(err.message || err)); }
     }));
-  R.querySelectorAll(".pl-done").forEach(b =>
-    b.addEventListener("click", async e => { e.stopPropagation();
-      b.disabled = true; b.textContent = "…";
-      try{ await lpWrite(`/api/planner/task/${b.dataset.id}/toggle`, {});
+  /* a real checkbox finishes a task (his word 09-12: 'a traditional check box
+     vs the little circle'); never optimistic — a refused write unchecks */
+  R.querySelectorAll(".pl-done").forEach(cb =>
+    cb.addEventListener("change", async e => { e.stopPropagation();
+      cb.disabled = true;
+      try{ await lpWrite(`/api/planner/task/${cb.dataset.id}/toggle`, {});
         await lpRefetch(); renderRoom(); }
-      catch(err){ b.disabled = false; b.textContent = "○"; toast(String(err.message || err)); } }));
+      catch(err){ cb.checked = false; cb.disabled = false; toast(String(err.message || err)); } }));
+  /* the text is the door to a task's moves — a TAP (the Fold has no drag)
+     or a right-click opens the house menu; the drag is the desk's shortcut */
+  R.querySelectorAll(".pl-task").forEach(row => {
+    const open = ev => {
+      if(ev.target.closest(".pl-done, .pl-retime, .pl-del")) return;
+      ev.preventDefault(); ev.stopPropagation();
+      const t = ((State.planner.tasks || {}).open || []).find(x => x.id === Number(row.dataset.id));
+      if(t) plMenu(ev, t);
+    };
+    row.querySelector(".pl-tx").addEventListener("click", open);
+    row.addEventListener("contextmenu", open);
+  });
+  plWireDrag(R);
   R.querySelectorAll(".pl-retime").forEach(b =>
     b.addEventListener("click", async e => { e.stopPropagation();
       const NEXT = { weekly:"monthly", monthly:"quarterly", quarterly:"annual", annual:"weekly" };
@@ -7184,6 +7210,92 @@ function wirePlanner(){
       const c = b.dataset.cat;
       LP.finOpen.has(c) ? LP.finOpen.delete(c) : LP.finOpen.add(c);
       renderRoom(); }));
+}
+/* HIS HAND ON THE LISTS (card #232): one menu for a task's every move —
+   its place, its bucket, its list — reachable by TAP, because the Fold has
+   no drag. The same house menu the money floor uses. */
+const PL_TF = [["weekly","this week"],["monthly","this month"],["quarterly","this quarter"],["annual","this year"]];
+const PL_CATS = [["quick","⚡ quick inbox"],["shopping","🛒 shopping"],["business","💼 business"],
+                 ["personal","👤 personal"],["spiritual","🙏 spiritual"]];
+const plTfWord = tf => (Object.fromEntries(PL_TF)[tf] || tf);
+function plMenu(ev, t){
+  closeMove();
+  const m = document.createElement("div");
+  m.className = "movemenu";
+  document.body.appendChild(m);
+  MOVEMENU = m;
+  m.innerHTML = `<div class="mh">${esc(t.text)}<span>${esc(t.category)} · ${esc(plTfWord(t.timeframe))}</span></div>
+    <div class="msep">its place</div>
+    <button class="mi" data-at="top">to the top</button>
+    <button class="mi" data-at="up">up one</button>
+    <button class="mi" data-at="down">down one</button>
+    <button class="mi" data-at="bottom">to the bottom</button>
+    <div class="msep">to a bucket</div>
+    ${PL_TF.map(([k,l]) => `<button class="mi" data-tf="${k}" ${k === t.timeframe ? "disabled" : ""}>${l}${k === t.timeframe ? "<i>where it is</i>" : ""}</button>`).join("")}
+    <div class="msep">to a list</div>
+    ${PL_CATS.map(([k,l]) => `<button class="mi" data-cat="${k}" ${k === t.category ? "disabled" : ""}>${l}${k === t.category ? "<i>where it is</i>" : ""}</button>`).join("")}
+    <button class="mi" data-act="remove" style="color:var(--hot)">remove</button>
+    <button class="mi off" data-act="x">never mind</button>`;
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(6, Math.min(ev.clientX, innerWidth - w - 6)) + "px";
+  m.style.top = Math.max(6, Math.min(ev.clientY, innerHeight - h - 6)) + "px";
+  m.querySelectorAll(".mi").forEach(b => b.addEventListener("click", async () => {
+    closeMove();
+    const {at, tf, cat, act} = b.dataset;
+    if(act === "x") return;
+    if(act === "remove"){
+      try{ await lpWrite(`/api/planner/task/${t.id}/delete`, {}); await lpRefetch(); renderRoom(); }
+      catch(err){ toast(String(err.message || err)); }
+      return;
+    }
+    await plMove(t.id, { at, timeframe: tf, category: cat });
+  }));
+}
+/* one write, then the served truth — never optimistic */
+async function plMove(id, body){
+  try{
+    await lpWrite(`/api/planner/task/${id}/move`, body);
+    await lpRefetch(); renderRoom();
+    if(body.timeframe || body.category)
+      toast(`moved to ${[body.category, body.timeframe && plTfWord(body.timeframe)].filter(Boolean).join(" · ")}`);
+  }catch(err){ toast(String(err.message || err)); }
+}
+/* the desk's shortcut: drag a row onto a bucket (end of it) or onto another
+   row (above its midline = before it, below = after it); the order the eye
+   sees is the order the spine writes */
+function plWireDrag(R){
+  R.querySelectorAll(".pl-task[draggable]").forEach(row => {
+    row.addEventListener("dragstart", ev => {
+      LP.drag = Number(row.dataset.id); row.classList.add("dragging");
+      ev.dataTransfer.effectAllowed = "move";
+      ev.dataTransfer.setData("text/plain", row.dataset.id);
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging"); LP.drag = null;
+      R.querySelectorAll(".pl-bucket.over").forEach(b => b.classList.remove("over"));
+    });
+  });
+  R.querySelectorAll(".pl-bucket").forEach(bk => {
+    bk.addEventListener("dragover", ev => {
+      if(LP.drag == null) return;
+      ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; bk.classList.add("over");
+    });
+    bk.addEventListener("dragleave", ev => { if(!bk.contains(ev.relatedTarget)) bk.classList.remove("over"); });
+    bk.addEventListener("drop", async ev => {
+      ev.preventDefault(); bk.classList.remove("over");
+      const id = LP.drag != null ? LP.drag : Number(ev.dataTransfer.getData("text/plain"));
+      LP.drag = null;
+      if(!id) return;
+      const ids = [...bk.querySelectorAll(".pl-task")].map(r => Number(r.dataset.id)).filter(x => x !== id);
+      const onRow = ev.target.closest(".pl-task");
+      if(onRow && Number(onRow.dataset.id) !== id){
+        const i = ids.indexOf(Number(onRow.dataset.id));
+        const r = onRow.getBoundingClientRect();
+        ids.splice(ev.clientY < r.top + r.height / 2 ? i : i + 1, 0, id);
+      } else ids.push(id);
+      await plMove(id, { category: bk.dataset.cat, timeframe: bk.dataset.tf, order: ids });
+    });
+  });
 }
 /* the morning practice on the canon card (his ask: below THE PAGE and
    ON AIR, checkable, reflected in the orb) */
