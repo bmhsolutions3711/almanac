@@ -14,7 +14,7 @@
  *    network every time; the SW cache is then only ever a genuine offline
  *    fallback.
  */
-const VERSION = 'almanac-shell-v156';   // v156: THE LOG — the side channel's hamburger (card #237)
+const VERSION = 'almanac-shell-v157';   // v157: the new mark — the Sentinel Ledger (card #238)
 
 // The version gauge that cannot lie (Almanac #8): the page asks, the worker
 // answers — the chip renders what is actually installed, never a hardcoded
@@ -28,7 +28,8 @@ const SHELL = ['./', './index.html', './manifest.json',
                './detent.html', './detent.webmanifest', './desk.html',
                './companion.html', './ear.html',
                './vendor/leaflet.js', './vendor/leaflet.css',
-               './icons/icon-192.png', './icons/icon-512.png'];
+               './icons/icon-192.png', './icons/icon-512.png',
+               './icons/badge-96.png'];
 
 self.addEventListener('install', e => {
   // ALL OR NOTHING (card #99): a single missed file fails the whole install,
@@ -83,7 +84,7 @@ self.addEventListener('push', e => {
       ? { url: d.url, kind: 'approval', approval_id: d.approval_id, token: d.token }
       : { url: d.url || './detent.html' },
     icon: './icons/icon-192.png',
-    badge: './icons/icon-192.png',
+    badge: './icons/badge-96.png',
     tag: isApproval ? `approval-${d.approval_id}` : 'almanac',
     renotify: true,
     requireInteraction: true,
@@ -113,7 +114,7 @@ self.addEventListener('notificationclick', e => {
         if (!ok && !(status === 409 && /^already/.test(d.error || ''))) return self.registration.showNotification('Verdict did not land', {
           body: `Your ${e.action} came back ${status}. The call is still waiting — `
               + `open the desk, or it expires on its own.`,
-          icon: './icons/icon-192.png', badge: './icons/icon-192.png',
+          icon: './icons/icon-192.png', badge: './icons/badge-96.png',
           tag: `approval-${data.approval_id}-failed`, requireInteraction: true,
         });
         // An ATLAS document edit applies INSIDE this request (card #224). A verdict that
@@ -121,13 +122,13 @@ self.addEventListener('notificationclick', e => {
         // when the phone is the surface he is holding.
         if (ok && d.applied && d.applied.ok === false) return self.registration.showNotification('Approved — but nothing was written', {
           body: d.applied.words || 'the change did not land; check the file by hand',
-          icon: './icons/icon-192.png', badge: './icons/icon-192.png',
+          icon: './icons/icon-192.png', badge: './icons/badge-96.png',
           tag: `approval-${data.approval_id}-noapply`, requireInteraction: true,
         });
       }).catch(() => self.registration.showNotification('Verdict did not send', {
         // Off the tailnet — the common case in a dead zone. Say which, plainly.
         body: 'No route to the spine. Check Tailscale; the call is still waiting.',
-        icon: './icons/icon-192.png', badge: './icons/icon-192.png',
+        icon: './icons/icon-192.png', badge: './icons/badge-96.png',
         tag: `approval-${data.approval_id}-failed`, requireInteraction: true,
       }))
     );
