@@ -404,7 +404,7 @@ function setMode(m, first){
   }
   $("say").placeholder = MODE_PLACEHOLDER[m];
   $("subdials").hidden = (m !== "atlas");
-  if(m === "atlas"){ paintDials(); refreshAtlas().then(() => { if(S.atlas?.armed) warmAtlas(); }); }   // the mode tap lights the stove — only an armed one
+  if(m === "atlas"){ paintDials(); grabFix(); refreshAtlas().then(() => { if(S.atlas?.armed) warmAtlas(); }); }   // the mode tap lights the stove — only an armed one — and asks where the truck is
   if(!first && !S.msgs.length) renderWire();     // the quiet line speaks the mode
 }
 
@@ -424,6 +424,29 @@ async function refreshAtlas(){
   $("modeAtlas").textContent = off ? "ATLAS · OFF" : "ATLAS";
   $("atlasnote").textContent = off ? "off — arm it from the spine" :
     (S.gear === "deep" ? "next turn goes to Claude" : "");
+}
+/* THE FIX (card #224 road) — the desk's 09-01 pattern, verbatim: pulled once per
+   open after the one-time browser grant, held in page state, sent in the POST body
+   of each ATLAS turn, used by the spine for that one request and never kept.
+   NEVER localStorage, NEVER a query string, NEVER the say text. Geolocation is
+   callback-based and can hang, so nothing here may gate the room. */
+const GEO = { fix:null, at:null, why:"" };
+function grabFix(){
+  return new Promise(res => {
+    if(!navigator.geolocation){ GEO.why = "this device offers no location"; return res(null); }
+    navigator.geolocation.getCurrentPosition(
+      p => { GEO.fix = { lat:p.coords.latitude, lng:p.coords.longitude };
+             GEO.at = Date.now(); GEO.why = ""; res(GEO.fix); },
+      e => { GEO.why = e.message || "the device refused"; res(null); },
+      { enableHighAccuracy:false, timeout:10000, maximumAge:300000 });
+  });
+}
+/* a stale fix draws the road from where he WAS. maximumAge 5 min makes a re-grab
+   free when the cached one is fresh; a slow one is not waited on — this turn goes
+   with what is held, the next turn gets the answer. */
+function freshFix(){
+  if(GEO.fix && Date.now() - GEO.at < 300000) return Promise.resolve(GEO.fix);
+  return Promise.race([grabFix(), new Promise(r => setTimeout(() => r(GEO.fix), 1500))]);
 }
 function warmAtlas(){
   /* the warm renders the same tool set the next turn will (the tool block is
@@ -622,7 +645,21 @@ function renderWire(){
   if(!S.msgs.length){
     const q = document.createElement("div"); q.className = "sc-quiet";
     q.textContent = MODE_QUIET[S.mode] || MODE_QUIET.analysis;
-    w.appendChild(q); return;
+    w.appendChild(q);
+    /* your thumb — a chief of staff that filed a change reports its fate. Dim,
+       unvoiced, glass only; never in the prompt (a verdict must not churn the
+       cached prefix), never over a live run. */
+    const a = S.mode === "atlas" && S.atlas && S.atlas.asks;
+    if(a && Object.keys(a).some(k => k !== "newest_pending")){
+      const parts = [];
+      if(a.pending) parts.push(`${a.pending} change${a.pending === 1 ? "" : "s"} I filed still on your phone` +
+                               (a.newest_pending ? ` (${a.newest_pending.summary})` : ""));
+      for(const k of Object.keys(a)) if(k !== "pending" && k !== "newest_pending") parts.push(`${a[k]} ${k}`);
+      const t = document.createElement("div"); t.className = "sc-quiet";
+      t.textContent = "your thumb · " + parts.join(" · ");
+      w.appendChild(t);
+    }
+    return;
   }
   const rows = S.msgs.slice().reverse();          // column-reverse: first = newest = bottom
   let stag = 0;
@@ -978,6 +1015,7 @@ function releaseWake(){ try{ WAKE?.release(); }catch(e){} WAKE = null; }
 async function sendAtlas(body, key){
   if(S.stream){ try{ S.stream.abort(); }catch(e){} S.stream = null; }
   const ctrl = new AbortController(); S.stream = ctrl;
+  const fix = await freshFix();      // where the truck is — this request only
   /* nine seconds to HEADERS, same as the legacy door — a dead tailnet must
      not hold the key at KEYED; the AbortError lands in wireKey's own words */
   const hdrT = setTimeout(() => ctrl.abort(), 9000);
@@ -986,7 +1024,9 @@ async function sendAtlas(body, key){
     r = await fetch(url(`/api/threads/${S.run}/atlas`), { method:"POST",
       headers: hdr({"Content-Type":"application/json",
         "Idempotency-Key": key || (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()))}),
-      body: JSON.stringify({ body, gear: S.gear, web: S.web }), signal: ctrl.signal });
+      body: JSON.stringify({ body, gear: S.gear, web: S.web,
+                             origin: fix ? { lat: fix.lat, lng: fix.lng, age_s: Math.round((Date.now() - GEO.at)/1000) } : null }),
+      signal: ctrl.signal });
     clearTimeout(hdrT);
   }catch(err){ clearTimeout(hdrT); S.stream = null; throw err; }
   if(!r.ok){
