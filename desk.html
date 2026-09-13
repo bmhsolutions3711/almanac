@@ -230,6 +230,23 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
 .consider .btn.go{color:var(--amber);border-color:rgba(var(--key),.4)}
 .consider .att{margin-top:6px;font:700 8.5px/1 var(--mono);letter-spacing:.16em;color:var(--dim)}
 
+/* THE MIRROR — his own ruling, surfacing. Deliberately NOT the amber key:
+   amber on this card means "here is the thing to do", and this is not a task,
+   it is a reflection. So it reads as ink on the same page — a hairline rule
+   above it the way a ledger separates a margin note from the entry. */
+.mirror{margin-top:13px;padding-top:11px;border-top:1px solid var(--line)}
+.mirror .mlbl{display:block;font:700 8px/1 var(--mono);letter-spacing:.19em;
+  color:var(--etch);margin-bottom:8px}
+.mirror .mrule{font:400 13.5px/1.5 var(--sans);color:var(--ink);font-style:italic;
+  text-wrap:balance}
+.mirror .mwhen{font:700 8.5px/1 var(--mono);letter-spacing:.14em;color:var(--etch);
+  margin-left:7px;font-style:normal;white-space:nowrap}
+.mirror .mnow{margin-top:7px;font:400 11.5px/1.5 var(--mono);color:var(--dim)}
+.mirror .mgo{margin-top:9px;font:700 8.5px/1 var(--mono);letter-spacing:.16em;
+  color:var(--etch);background:none;border:0;padding:4px 0;cursor:pointer}
+.mirror .mgo:hover{color:var(--ink)}
+.mirror.letting .mrule,.mirror.letting .mnow{opacity:.3;transition:opacity .3s}
+
 /* THE DAY (card #171, his ruling 2026-09-02: "the original should be the
    header and then I scroll down to a whole section that will drive my
    day"). The field + canon ARE the header; the fieldwrap scrolls, and the
@@ -344,6 +361,9 @@ canvas.stars{position:fixed;inset:0;z-index:0;width:100%;height:100%}
   .consider{width:min(620px,92%);padding:9px 13px 8px}
   .consider .lbl{font-size:7px;padding:4px 8px}
   .consider .q{margin-top:8px;font-size:13.5px;line-height:1.35}
+  .mirror{margin-top:10px;padding-top:9px}
+  .mirror .mrule{font-size:12px;line-height:1.4}
+  .mirror .mnow{font-size:10.5px}
   .consider .rz{margin-top:5px;font-size:10.5px}
   .consider .acts{margin-top:8px;gap:6px}
   .consider .acts .btn{padding:6px 10px;font-size:9.5px}
@@ -1645,6 +1665,13 @@ body.hot .act .h .n{color:var(--hot)}
       <div class="rz" id="crz"></div>
       <div class="acts"><button class="btn go" id="cgo">OPEN IT</button><button class="btn go" id="cair" hidden>ON AIR</button></div>
       <div class="cml" id="cml" hidden></div>
+      <!-- THE MIRROR (card #244). Not an alert and not another orb — the
+           ledger reading his own earlier handwriting back to him. It is a
+           MARGIN NOTE: a hairline rule, his ruling in the hand it was written
+           in, the date set small like a date in a margin, and today's fact
+           under it. It renders ONLY when there is something; a "nothing to
+           report" panel is the thing that makes him stop reading it. -->
+      <div class="mirror" id="mirror" hidden></div>
     </div>
   </div>
   <button class="daycue" id="daycue" hidden>&#9662; THE DAY</button>
@@ -3031,6 +3058,54 @@ function paintConsider(){
   $("crz").textContent = pick.rz;
   $("cgo").textContent = pick.go;
   $("cgo").onclick = () => enter(pick.i);
+  paintMirror();
+}
+
+/* ── THE MIRROR (card #244) ───────────────────────────────────────────
+   His own rulings against today's facts. The spine decides whether there is
+   anything; this only draws it. THREE RULES IT KEEPS:
+     · It draws NOTHING when there is nothing — no empty state, no "all
+       clear", no placeholder. A panel that is always there is a panel he
+       stops seeing, and then it is worth less than nothing on the day it
+       is true.
+     · It NAMES, it never instructs. His own doctrine is to name the
+       behaviour first so the choice is conscious. The words come from the
+       spine verbatim; this page writes none of its own.
+     · LET IT GO is a TAP, not a hold (the gesture grammar: a hold is
+       constitutional and irreversible, and letting a naming go is neither).
+       It expires on its own, so a thing he silenced on a bad week speaks
+       again on a better one. The line dims only AFTER the spine's 200 —
+       nothing on this desk animates on hope. */
+let MIRROR = [];
+async function loadMirror(){
+  try{ MIRROR = (await grab("/api/notice")).notices || []; }
+  catch(e){ MIRROR = []; }        /* a dark mirror is silent, never a false all-clear */
+  paintMirror();
+}
+function paintMirror(){
+  const el = $("mirror"); if(!el) return;
+  const n = MIRROR[0];
+  if(!n){ el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  el.classList.remove("letting");
+  el.innerHTML =
+    `<span class="mlbl">YOU RULED</span>` +
+    `<div class="mrule">&ldquo;${esc(n.ruling)}&rdquo;` +
+      `<span class="mwhen">${esc(n.ruled_when)}</span></div>` +
+    `<div class="mnow">${esc(n.observed)}</div>` +
+    `<button class="mgo" id="mgo">LET IT GO</button>`;
+  $("mgo").onclick = async () => {
+    try{
+      const r = await fetch(url(`/api/notice/${encodeURIComponent(n.slug)}/quiet`),
+        { method:"POST", headers: hdr({"Content-Type":"application/json"}),
+          body: JSON.stringify({ days: 7 }) });
+      if(!r.ok) throw new Error("the spine answered " + r.status);
+      el.classList.add("letting");
+      MIRROR = MIRROR.slice(1);
+      toast("let go for a week — it speaks again after that.");
+      setTimeout(paintMirror, 320);
+    }catch(err){ toast("not let go — " + (err.message||err)); }
+  };
 }
 
 /* ── entering a domain ────────────────────────────────────────────── */
@@ -8975,6 +9050,13 @@ async function load(keep){
       grab(p).then(v => { State[k] = v; }).catch(() => {})));
     /* the money room's own reads — never allowed to fail the desk */
     await loadFin().catch(() => {});
+    /* THE MIRROR rides the same read (card #244) — before paintField, so the
+       spine's card and its margin note land in one paint rather than the note
+       appearing a beat late under a card he has already read. Its own catch
+       leaves MIRROR empty, which draws nothing: a dark mirror is SILENT, and
+       silence here is indistinguishable from clear by design — the spine is
+       where a blind check announces itself (/api/notice?why=1). */
+    await loadMirror().catch(() => {});
     deriveTemp(); paintField(); stampRead();
     /* the day card rides AFTER the field paints — a hung geolocation
        prompt must never hold the desk (errors swallowed, fan-out law) */
@@ -8992,6 +9074,7 @@ async function load(keep){
   }catch(e){
     State.err = String(e.message || e);
     deriveTemp();
+    MIRROR = []; paintMirror();   /* no ruling hangs under a dead spine */
     $("cq").textContent = "The spine did not answer.";
     $("crz").textContent = State.err;
     if(!configured()) showConnect();
