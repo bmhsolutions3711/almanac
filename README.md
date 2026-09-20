@@ -1,24 +1,17 @@
-# Almanac — the shell
+# Almanac — moved
 
-The installable front end for [Almanac](https://github.com/bmhsolutions3711) — a locally-owned life
-AI. This repo holds **only the shell**: HTML, a manifest, a service worker and icons.
+The shell lives at **https://bmh-almanac.github.io/** (org `bmh-almanac`, repo
+`bmh-almanac.github.io`) since 2026-09-12 — its own origin, so clearing or reinstalling any
+other BMH app on a phone can no longer wipe Almanac's stored address and token
+(Almanac card #235: eleven apps shared this origin and one app's clear-data took them all).
 
-**There is no data here and there never will be.** No money figures, no board state, no doctrine, no
-tokens. All of that lives on Bryan's own machine behind a tailnet-only, token-gated API. This page
-is glass; everything behind it stays home.
+This repo is now a redirect and nothing else:
 
-## Connecting
+- `index.html` and `404.html` forward every path, query and hash to the new origin
+  (`/almanac/desk.html#x` → `https://bmh-almanac.github.io/desk.html#x`).
+- `sw.js` is a kill switch: it replaces the last real worker, clears every cache this
+  origin holds, reloads open windows so they are forwarded, and unregisters itself.
+- There is no manifest, so nothing installs from here any more. Install Almanac from the
+  new origin — the QR on the Mac: `python3 ~/Almanac/tools/connect.py desk --qr`.
 
-The app is configured once by scanning its card in BIK Connect, which carries
-`#cfg={"api":"…","token":"…"}`. Those land in `localStorage` and the hash is scrubbed immediately,
-so the token never survives in history or a screenshot. Until then the app says it is not connected
-and shows nothing.
-
-`#reset` unregisters the service worker and clears caches — the escape hatch when a phone sticks on
-an old build.
-
-## Why a separate origin
-
-Apps served from the tailnet host on a port open as browser pages. Only a distinct origin installs
-as its own app with its own icon, which is why every BMH PWA is a github.io shell and why the
-backend serves no HTML.
+There is no data here and there never was: the app is glass, everything behind it stays home.
